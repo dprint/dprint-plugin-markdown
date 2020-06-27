@@ -133,6 +133,11 @@ pub struct Item {
     pub children: Vec<Node>,
 }
 
+pub struct TaskListMarker {
+    pub range: Range,
+    pub is_checked: bool,
+}
+
 /// Inline code.
 pub struct Code {
     pub range: Range,
@@ -209,6 +214,7 @@ generate_node![
     ReferenceImage,
     List,
     Item,
+    TaskListMarker,
     SoftBreak,
     HardBreak,
     Code,

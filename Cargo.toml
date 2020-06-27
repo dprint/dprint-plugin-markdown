@@ -9,7 +9,7 @@ homepage = "https://github.com/dprint/dprint-plugin-markdown"
 repository = "https://github.com/dprint/dprint-plugin-markdown"
 
 [dependencies]
-dprint-core = "0.19.1"
+dprint-core = "0.22.0"
 pulldown-cmark = { version = "0.6", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }
 

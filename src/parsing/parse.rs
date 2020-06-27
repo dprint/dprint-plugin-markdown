@@ -26,6 +26,7 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
         Node::ReferenceImage(node) => parse_reference_image(node, context),
         Node::List(node) => parse_list(node, context),
         Node::Item(node) => parse_item(node, context),
+        Node::TaskListMarker(node) => parse_task_list_marker(node, context),
         Node::SoftBreak(_) => PrintItems::new(),
         Node::HardBreak(_) => Signal::NewLine.into(),
         Node::NotImplemented(_) => parse_raw_string(node.text(context)),
@@ -99,6 +100,9 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                         items.push_signal(Signal::NewLine);
                     }
                 }
+                Node::TaskListMarker(_) => {
+                    items.push_str(" ");
+                },
                 _ => {},
             }
         }
@@ -366,4 +370,12 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
 
 fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
     parse_nodes(&item.children, context)
+}
+
+fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
+    if marker.is_checked {
+        "[x]".into()
+    } else {
+        "[ ]".into()
+    }
 }
