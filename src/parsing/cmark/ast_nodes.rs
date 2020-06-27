@@ -150,6 +150,10 @@ pub struct CodeBlock {
     pub code: String,
 }
 
+pub struct HorizontalRule {
+    pub range: Range,
+}
+
 pub struct NotImplemented {
     pub range: Range,
 }
@@ -218,5 +222,6 @@ generate_node![
     SoftBreak,
     HardBreak,
     Code,
-    CodeBlock
+    CodeBlock,
+    HorizontalRule
 ];

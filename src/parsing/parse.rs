@@ -27,6 +27,7 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
         Node::List(node) => parse_list(node, context),
         Node::Item(node) => parse_item(node, context),
         Node::TaskListMarker(node) => parse_task_list_marker(node, context),
+        Node::HorizontalRule(node) => parse_horizontal_rule(node, context),
         Node::SoftBreak(_) => PrintItems::new(),
         Node::HardBreak(_) => Signal::NewLine.into(),
         Node::NotImplemented(_) => parse_raw_string(node.text(context)),
@@ -56,7 +57,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         let is_current_soft_break = match node { Node::SoftBreak(_) => true, _=> false, };
         if let Some(last_node) = last_node {
             match last_node {
-                Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) => {
+                Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) | Node::HorizontalRule(_) => {
                     items.push_signal(Signal::NewLine);
                     items.push_signal(Signal::NewLine);
                 },
@@ -378,4 +379,8 @@ fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItem
     } else {
         "[ ]".into()
     }
+}
+
+fn parse_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
+    "---".into()
 }

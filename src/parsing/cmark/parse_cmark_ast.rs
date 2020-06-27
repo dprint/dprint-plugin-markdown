@@ -121,8 +121,8 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
         Event::FootnoteReference(reference) => parse_footnote_reference(reference, iterator).map(|x| x.into()),
         Event::SoftBreak => Ok(SoftBreak { range: iterator.get_last_range() }.into()),
         Event::HardBreak => Ok(HardBreak { range: iterator.get_last_range() }.into()),
-        Event::Rule => Ok(iterator.get_not_implemented()),
-        Event::TaskListMarker(is_checked) => parse_task_list_marker(is_checked, iterator).map(|x| x.into()),
+        Event::Rule => Ok(HorizontalRule { range: iterator.get_last_range() }.into()),
+        Event::TaskListMarker(is_checked) => Ok(TaskListMarker { range: iterator.get_last_range(), is_checked }.into())
     }
 }
 
@@ -358,12 +358,5 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     Ok(Item {
         range: iterator.get_range_for_start(start),
         children,
-    })
-}
-
-fn parse_task_list_marker(is_checked: bool, iterator: &mut EventIterator) -> Result<TaskListMarker, ParseError> {
-    Ok(TaskListMarker {
-        range: iterator.get_last_range(),
-        is_checked
     })
 }
