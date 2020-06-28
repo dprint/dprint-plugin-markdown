@@ -10,7 +10,7 @@ repository = "https://github.com/dprint/dprint-plugin-markdown"
 
 [dependencies]
 dprint-core = "0.22.0"
-pulldown-cmark = { version = "0.6", default-features = false }
+pulldown-cmark = { version = "0.7", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }
 
 [dev-dependencies]

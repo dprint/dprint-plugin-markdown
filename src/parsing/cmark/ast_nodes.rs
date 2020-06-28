@@ -154,6 +154,36 @@ pub struct HorizontalRule {
     pub range: Range,
 }
 
+pub struct Table {
+    pub range: Range,
+    pub header: TableHead,
+    pub column_alignment: Vec<ColumnAlignment>,
+    pub rows: Vec<TableRow>,
+}
+
+pub struct TableHead {
+    pub range: Range,
+    pub cells: Vec<TableCell>,
+}
+
+pub struct TableRow {
+    pub range: Range,
+    pub cells: Vec<TableCell>,
+}
+
+pub struct TableCell {
+    pub range: Range,
+    pub children: Vec<Node>,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum ColumnAlignment {
+    None,
+    Left,
+    Center,
+    Right,
+}
+
 pub struct NotImplemented {
     pub range: Range,
 }
@@ -223,5 +253,9 @@ generate_node![
     HardBreak,
     Code,
     CodeBlock,
-    HorizontalRule
+    HorizontalRule,
+    Table,
+    TableHead,
+    TableRow,
+    TableCell
 ];

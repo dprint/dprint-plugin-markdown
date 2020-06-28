@@ -76,11 +76,22 @@ pub fn parse_cmark_ast(file_text: &str) -> Result<SourceFile, ParseError> {
     let mut children: Vec<Node> = Vec::new();
     let mut iterator = EventIterator::new(file_text, Parser::new_ext(file_text, options).into_offset_iter());
     let mut last_event_range: Option<Range> = None;
+    let mut is_in_table = 0;
 
     while let Some(event) = iterator.next() {
+        match event {
+            Event::Start(Tag::Table(_)) => is_in_table += 1,
+            Event::End(Tag::Table(_)) => is_in_table += 1,
+            _ => {}
+        }
+
         let current_range = iterator.get_last_range();
-        if let Some(references) = parse_references(&last_event_range, current_range.start, &mut iterator)? {
-            children.push(references);
+
+        // do not parse for link references while inside a table
+        if is_in_table == 0 {
+            if let Some(references) = parse_references(&last_event_range, current_range.start, &mut iterator)? {
+                children.push(references);
+            }
         }
 
         children.push(parse_event(event, &mut iterator)?);
@@ -99,12 +110,14 @@ pub fn parse_cmark_ast(file_text: &str) -> Result<SourceFile, ParseError> {
 
 fn parse_references(last_event_range: &Option<Range>, end: usize, iterator: &mut EventIterator) -> Result<Option<Node>, ParseError> {
     if let Some(last_event_range) = last_event_range {
-        let references = parse_link_reference_definitions(last_event_range.end, &iterator.file_text[last_event_range.end..end])?;
-        if !references.is_empty() {
-            return Ok(Some(Paragraph {
-                range: Range { start: references.first().unwrap().range.start, end: references.last().unwrap().range.end },
-                children: references.into_iter().map(|x| x.into()).collect(),
-            }.into()));
+        if last_event_range.end < end {
+            let references = parse_link_reference_definitions(last_event_range.end, &iterator.file_text[last_event_range.end..end])?;
+            if !references.is_empty() {
+                return Ok(Some(Paragraph {
+                    range: Range { start: references.first().unwrap().range.start, end: references.last().unwrap().range.end },
+                    children: references.into_iter().map(|x| x.into()).collect(),
+                }.into()));
+            }
         }
     }
 
@@ -131,12 +144,12 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
         Tag::Heading(level) => parse_heading(level, iterator).map(|x| x.into()),
         Tag::Paragraph => parse_paragraph(iterator).map(|x| x.into()),
         Tag::BlockQuote => parse_block_quote(iterator).map(|x| x.into()),
-        Tag::CodeBlock(tag) => parse_code_block(tag, iterator).map(|x| x.into()),
+        Tag::CodeBlock(kind) => parse_code_block(kind, iterator).map(|x| x.into()),
         Tag::FootnoteDefinition(label) => parse_footnote_definition(label, iterator).map(|x| x.into()),
-        Tag::Table(text_alignment) => Ok(iterator.get_not_implemented()),
-        Tag::TableHead => Ok(iterator.get_not_implemented()),
-        Tag::TableRow => Ok(iterator.get_not_implemented()),
-        Tag::TableCell => Ok(iterator.get_not_implemented()),
+        Tag::Table(column_alignment) => parse_table(column_alignment, iterator).map(|x| x.into()),
+        Tag::TableHead => parse_table_head(iterator).map(|x| x.into()),
+        Tag::TableRow => parse_table_row(iterator).map(|x| x.into()),
+        Tag::TableCell => parse_table_cell(iterator).map(|x| x.into()),
         Tag::Emphasis => parse_text_decoration(TextDecorationKind::Emphasis, iterator).map(|x| x.into()),
         Tag::Strong => parse_text_decoration(TextDecorationKind::Strong, iterator).map(|x| x.into()),
         Tag::Strikethrough => parse_text_decoration(TextDecorationKind::Strikethrough, iterator).map(|x| x.into()),
@@ -205,7 +218,7 @@ fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseEr
     })
 }
 
-fn parse_code_block(tag: CowStr, iterator: &mut EventIterator) -> Result<CodeBlock, ParseError> {
+fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator) -> Result<CodeBlock, ParseError> {
     let start = iterator.start();
     let mut code = String::new();
 
@@ -217,8 +230,13 @@ fn parse_code_block(tag: CowStr, iterator: &mut EventIterator) -> Result<CodeBlo
         }
     }
 
-    let tag = String::from(tag.as_ref().trim());
-    let tag = if tag.is_empty() { None } else { Some(tag) };
+    let tag = match code_block_kind {
+        CodeBlockKind::Indented => None,
+        CodeBlockKind::Fenced(tag) => {
+            let tag = String::from(tag.as_ref().trim());
+            if tag.is_empty() { None } else { Some(tag) }
+        }
+    };
 
     Ok(CodeBlock {
         range: iterator.get_range_for_start(start),
@@ -340,6 +358,96 @@ fn parse_list(start_index: Option<u64>, iterator: &mut EventIterator) -> Result<
     Ok(List {
         range: iterator.get_range_for_start(start),
         start_index,
+        children,
+    })
+}
+
+fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -> Result<Table, ParseError> {
+    let start = iterator.start();
+    let head_event = iterator.next();
+
+    let header = if let Some(Event::Start(Tag::TableHead)) = head_event {
+        parse_table_head(iterator)?
+    } else {
+        return Err(ParseError::new(iterator.get_last_range(), &format!("Expected a table head event, but found: {:?}", head_event)))
+    };
+
+
+    let mut rows = Vec::new();
+    while let Some(event) = iterator.next() {
+        match event {
+            Event::End(Tag::Table(_)) => break,
+            Event::Start(Tag::TableRow) => rows.push(parse_table_row(iterator)?),
+            _ => return Err(ParseError::new(iterator.get_last_range(), &format!("Unexpected event kind in table: {:?}", event))),
+        }
+    }
+
+    Ok(Table {
+        range: iterator.get_range_for_start(start),
+        header,
+        column_alignment: column_alignment.into_iter().map(|alignment| {
+            match alignment {
+                Alignment::Left => ColumnAlignment::Left,
+                Alignment::Center => ColumnAlignment::Center,
+                Alignment::Right => ColumnAlignment::Right,
+                Alignment::None => ColumnAlignment::None,
+            }
+        }).collect(),
+        rows,
+    })
+}
+
+// todo: lots of duplicate code here... something should be done
+
+fn parse_table_head(iterator: &mut EventIterator) -> Result<TableHead, ParseError> {
+    let start = iterator.start();
+    let mut cells = Vec::new();
+
+    while let Some(event) = iterator.next() {
+        match event {
+            Event::End(Tag::TableHead) => break,
+            Event::Start(Tag::TableCell) => cells.push(parse_table_cell(iterator)?),
+            _ => return Err(ParseError::new(iterator.get_last_range(), &format!("Unexpected event kind in table head: {:?}", event))),
+        }
+    }
+
+    Ok(TableHead {
+        range: iterator.get_range_for_start(start),
+        cells,
+    })
+}
+
+fn parse_table_row(iterator: &mut EventIterator) -> Result<TableRow, ParseError> {
+    let start = iterator.start();
+    let mut cells = Vec::new();
+
+    while let Some(event) = iterator.next() {
+        match event {
+            Event::End(Tag::TableRow) => break,
+            Event::Start(Tag::TableCell) => cells.push(parse_table_cell(iterator)?),
+            _ => return Err(ParseError::new(iterator.get_last_range(), &format!("Unexpected event kind in table row: {:?}", event))),
+        }
+    }
+
+    Ok(TableRow {
+        range: iterator.get_range_for_start(start),
+        cells,
+    })
+}
+
+fn parse_table_cell(iterator: &mut EventIterator) -> Result<TableCell, ParseError> {
+    let start = iterator.start();
+    let mut children = Vec::new();
+
+    while let Some(event) = iterator.next() {
+        match event {
+            Event::End(Tag::TableCell) => break,
+            _ => children.push(parse_event(event, iterator)?),
+        }
+    }
+
+    Ok(TableCell {
+        range: iterator.get_range_for_start(start),
         children,
     })
 }

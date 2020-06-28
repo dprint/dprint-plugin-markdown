@@ -14,6 +14,8 @@ impl<'a> Context<'a> {
     }
 
     pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {
+        if end < start { return 0; } // ignore
+
         let file_bytes = self.file_text.as_bytes();
         let mut count = 0;
         for byte in &file_bytes[start..end] {

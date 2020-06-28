@@ -1,9 +1,11 @@
-!! should format when starting inline -- todo: work on this (skip) !!
-Testing|This|Outtt
---|:--:|--:
-Some Data|Other data|asdf
+!! should format when starting inline !!
+Testing|test|Outtt|final
+--|:--:|:--|--:
+Some Data|Otherrrr|asdfffff|testingthis
+a|b|c|d
 
 [expect]
-| Testing   |    This    | Outtt |
-| --------- | :--------: | ----: |
-| Some Data | Other data |  asdf |
+| Testing   |   test   | Outtt    |       final |
+| --------- | :------: | :------- | ----------: |
+| Some Data | Otherrrr | asdfffff | testingthis |
+| a         |    b     | c        |           d |
