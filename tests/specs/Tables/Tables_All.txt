@@ -9,3 +9,17 @@ a|b|c|d
 | --------- | :------: | :------- | ----------: |
 | Some Data | Otherrrr | asdfffff | testingthis |
 | a         |    b     | c        |           d |
+
+!! should format when not inline !!
+| testing       | This          | Out   |
+| ------------- |:-------------:| -----:|
+| testing       | anb kdl l l j | $1234 |
+| asdfffff      | what hap      |   $22 |
+| hereissometex | allo          |  $224 |
+
+[expect]
+| testing       |     This      |   Out |
+| ------------- | :-----------: | ----: |
+| testing       | anb kdl l l j | $1234 |
+| asdfffff      |   what hap    |   $22 |
+| hereissometex |     allo      |  $224 |
