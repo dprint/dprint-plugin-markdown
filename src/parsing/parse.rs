@@ -1,6 +1,6 @@
 use dprint_core::*;
 use dprint_core::{conditions::*, parser_helpers::*, condition_resolvers};
-use super::cmark::*;
+use super::common::*;
 use super::parser_types::*;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
@@ -39,7 +39,18 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
 }
 
 fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
-    let mut items = parse_nodes(&source_file.children, context);
+    let mut items = PrintItems::new();
+
+    if let Some(yaml_header) = &source_file.yaml_header {
+        items.extend(parser_helpers::parse_raw_string(&yaml_header.text));
+
+        if source_file.children.len() > 0 {
+            items.push_signal(Signal::NewLine);
+            items.push_signal(Signal::NewLine);
+        }
+    }
+
+    items.extend(parse_nodes(&source_file.children, context));
 
     items.push_condition(if_true(
         "endOfFileNewLine",

@@ -1,4 +1,4 @@
-use super::super::parser_types::Context;
+use crate::parsing::parser_types::Context;
 
 pub type Range = std::ops::Range<usize>;
 
@@ -10,6 +10,12 @@ pub trait Ranged {
 pub struct SourceFile {
     pub range: Range,
     pub children: Vec<Node>,
+    pub yaml_header: Option<YamlHeader>,
+}
+
+pub struct YamlHeader {
+    pub range: Range,
+    pub text: String,
 }
 
 pub struct Heading {

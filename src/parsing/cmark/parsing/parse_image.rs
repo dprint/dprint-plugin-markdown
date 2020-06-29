@@ -1,6 +1,5 @@
 use pulldown_cmark::{LinkType};
-use super::super::{ParseError, ast_nodes::*};
-use super::char_scanner::CharScanner;
+use crate::parsing::common::*;
 use super::{parse_text_in_brackets, parse_text_in_parens, parse_link_url_and_title};
 
 /// Crudely parses out an image assuming the text is a image.

@@ -1,5 +1,6 @@
 use std::str::CharIndices;
-use super::super::{ParseError, ast_nodes::{Range}};
+use super::ast_nodes::Range;
+use super::{ParseError};
 
 pub struct CharScanner<'a> {
     char_indices: CharIndices<'a>,
@@ -8,6 +9,7 @@ pub struct CharScanner<'a> {
     previous: Option<(usize, char)>,
     current: Option<(usize, char)>,
     next: Option<(usize, char)>,
+    text: &'a str,
 }
 
 impl<'a> CharScanner<'a> {
@@ -20,10 +22,59 @@ impl<'a> CharScanner<'a> {
             previous: None,
             current: None,
             next: None,
+            text,
         };
 
         scanner.next(); // initialize
         scanner
+    }
+
+    pub fn has_next(&self) -> bool {
+        self.peek().is_some()
+    }
+
+    pub fn is_next_text(&self, text: &str) -> bool {
+        let pos = self.end();
+        let end = pos + text.len();
+        if end > self.text.len() {
+            return false;
+        }
+
+        &self.text[pos..end] == text
+    }
+
+    pub fn move_text(&mut self, text: &str) -> bool {
+        for c in text.chars() {
+            if let Some((_, next_char)) = self.next() {
+                if c != next_char {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn move_new_line(&mut self) -> bool {
+        if let Some((_, current_char)) = self.next() {
+            match current_char {
+                '\n' => return true,
+                '\r' => return matches!(self.next(), Some((_, '\n'))),
+                _ => return false,
+            }
+        }
+
+        false
+    }
+
+    pub fn move_next_line(&mut self) {
+        while let Some((_, current_char)) = self.next() {
+            if current_char == '\n' {
+                return;
+            }
+        }
     }
 
     pub fn assert_char(&mut self, searching_char: char) -> Result<(), ParseError> {
@@ -76,6 +127,10 @@ impl<'a> CharScanner<'a> {
 
     pub fn pos(&self) -> usize {
         self.pos
+    }
+
+    pub fn end(&self) -> usize {
+        self.current.as_ref().map(|(pos, c)| *pos + c.len_utf8()).unwrap_or(0)
     }
 
     pub fn peek(&self) -> Option<(usize, char)> {

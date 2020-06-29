@@ -1,5 +1,5 @@
-use super::super::{ParseError, ast_nodes::{Range, LinkReference}};
-use super::char_scanner::CharScanner;
+use crate::parsing::common::CharScanner;
+use crate::parsing::common::*;
 use super::{parse_text_in_brackets, parse_link_url_and_title};
 
 /// Crudely parses out link reference definitions from the provided text.

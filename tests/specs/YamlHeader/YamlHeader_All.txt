@@ -1,0 +1,27 @@
+!! should format as-is !!
+---
+title: Some Title
+description: Some description
+---
+
+Test
+
+[expect]
+---
+title: Some Title
+description: Some description
+---
+
+Test
+
+!! should format when only meta data !!
+---
+title: Some Title
+description: Some description
+---
+
+[expect]
+---
+title: Some Title
+description: Some description
+---

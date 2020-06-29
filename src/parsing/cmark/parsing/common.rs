@@ -1,5 +1,4 @@
-use super::super::{ParseError, ast_nodes::{Range}};
-use super::char_scanner::CharScanner;
+use crate::parsing::common::*;
 
 pub fn parse_text_in_brackets(start_pos: usize, char_scanner: &mut CharScanner) -> Result<String, ParseError> {
     parse_text_in_container(start_pos, char_scanner, '[', ']')

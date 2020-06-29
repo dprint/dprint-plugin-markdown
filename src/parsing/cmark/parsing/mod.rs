@@ -1,4 +1,3 @@
-mod char_scanner;
 mod common;
 mod parse_image;
 mod parse_link_reference_definitions;

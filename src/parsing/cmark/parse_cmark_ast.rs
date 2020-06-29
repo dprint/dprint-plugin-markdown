@@ -1,19 +1,6 @@
 use pulldown_cmark::*;
-use super::ast_nodes::*;
+use crate::parsing::common::*;
 use super::parsing::{parse_link_reference_definitions, parse_link as parse_link_from_text, parse_image as parse_image_from_text};
-
-pub struct ParseError {
-    /// This range the parse error occurred.
-    pub range: Range,
-    /// The associated error message.
-    pub message: String,
-}
-
-impl ParseError {
-    pub(super) fn new(range: Range, message: &str) -> ParseError {
-        ParseError { range, message: String::from(message) }
-    }
-}
 
 struct EventIterator<'a> {
     iterator: OffsetIter<'a>,
@@ -66,7 +53,7 @@ impl<'a> EventIterator<'a> {
     }
 }
 
-pub fn parse_cmark_ast(file_text: &str) -> Result<SourceFile, ParseError> {
+pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_FOOTNOTES);
@@ -74,7 +61,7 @@ pub fn parse_cmark_ast(file_text: &str) -> Result<SourceFile, ParseError> {
     options.insert(Options::ENABLE_TASKLISTS);
 
     let mut children: Vec<Node> = Vec::new();
-    let mut iterator = EventIterator::new(file_text, Parser::new_ext(file_text, options).into_offset_iter());
+    let mut iterator = EventIterator::new(markdown_text, Parser::new_ext(markdown_text, options).into_offset_iter());
     let mut last_event_range: Option<Range> = None;
     let mut is_in_table = 0;
 
@@ -98,13 +85,14 @@ pub fn parse_cmark_ast(file_text: &str) -> Result<SourceFile, ParseError> {
         last_event_range = Some(current_range);
     }
 
-    if let Some(references) = parse_references(&last_event_range, file_text.len(), &mut iterator)? {
+    if let Some(references) = parse_references(&last_event_range, markdown_text.len(), &mut iterator)? {
         children.push(references);
     }
 
     Ok(SourceFile {
         children,
         range: iterator.get_range_for_start(0),
+        yaml_header: None
     })
 }
 
