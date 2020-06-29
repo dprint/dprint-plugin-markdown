@@ -59,7 +59,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         let is_current_soft_break = match node { Node::SoftBreak(_) => true, _=> false, };
         if let Some(last_node) = last_node {
             match last_node {
-                Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) | Node::HorizontalRule(_) => {
+                Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) | Node::HorizontalRule(_) | Node::List(_) => {
                     items.push_signal(Signal::NewLine);
                     items.push_signal(Signal::NewLine);
                 },

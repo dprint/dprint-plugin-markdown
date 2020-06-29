@@ -70,3 +70,15 @@
     6. Test
     7. Test
 3. Test
+
+!! should not combine next paragraph into list !!
+* Here is a point
+* Here is another point
+
+Here is a paragraph
+
+[expect]
+- Here is a point
+- Here is another point
+
+Here is a paragraph
