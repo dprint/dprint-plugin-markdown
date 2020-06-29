@@ -2,9 +2,6 @@ use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use dprint_core::configuration::*;
 
-
-
-
 /// Resolved markdown configuration.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
