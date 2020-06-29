@@ -300,9 +300,11 @@ fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: 
     items
 }
 
-fn parse_inline_link(link: &InlineLink, _: &mut Context) -> PrintItems {
+fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    items.push_str(&format!("[{}]", link.text.trim()));
+    items.push_str("[");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str("]");
     items.push_str("(");
     items.push_str(&link.url.trim());
     if let Some(title) = &link.title {
@@ -312,22 +314,28 @@ fn parse_inline_link(link: &InlineLink, _: &mut Context) -> PrintItems {
     items
 }
 
-fn parse_reference_link(link: &ReferenceLink, _: &mut Context) -> PrintItems {
+fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    items.push_str(&format!("[{}]", link.text.trim()));
+    items.push_str("[");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str("]");
     items.push_str(&format!("[{}]", link.reference.trim()));
     items
 }
 
-fn parse_shortcut_link(link: &ShortcutLink, _: &mut Context) -> PrintItems {
+fn parse_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    items.push_str(&format!("[{}]", link.text.trim()));
+    items.push_str("[");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str("]");
     items
 }
 
-fn parse_auto_link(link: &AutoLink, _: &mut Context) -> PrintItems {
+fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    items.push_str(&format!("<{}>", link.text.trim()));
+    items.push_str("<");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str(">");
     items
 }
 

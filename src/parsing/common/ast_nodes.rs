@@ -69,25 +69,25 @@ pub struct FootnoteDefinition {
 
 pub struct InlineLink {
     pub range: Range,
-    pub text: String,
+    pub children: Vec<Node>,
     pub url: String,
     pub title: Option<String>,
 }
 
 pub struct ReferenceLink {
     pub range: Range,
-    pub text: String,
+    pub children: Vec<Node>,
     pub reference: String,
 }
 
 pub struct ShortcutLink {
     pub range: Range,
-    pub text: String,
+    pub children: Vec<Node>,
 }
 
 pub struct AutoLink {
     pub range: Range,
-    pub text: String,
+    pub children: Vec<Node>,
 }
 
 pub struct LinkReference {

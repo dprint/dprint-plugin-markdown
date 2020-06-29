@@ -8,10 +8,6 @@ pub fn parse_text_in_parens(start_pos: usize, char_scanner: &mut CharScanner) ->
     parse_text_in_container(start_pos, char_scanner, '(', ')')
 }
 
-pub fn parse_text_in_angle_brackets(start_pos: usize, char_scanner: &mut CharScanner) -> Result<String, ParseError> {
-    parse_text_in_container(start_pos, char_scanner, '<', '>')
-}
-
 fn parse_text_in_container(start_pos: usize, char_scanner: &mut CharScanner, open_char: char, close_char: char) -> Result<String, ParseError> {
     let mut text = String::new();
     while let Some((byte_pos, c)) = char_scanner.next() {

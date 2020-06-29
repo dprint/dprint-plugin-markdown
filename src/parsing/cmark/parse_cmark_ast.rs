@@ -1,30 +1,35 @@
 use pulldown_cmark::*;
 use crate::parsing::common::*;
-use super::parsing::{parse_link_reference_definitions, parse_link as parse_link_from_text, parse_image as parse_image_from_text};
+use super::parsing::{parse_link_reference_definitions, parse_link_reference, parse_image as parse_image_from_text};
 
 struct EventIterator<'a> {
     iterator: OffsetIter<'a>,
     file_text: &'a str,
     last_range: Range,
+    next: Option<(Event<'a>, Range)>,
 }
 
 impl<'a> EventIterator<'a> {
     pub fn new(file_text: &'a str, iterator: OffsetIter<'a>) -> EventIterator<'a> {
+        let mut iterator = iterator;
+        let next = iterator.next();
         EventIterator {
             file_text,
             iterator,
             last_range: Range {
                 start: 0,
                 end: 0
-            }
+            },
+            next,
         }
     }
 
     pub fn next(&mut self) -> Option<Event<'a>> {
-        if let Some((event, range)) = self.iterator.next() {
-            // println!("Event: {:?}", event);
-            // println!("Range: {:?}", range);
+        if let Some((event, range)) = self.next.take() {
+            println!("Event: {:?}", event);
+            println!("Range: {:?}", range);
             self.last_range = range;
+            self.next = self.iterator.next();
             Some(event)
         } else {
             None
@@ -44,6 +49,10 @@ impl<'a> EventIterator<'a> {
 
     pub fn get_last_range(&self) -> Range {
         self.last_range.clone()
+    }
+
+    pub fn peek(&self) -> &Option<(Event, Range)> {
+        &self.next
     }
 
     pub fn get_not_implemented(&self) -> Node {
@@ -141,7 +150,7 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
         Tag::Emphasis => parse_text_decoration(TextDecorationKind::Emphasis, iterator).map(|x| x.into()),
         Tag::Strong => parse_text_decoration(TextDecorationKind::Strong, iterator).map(|x| x.into()),
         Tag::Strikethrough => parse_text_decoration(TextDecorationKind::Strikethrough, iterator).map(|x| x.into()),
-        Tag::Link(link_type, _, _) => parse_link(link_type, iterator),
+        Tag::Link(link_type, destination_url, link_title) => parse_link(link_type, &destination_url, &link_title, iterator),
         Tag::Image(link_type, _, _) => parse_image(link_type, iterator),
         Tag::List(first_item_number) => parse_list(first_item_number, iterator).map(|x| x.into()),
         Tag::Item => parse_item(iterator).map(|x| x.into()),
@@ -305,18 +314,44 @@ fn parse_footnote_definition(name: CowStr, iterator: &mut EventIterator) -> Resu
     })
 }
 
-fn parse_link(link_type: LinkType, iterator: &mut EventIterator) -> Result<Node, ParseError> {
+fn parse_link(link_type: LinkType, destination_url: &str, link_title: &str, iterator: &mut EventIterator) -> Result<Node, ParseError> {
     let start = iterator.start();
+    let mut children = Vec::new();
 
     while let Some(event) = iterator.next() {
         match event {
             Event::End(Tag::Link(_, _, _)) => break,
-            _ => {}, // ignore link children
+            _ => children.push(parse_event(event, iterator)?),
         }
     }
 
-    // iterator.get_last_range().end in pulldown-cmark is wrong, so just pass all the text from the start (issue #430 in their repo)
-    parse_link_from_text(start, &iterator.file_text[start..], link_type)
+    // iterator.get_last_range().end in pulldown-cmark is wrong, but will be fixed in the next version. For now, do this madness.
+    let end = iterator.peek().as_ref().map(|(_, range)| if range.start <= start { range.end } else { range.start }).unwrap_or(iterator.file_text.len());
+    let range = Range { start, end };
+    match link_type {
+        LinkType::Inline => Ok(InlineLink {
+            range,
+            children,
+            url: destination_url.to_string(),
+            title: if link_title.trim().is_empty() { None } else { Some(link_title.trim().to_string()) },
+        }.into()),
+        LinkType::Reference | LinkType::ReferenceUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown => {
+            let reference = parse_link_reference(&iterator.file_text[start..end]);
+            Ok(ReferenceLink {
+                range,
+                children,
+                reference,
+            }.into())
+        }
+        LinkType::Shortcut | LinkType::ShortcutUnknown => Ok(ShortcutLink {
+            range,
+            children,
+        }.into()),
+        LinkType::Email | LinkType::Autolink => Ok(AutoLink {
+            range,
+            children,
+        }.into()),
+    }
 }
 
 fn parse_image(link_type: LinkType, iterator: &mut EventIterator) -> Result<Node, ParseError> {

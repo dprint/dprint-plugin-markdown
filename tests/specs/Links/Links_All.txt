@@ -56,3 +56,9 @@ Testing <https://google.com> this.
 
 [expect]
 Testing <https://google.com> this.
+
+!! should format image inside link !!
+[![CI](image.svg)](https://github.com)
+
+[expect]
+[![CI](image.svg)](https://github.com)
