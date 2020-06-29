@@ -26,17 +26,6 @@ impl<'a> CharScanner<'a> {
         scanner
     }
 
-    pub fn save_state(&self) -> CharScanner<'a> {
-        CharScanner {
-            char_indices: self.char_indices.clone(),
-            offset: self.offset,
-            pos: self.pos,
-            previous: self.previous,
-            current: self.current,
-            next: self.next,
-        }
-    }
-
     pub fn assert_char(&mut self, searching_char: char) -> Result<(), ParseError> {
         while let Some((byte_pos, c)) = self.next() {
             if c == searching_char {
@@ -87,14 +76,6 @@ impl<'a> CharScanner<'a> {
 
     pub fn pos(&self) -> usize {
         self.pos
-    }
-
-    pub fn previous(&self) -> Option<(usize, char)> {
-        self.previous
-    }
-
-    pub fn current(&self) -> Option<(usize, char)> {
-        self.current
     }
 
     pub fn peek(&self) -> Option<(usize, char)> {

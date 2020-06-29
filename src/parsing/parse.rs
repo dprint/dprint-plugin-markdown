@@ -4,7 +4,7 @@ use super::cmark::*;
 use super::parser_types::*;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
-    println!("Text: {:?}", node.text(context));
+    // println!("Text: {:?}", node.text(context));
     match node {
         Node::SourceFile(node) => parse_source_file(node, context),
         Node::Heading(node) => parse_heading(node, context),
@@ -39,8 +39,6 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
 }
 
 fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
-    println!("Children: {}", source_file.children.len());
-
     let mut items = parse_nodes(&source_file.children, context);
 
     items.push_condition(if_true(
