@@ -176,23 +176,24 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
     let mut items = PrintItems::new();
     let indent_level = context.get_indent_level_at_pos(code_block.range.start);
 
+    // TODO: FIX THIS IT'S WRONG
     // header
-    if indent_level == 0 {
+    //if indent_level == 0 {
         items.push_str("```");
         if let Some(tag) = &code_block.tag {
             items.push_str(tag);
         }
         items.push_signal(Signal::NewLine);
-    }
+    //}
 
     // body
     items.extend(parser_helpers::parse_string(&code_block.code.trim()));
 
     // footer
-    if indent_level == 0 {
+    //if indent_level == 0 {
         items.push_signal(Signal::NewLine);
         items.push_str("```");
-    }
+    //}
 
     return with_indent_times(items, indent_level);
 }
@@ -384,7 +385,7 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
             move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
             " ".into()
         ));
-        items.extend(with_indent(parse_node(child, context)));
+        items.extend(with_indent_times(parse_node(child, context), (prefix_text.chars().count() + 1) as u32));
         items.push_info(after_child);
     }
     items

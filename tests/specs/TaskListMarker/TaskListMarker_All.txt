@@ -1,13 +1,13 @@
 !! should format !!
--   [ ]    unchecked
+-   [ ]  unchecked
 - [x] checked
-    - [ ]  nested unchecked
-    - [x] nested checked
+  - [ ]  nested unchecked
+  - [x] nested checked
 - [ ] other [link](test)
 
 [expect]
 - [ ] unchecked
 - [x] checked
-    - [ ] nested unchecked
-    - [x] nested checked
+  - [ ] nested unchecked
+  - [x] nested checked
 - [ ] other [link](test)

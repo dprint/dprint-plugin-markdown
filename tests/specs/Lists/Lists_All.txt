@@ -52,23 +52,23 @@
 !! should format an unordered list with nested items !!
 - Testing
 
-    Testing
+  Testing
 
 [expect]
 - Testing
 
-    Testing
+  Testing
 
 !! should format an ordered list with nested ordered list !!
 2. Testing
-    6. Test
-    7. Test
+   6. Test
+   7. Test
 3. Test
 
 [expect]
 2. Testing
-    6. Test
-    7. Test
+   6. Test
+   7. Test
 3. Test
 
 !! should not combine next paragraph into list !!
@@ -82,3 +82,15 @@ Here is a paragraph
 - Here is another point
 
 Here is a paragraph
+
+!! should indent a sub list based on the last number char count !!
+9. Testing
+   6. Test
+10. Other
+    7. Testing
+
+[expect]
+9. Testing
+   6. Test
+10. Other
+    7. Testing

@@ -13,10 +13,10 @@ other
 
     const t = 4;
 
-        const t = 4;
+        const t = 5;
 
 
-    const t = 4;
+    const t = 6;
 
 
 
@@ -34,9 +34,25 @@ test;
 other
 ```
 
+    ```
     const t = 4;
 
-        const t = 4;
+        const t = 5;
 
 
-    const t = 4;
+    const t = 6;
+    ```
+
+!! should format code block inside list !!
+1. Testing
+
+    ```
+    some code
+    ```
+
+[expect]
+1. Testing
+
+    ```
+    some code
+    ```

@@ -30,9 +30,9 @@ pub fn format_text(file_text: &str, config: &Configuration) -> Result<String, St
     let print_items = parse_node(&source_file.into(), &mut Context::new(markdown_text, config));
 
     Ok(print(print_items, PrintOptions {
-        indent_width: config.indent_width,
+        indent_width: 1, // force
         max_width: config.line_width,
-        use_tabs: config.use_tabs,
+        use_tabs: false, // ignore tabs, always use spaces
         new_line_text: resolve_new_line_kind(file_text, config.new_line_kind),
     }))
 }
