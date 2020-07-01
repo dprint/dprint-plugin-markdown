@@ -258,7 +258,7 @@ fn parse_text(text: CowStr, iterator: &mut EventIterator) -> Result<Text, ParseE
 
     Ok(Text {
         range: Range { start, end: start + trimmed_text.len() },
-        text: String::from(trimmed_text),
+        text: String::from(trimmed_text.replace("\r\n", "\n")),
     })
 }
 

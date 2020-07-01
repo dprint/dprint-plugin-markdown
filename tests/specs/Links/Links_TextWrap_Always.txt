@@ -1,0 +1,7 @@
+~~ lineWidth: 40, textWrap: always ~~
+!! should keep link with dash separator have spaces !!
+* [test](https://github.com) - Testing this out
+
+[expect]
+- [test](https://github.com) - Testing
+  this out

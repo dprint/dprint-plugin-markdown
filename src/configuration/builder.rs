@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use dprint_core::configuration::{GlobalConfiguration, resolve_global_config, NewLineKind};
 
-use super::{Configuration, resolve_config};
+use super::{Configuration, resolve_config, TextWrap};
 
 /// Markdown formatting configuration builder.
 ///
@@ -56,6 +56,12 @@ impl ConfigurationBuilder {
         self.insert("newLineKind", value)
     }
 
+    /// The kind of text wrapping to use.
+    /// Default: `TextWrap::Maintain`
+    pub fn text_wrap(&mut self, value: TextWrap) -> &mut Self {
+        self.insert("textWrap", value)
+    }
+
     #[cfg(test)]
     pub(super) fn get_inner_config(&self) -> HashMap<String, String> {
         self.config.clone()
@@ -72,17 +78,18 @@ mod tests {
     use std::collections::HashMap;
     use dprint_core::configuration::{resolve_global_config, NewLineKind};
 
-    use super::ConfigurationBuilder;
-    use super::super::resolve_config;
+    use super::*;
+    use super::super::{resolve_config, TextWrap};
 
     #[test]
     fn check_all_values_set() {
         let mut config = ConfigurationBuilder::new();
         config.new_line_kind(NewLineKind::CarriageReturnLineFeed)
-            .line_width(90);
+            .line_width(90)
+            .text_wrap(TextWrap::Always);
 
         let inner_config = config.get_inner_config();
-        assert_eq!(inner_config.len(), 2);
+        assert_eq!(inner_config.len(), 3);
         let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new()).config).diagnostics;
         assert_eq!(diagnostics.len(), 0);
     }

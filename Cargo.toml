@@ -12,7 +12,7 @@ repository = "https://github.com/dprint/dprint-plugin-markdown"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-dprint-core = "0.22.0"
+dprint-core = "0.23.0"
 pulldown-cmark = { version = "0.7", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }
 serde_json = "1.0"

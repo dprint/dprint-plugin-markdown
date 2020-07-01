@@ -1,15 +1,15 @@
-~~ lineWidth: 40 ~~
+~~ lineWidth: 40, textWrap: always ~~
 !! should format html !!
 <dl>
     <dt>Definition list</dt>
     <dd>Testing</dd>
     <dd>Testing</dd>
 <dd>Testing</dd>
-testing this out
+this should not be wrapped because it is inside html
 </dl>
 
 
-paragraph text
+this should be wrapped because it is outside the html
 
 [expect]
 <dl>
@@ -17,10 +17,11 @@ paragraph text
     <dd>Testing</dd>
     <dd>Testing</dd>
 <dd>Testing</dd>
-testing this out
+this should not be wrapped because it is inside html
 </dl>
 
-paragraph text
+this should be wrapped because it is
+outside the html
 
 !! should handle inline html !!
 Some inline html <em>Testing</em> testing this out.
@@ -28,6 +29,7 @@ Some inline html <em>Testing</em> testing this out.
 Testing <b>test</b>.
 
 [expect]
-Some inline html <em>Testing</em> testing this out.
+Some inline html <em>Testing</em>
+testing this out.
 
 Testing <b>test</b>.

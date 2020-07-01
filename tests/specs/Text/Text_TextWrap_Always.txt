@@ -1,0 +1,21 @@
+~~ lineWidth: 40, textWrap: always ~~
+!! should not move dash to next line to prevent creating a list !!
+[testtttesttinasidfnaisodfasdifidtt](https://github.com) - Testing this out
+
+[expect]
+[testtttesttinasidfnaisodfasdifidtt](https://github.com) -
+Testing this out
+
+!! should not move asterisk to next line to prevent creating a list !!
+[testtttesttinasidfnaisodfasdifidtt](https://github.com) * Testing this out
+
+[expect]
+[testtttesttinasidfnaisodfasdifidtt](https://github.com) *
+Testing this out
+
+!! should not move dash to next line to prevent creating a list inside text !!
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - testing
+
+[expect]
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -
+testing

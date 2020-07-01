@@ -1,5 +1,6 @@
 use dprint_core::*;
 use dprint_core::{conditions::*, parser_helpers::*, condition_resolvers};
+use crate::configuration::*;
 use super::common::*;
 use super::parser_types::*;
 use super::utils;
@@ -66,54 +67,49 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     let mut last_node: Option<&Node> = None;
 
-    for node in nodes {
+    for node in nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_))) {
         // todo: this area needs to be thought out more
-        let is_current_soft_break = match node { Node::SoftBreak(_) => true, _=> false, };
         if let Some(last_node) = last_node {
             match last_node {
                 Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) | Node::HorizontalRule(_) | Node::List(_) => {
                     items.push_signal(Signal::NewLine);
                     items.push_signal(Signal::NewLine);
                 },
-                Node::Text(_) | Node::Html(_) => {
+                Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) |
+                Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) |
+                Node::Text(_) | Node::Html(_) | Node::InlineImage(_) | Node::ReferenceImage(_) => {
                     let between_range = (last_node.range().end, node.range().start);
                     let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
-                    if new_line_count > 0 {
-                        items.push_signal(Signal::NewLine);
-                        if new_line_count > 1 {
+                    if new_line_count == 1 {
+                        if matches!(node, Node::Html(_)) {
                             items.push_signal(Signal::NewLine);
-                        }
-                    } else if between_range.0 < between_range.1 {
-                        items.push_signal(Signal::SpaceOrNewLine)
-                    }
-                },
-                Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) => {
-                    let needs_space = if let Node::Text(text) = node {
-                        !text.starts_with_punctuation() || text.has_preceeding_space(&context.file_text)
-                    } else {
-                        true
-                    };
-
-                    if needs_space && !is_current_soft_break {
-                        if node.starts_with_list_char() {
-                            items.push_str(" ");
                         } else {
-                            items.push_signal(Signal::SpaceOrNewLine);
+                            items.extend(get_newline_wrapping_based_on_config(context));
                         }
-                    }
-                },
-                Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) => {
-                    let needs_space = if let Node::Text(text) = node {
-                        !text.starts_with_punctuation() || text.has_preceeding_space(&context.file_text)
+                    } else if new_line_count > 1 {
+                        items.push_signal(Signal::NewLine);
+                        items.push_signal(Signal::NewLine);
                     } else {
-                        false
-                    };
-
-                    if needs_space {
-                        if node.starts_with_list_char() {
-                            items.push_str(" ");
+                        let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
+                            if let Node::Html(_) = last_node {
+                                node.has_preceeding_space(&context.file_text)
+                            } else {
+                                node.has_preceeding_space(&context.file_text) || !last_node.ends_with_punctuation(&context.file_text) && !node.starts_with_punctuation(&context.file_text)
+                            }
+                        } else if let Node::FootnoteReference(_) = node {
+                            false
+                        } else if let Node::Html(_) = node {
+                            node.has_preceeding_space(&context.file_text)
                         } else {
-                            items.push_signal(Signal::SpaceOrNewLine);
+                            true
+                        };
+
+                        if needs_space {
+                            if node.starts_with_list_char() {
+                                items.push_str(" ");
+                            } else {
+                                items.extend(get_space_or_newline_based_on_config(context));
+                            }
                         }
                     }
                 },
@@ -211,31 +207,31 @@ fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
     format!("`{}`", code.code.trim()).into()
 }
 
-fn parse_text(text: &Text, _: &mut Context) -> PrintItems {
-    let mut text_builder = TextBuilder::new();
+fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
+    let mut text_builder = TextBuilder::new(context);
 
     for c in text.text.chars() {
-        if c.is_whitespace() {
-            text_builder.space_or_new_line();
-        } else {
-            text_builder.add_char(c);
-        }
+        text_builder.add_char(c);
     }
 
     return text_builder.build();
 
-    struct TextBuilder {
+    struct TextBuilder<'a> {
         items: PrintItems,
         was_last_whitespace: bool,
+        was_last_newline: bool,
         current_word: Option<String>,
+        context: &'a Context<'a>,
     }
 
-    impl TextBuilder {
-        pub fn new() -> TextBuilder {
+    impl<'a> TextBuilder<'a> {
+        pub fn new(context: &'a Context) -> TextBuilder<'a> {
             TextBuilder {
                 items: PrintItems::new(),
                 was_last_whitespace: false,
+                was_last_newline: false,
                 current_word: None,
+                context,
             }
         }
 
@@ -244,23 +240,26 @@ fn parse_text(text: &Text, _: &mut Context) -> PrintItems {
             self.items
         }
 
-        pub fn space_or_new_line(&mut self) {
-            if self.items.is_empty() && self.current_word.is_none() { return; }
-            if self.was_last_whitespace { return; }
-
-            self.flush_current_word();
-
-            self.was_last_whitespace = true;
-        }
-
         pub fn add_char(&mut self, character: char) {
+            if character.is_whitespace() {
+                if self.context.configuration.text_wrap == TextWrap::Maintain && character == '\n' {
+                    self.newline();
+                } else {
+                    self.space_or_newline();
+                }
+                return;
+            }
+
             if self.was_last_whitespace {
                 if utils::is_list_char(character) {
                     self.items.push_str(" ");
+                } else if self.was_last_newline {
+                    self.items.push_signal(Signal::NewLine)
                 } else {
-                    self.items.push_signal(Signal::SpaceOrNewLine);
+                    self.items.extend(get_space_or_newline_based_on_config(self.context));
                 }
                 self.was_last_whitespace = false;
+                self.was_last_newline = false;
             }
 
             if let Some(current_word) = self.current_word.as_mut() {
@@ -270,6 +269,24 @@ fn parse_text(text: &Text, _: &mut Context) -> PrintItems {
                 text.push(character);
                 self.current_word = Some(text);
             }
+        }
+
+        fn space_or_newline(&mut self) {
+            self.set_last_whitespace();
+        }
+
+        fn newline(&mut self) {
+            self.was_last_newline = true;
+            self.set_last_whitespace();
+        }
+
+        fn set_last_whitespace(&mut self) {
+            if self.items.is_empty() && self.current_word.is_none() { return; }
+            if self.was_last_whitespace { return; }
+
+            self.flush_current_word();
+
+            self.was_last_whitespace = true;
         }
 
         fn flush_current_word(&mut self) {
@@ -568,4 +585,19 @@ fn measure_single_line_width(items: PrintItems) -> usize {
         use_tabs: false,
         new_line_text: "",
     }).chars().count()
+}
+
+fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
+    match context.configuration.text_wrap {
+        TextWrap::Always => Signal::SpaceOrNewLine.into(),
+        TextWrap::Never | TextWrap::Maintain => " ".into(),
+    }
+}
+
+fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
+    match context.configuration.text_wrap {
+        TextWrap::Always => Signal::SpaceOrNewLine.into(),
+        TextWrap::Never => " ".into(),
+        TextWrap::Maintain => Signal::NewLine.into(),
+    }
 }

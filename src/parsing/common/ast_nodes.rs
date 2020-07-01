@@ -111,27 +111,12 @@ pub struct ReferenceImage {
 }
 
 impl Text {
-    pub fn starts_with_punctuation(&self) -> bool {
-        if let Some(first_char) = self.text.chars().next() {
-            first_char.is_ascii_punctuation()
-        } else {
-            false
-        }
-    }
 
     pub fn starts_with_list_char(&self) -> bool {
         if let Some(first_char) = self.text.chars().next() {
             crate::parsing::utils::is_list_char(first_char)
         } else {
             false
-        }
-    }
-
-    pub fn has_preceeding_space(&self, file_text: &str) -> bool {
-        if self.range.start == 0 {
-            false
-        } else {
-            &file_text[self.range.start - 1..self.range.start] == " "
         }
     }
 }
@@ -255,6 +240,35 @@ impl Node {
     pub fn starts_with_list_char(&self) -> bool {
         if let Node::Text(text) = self {
             text.starts_with_list_char()
+        } else {
+            false
+        }
+    }
+
+    pub fn has_preceeding_space(&self, file_text: &str) -> bool {
+        let range = self.range();
+        if range.start == 0 {
+            false
+        } else {
+            &file_text[range.start - 1..range.start] == " "
+        }
+    }
+
+    pub fn starts_with_punctuation(&self, file_text: &str) -> bool {
+        let range = self.range();
+        let text = &file_text[range.start..range.end];
+        if let Some(first_char) = text.chars().next() {
+            first_char.is_ascii_punctuation()
+        } else {
+            false
+        }
+    }
+
+    pub fn ends_with_punctuation(&self, file_text: &str) -> bool {
+        let range = self.range();
+        let text = &file_text[range.start..range.end];
+        if let Some(last_char) = text.chars().last() {
+            last_char.is_ascii_punctuation()
         } else {
             false
         }

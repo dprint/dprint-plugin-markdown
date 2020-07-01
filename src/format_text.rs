@@ -29,6 +29,8 @@ pub fn format_text(file_text: &str, config: &Configuration) -> Result<String, St
     };
     let print_items = parse_node(&source_file.into(), &mut Context::new(markdown_text, config));
 
+    // println!("{}", print_items.get_as_text());
+
     Ok(print(print_items, PrintOptions {
         indent_width: 1, // force
         max_width: config.line_width,
