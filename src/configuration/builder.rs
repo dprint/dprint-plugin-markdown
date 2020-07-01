@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use dprint_core::configuration::{GlobalConfiguration, resolve_global_config, NewLineKind};
 
-use super::{Configuration, resolve_config, TextWrap};
+use super::*;
 
 /// Markdown formatting configuration builder.
 ///
@@ -62,6 +62,18 @@ impl ConfigurationBuilder {
         self.insert("textWrap", value)
     }
 
+    /// The character to use for emphasis/italics.
+    /// Default: `EmphasisKind::Underscores`
+    pub fn emphasis_kind(&mut self, value: EmphasisKind) -> &mut Self {
+        self.insert("emphasisKind", value)
+    }
+
+    /// The character to use for strong emphasis/bold.
+    /// Default: `StrongKind::Underscores`
+    pub fn strong_kind(&mut self, value: StrongKind) -> &mut Self {
+        self.insert("strongKind", value)
+    }
+
     #[cfg(test)]
     pub(super) fn get_inner_config(&self) -> HashMap<String, String> {
         self.config.clone()
@@ -79,17 +91,18 @@ mod tests {
     use dprint_core::configuration::{resolve_global_config, NewLineKind};
 
     use super::*;
-    use super::super::{resolve_config, TextWrap};
 
     #[test]
     fn check_all_values_set() {
         let mut config = ConfigurationBuilder::new();
         config.new_line_kind(NewLineKind::CarriageReturnLineFeed)
             .line_width(90)
-            .text_wrap(TextWrap::Always);
+            .text_wrap(TextWrap::Always)
+            .emphasis_kind(EmphasisKind::Asterisks)
+            .strong_kind(StrongKind::Underscores);
 
         let inner_config = config.get_inner_config();
-        assert_eq!(inner_config.len(), 3);
+        assert_eq!(inner_config.len(), 5);
         let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new()).config).diagnostics;
         assert_eq!(diagnostics.len(), 0);
     }

@@ -1,0 +1,8 @@
+~~ emphasisKind: asterisks ~~
+!! should format !!
+test *emphasis* or _emphasis_ test
+test **strong** or __strong__ test
+
+[expect]
+test *emphasis* or *emphasis* test
+test **strong** or **strong** test

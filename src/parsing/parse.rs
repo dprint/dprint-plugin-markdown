@@ -300,8 +300,14 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
 fn parse_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     let decoration_text = match &text.kind {
-        TextDecorationKind::Emphasis => "_", // todo: config for * instead
-        TextDecorationKind::Strong => "**", // todo: config for __ instead
+        TextDecorationKind::Emphasis => match context.configuration.emphasis_kind {
+            EmphasisKind::Asterisks => "*",
+            EmphasisKind::Underscores => "_",
+        },
+        TextDecorationKind::Strong => match context.configuration.strong_kind {
+            StrongKind::Asterisks => "**",
+            StrongKind::Underscores => "__",
+        },
         TextDecorationKind::Strikethrough => "~~",
     };
 

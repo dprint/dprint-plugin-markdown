@@ -32,7 +32,9 @@ pub fn resolve_config(config: HashMap<String, String>, global_config: &GlobalCon
     let resolved_config = Configuration {
         line_width: get_value(&mut config, "lineWidth", global_config.line_width.unwrap_or(80), &mut diagnostics),
         new_line_kind: get_value(&mut config, "newLineKind", global_config.new_line_kind.unwrap_or(DEFAULT_GLOBAL_CONFIGURATION.new_line_kind), &mut diagnostics),
-        text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics)
+        text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
+        emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
+        strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
     };
 
     for (key, _) in config.iter() {
