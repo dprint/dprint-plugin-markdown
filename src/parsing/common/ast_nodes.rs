@@ -118,6 +118,22 @@ impl Text {
             false
         }
     }
+
+    pub fn starts_with_list_char(&self) -> bool {
+        if let Some(first_char) = self.text.chars().next() {
+            crate::parsing::utils::is_list_char(first_char)
+        } else {
+            false
+        }
+    }
+
+    pub fn has_preceeding_space(&self, file_text: &str) -> bool {
+        if self.range.start == 0 {
+            false
+        } else {
+            &file_text[self.range.start - 1..self.range.start] == " "
+        }
+    }
 }
 
 pub struct SoftBreak {
@@ -232,6 +248,16 @@ macro_rules! generate_node {
         }
         )*
     };
+}
+
+impl Node  {
+    pub fn starts_with_list_char(&self) -> bool {
+        if let Node::Text(text) = self {
+            text.starts_with_list_char()
+        } else {
+            false
+        }
+    }
 }
 
 generate_node![

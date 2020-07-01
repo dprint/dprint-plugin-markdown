@@ -2,6 +2,7 @@ use dprint_core::*;
 use dprint_core::{conditions::*, parser_helpers::*, condition_resolvers};
 use super::common::*;
 use super::parser_types::*;
+use super::utils;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
     // println!("Text: {:?}", node.text(context));
@@ -88,24 +89,32 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                 },
                 Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) => {
                     let needs_space = if let Node::Text(text) = node {
-                        !text.starts_with_punctuation()
+                        !text.starts_with_punctuation() || text.has_preceeding_space(&context.file_text)
                     } else {
                         true
                     };
 
                     if needs_space && !is_current_soft_break {
-                        items.push_signal(Signal::SpaceOrNewLine);
+                        if node.starts_with_list_char() {
+                            items.push_str(" ");
+                        } else {
+                            items.push_signal(Signal::SpaceOrNewLine);
+                        }
                     }
                 },
                 Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) => {
                     let needs_space = if let Node::Text(text) = node {
-                        !text.starts_with_punctuation()
+                        !text.starts_with_punctuation() || text.has_preceeding_space(&context.file_text)
                     } else {
                         false
                     };
 
                     if needs_space {
-                        items.push_signal(Signal::SpaceOrNewLine);
+                        if node.starts_with_list_char() {
+                            items.push_str(" ");
+                        } else {
+                            items.push_signal(Signal::SpaceOrNewLine);
+                        }
                     }
                 },
                 Node::LinkReference(_) => {
@@ -172,28 +181,21 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
     items
 }
 
-fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
+fn parse_code_block(code_block: &CodeBlock, _: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    let indent_level = context.get_indent_level_at_pos(code_block.range.start);
 
-    // TODO: FIX THIS IT'S WRONG
-    // header
-    //if indent_level == 0 {
-        items.push_str("```");
-        if let Some(tag) = &code_block.tag {
-            items.push_str(tag);
-        }
-        items.push_signal(Signal::NewLine);
-    //}
+    items.push_str("```");
+    if let Some(tag) = &code_block.tag {
+        items.push_str(tag);
+    }
+    items.push_signal(Signal::NewLine);
 
     // body
     items.extend(parser_helpers::parse_string(&code_block.code.trim()));
 
     // footer
-    //if indent_level == 0 {
-        items.push_signal(Signal::NewLine);
-        items.push_str("```");
-    //}
+    items.push_signal(Signal::NewLine);
+    items.push_str("```");
 
     items
 }
@@ -246,7 +248,11 @@ fn parse_text(text: &Text, _: &mut Context) -> PrintItems {
 
         pub fn add_char(&mut self, character: char) {
             if self.was_last_whitespace {
-                self.items.push_signal(Signal::SpaceOrNewLine);
+                if utils::is_list_char(character) {
+                    self.items.push_str(" ");
+                } else {
+                    self.items.push_signal(Signal::SpaceOrNewLine);
+                }
                 self.was_last_whitespace = false;
             }
 

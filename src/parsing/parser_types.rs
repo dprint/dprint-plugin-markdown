@@ -26,6 +26,7 @@ impl<'a> Context<'a> {
         count
     }
 
+    #[allow(dead_code)]
     pub fn get_indent_level_at_pos(&self, pos: usize) -> u32 {
         let file_bytes = self.file_text.as_bytes();
         let mut count = 0;
