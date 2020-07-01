@@ -1,0 +1,57 @@
+name: Package Publish
+
+on:
+  release:
+    types: [published]
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Get tag version
+      id: get_tag_version
+      run: echo ::set-output name=TAG_VERSION::${GITHUB_REF/refs\/tags\//}
+
+      # PLUGIN PUBLISH
+    - name: Checkout plugins repo
+      uses: actions/checkout@v2
+      with:
+        repository: dprint/plugins
+        token: ${{ secrets.CI_REPO_PAT }} # github.token is scoped to current repo, so use this to push to other repo
+        path: dprint-plugins
+    - name: Plugin publish
+      run: |
+          cd dprint-plugins
+          curl -L https://github.com/dprint/dprint-plugin-markdown/releases/download/${{ steps.get_tag_version.outputs.TAG_VERSION }}/markdown-${{ steps.get_tag_version.outputs.TAG_VERSION }}.wasm \
+            --output markdown-${{ steps.get_tag_version.outputs.TAG_VERSION }}.wasm
+          node scripts/replace-plugin.js dprint-plugin-markdown ${{ steps.get_tag_version.outputs.TAG_VERSION }} markdown-${{ steps.get_tag_version.outputs.TAG_VERSION }}
+          git add .
+          git config user.name "David Sherret"
+          git config user.email "dsherret@users.noreply.github.com"
+          git commit -m "dprint-plugin-markdown ${{ steps.get_tag_version.outputs.TAG_VERSION }}"
+          git push origin master
+
+      # CARGO PUBLISH
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache cargo build
+      uses: actions/cache@v1
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cargo login
+      run: cargo login ${{ secrets.CRATES_TOKEN }}
+
+    - name: Cargo publish
+      run: cargo publish
