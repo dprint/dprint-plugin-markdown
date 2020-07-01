@@ -34,14 +34,14 @@ test;
 other
 ```
 
-    ```
-    const t = 4;
+```
+const t = 4;
 
-        const t = 5;
+    const t = 5;
 
 
-    const t = 6;
-    ```
+const t = 6;
+```
 
 !! should format code block inside list !!
 1. Testing
@@ -53,6 +53,18 @@ other
 [expect]
 1. Testing
 
-    ```
-    some code
-    ```
+   ```
+   some code
+   ```
+
+!! should move an indented code block to a fenced code block !!
+Test:
+
+    test
+
+[expect]
+Test:
+
+```
+test
+```

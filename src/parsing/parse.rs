@@ -195,7 +195,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
         items.push_str("```");
     //}
 
-    return with_indent_times(items, indent_level);
+    items
 }
 
 fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
