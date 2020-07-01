@@ -1,0 +1,103 @@
+~~ lineWidth: 40 ~~
+!! should format an ordered list !!
+1. A
+2. B
+3.   C
+
+[expect]
+1. A
+2. B
+3. C
+
+!! should format an ordered list with an empty item !!
+1. A
+2.
+3. C
+
+[expect]
+1. A
+2.
+3. C
+
+!! should format an unordered list with asterisks !!
+* A
+* B
+*   C
+
+[expect]
+- A
+- B
+- C
+
+!! should format an unordered list with plus signs !!
++ A
++ B
++   C
+
+[expect]
+- A
+- B
+- C
+
+!! should format an unordered list with minus signs !!
+- A
+- B
+-   C
+
+[expect]
+- A
+- B
+- C
+
+!! should format an unordered list with nested items !!
+- Testing
+
+  Testing
+
+[expect]
+- Testing
+
+  Testing
+
+!! should format an ordered list with nested ordered list !!
+2. Testing
+   6. Test
+   7. Test
+3. Test
+
+[expect]
+2. Testing
+   6. Test
+   7. Test
+3. Test
+
+!! should not combine next paragraph into list !!
+* Here is a point
+* Here is another point
+
+Here is a paragraph
+
+[expect]
+- Here is a point
+- Here is another point
+
+Here is a paragraph
+
+!! should indent a sub list based on the last number char count !!
+9. Testing
+   6. Test
+10. Other
+    7. Testing
+
+[expect]
+9. Testing
+   6. Test
+10. Other
+    7. Testing
+
+!! should keep link with dash separator have spaces !!
+* [test](https://github.com) - Testing this out
+
+[expect]
+- [test](https://github.com) - Testing
+  this out

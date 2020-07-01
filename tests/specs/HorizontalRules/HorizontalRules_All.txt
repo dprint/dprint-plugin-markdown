@@ -1,0 +1,35 @@
+!! should output the different kinds of horizontal rules !!
+test
+
+***
+
+asdf
+
+---
+
+Testing this
+___________
+
+test
+
+***
+asdf
+
+[expect]
+test
+
+---
+
+asdf
+
+---
+
+Testing this
+
+---
+
+test
+
+---
+
+asdf
