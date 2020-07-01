@@ -23,7 +23,7 @@ checksum = "417ed417346ddd21939fd451061d93d13e9df53c97dc15a2c71faa9c9881710e"
 
 [[package]]
 name = "dprint-plugin-markdown"
-version = "0.1.0-beta"
+version = "0.1.0"
 dependencies = [
  "dprint-core",
  "dprint-development",
