@@ -1,1 +1,22 @@
 Copyright (c) 2020 David Sherret
+
+Given the following definitions:
+
+  "Software Application" refers to the work governed by this license.
+
+  "User" refers to the individual who uses the Software Application.
+
+Permission is hereby granted to the User to execute the Software Application
+via the dprint command-line interface application found at https://dprint.dev.
+
+In the future, an open-source license will be adopted, but for now this license
+does NOT grant anyone permission to use or modify this application or its
+source code in any way other than as described in the previous paragraph.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
