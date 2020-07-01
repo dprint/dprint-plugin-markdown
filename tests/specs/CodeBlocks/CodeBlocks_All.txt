@@ -11,13 +11,6 @@ test;
 other
 ```
 
-    const t = 4;
-
-        const t = 5;
-
-
-    const t = 6;
-
 
 
 
@@ -34,14 +27,23 @@ test;
 other
 ```
 
-```
-const t = 4;
+!! should format indented code blocks as-is !!
 
-    const t = 5;
+    const t = 4;
+
+        const t = 5;
 
 
-const t = 6;
-```
+    const t = 6;
+
+
+[expect]
+    const t = 4;
+
+        const t = 5;
+
+
+    const t = 6;
 
 !! should format code block inside list !!
 1. Testing
@@ -57,7 +59,7 @@ const t = 6;
    some code
    ```
 
-!! should move an indented code block to a fenced code block !!
+!! should keep an indented code block as indented !!
 Test:
 
     test
@@ -65,6 +67,18 @@ Test:
 [expect]
 Test:
 
-```
-test
-```
+    test
+
+!! should keep a code block indented a lot as being indented a lot !!
+10. Test
+
+        ```
+        testing
+        ```
+
+[expect]
+10. Test
+
+        ```
+        testing
+        ```

@@ -91,16 +91,13 @@ mod tests {
     fn handle_global_config() {
         let mut global_config = HashMap::new();
         global_config.insert(String::from("lineWidth"), String::from("90"));
-        global_config.insert(String::from("indentWidth"), String::from("8"));
         global_config.insert(String::from("newLineKind"), String::from("crlf"));
         global_config.insert(String::from("useTabs"), String::from("true"));
         let global_config = resolve_global_config(global_config).config;
         let mut config_builder = ConfigurationBuilder::new();
         let config = config_builder.global_config(global_config).build();
         assert_eq!(config.line_width, 90);
-        assert_eq!(config.indent_width, 8);
         assert_eq!(config.new_line_kind == NewLineKind::CarriageReturnLineFeed, true);
-        assert_eq!(config.use_tabs, true);
     }
 
     #[test]
@@ -109,8 +106,6 @@ mod tests {
         let mut config_builder = ConfigurationBuilder::new();
         let config = config_builder.global_config(global_config).build();
         assert_eq!(config.line_width, 80); // this is different
-        assert_eq!(config.indent_width, 4);
         assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
-        assert_eq!(config.use_tabs, false);
     }
 }

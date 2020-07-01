@@ -3,6 +3,7 @@ use super::super::configuration::Configuration;
 pub struct Context<'a> {
     pub file_text: &'a str,
     pub configuration: &'a Configuration,
+    pub indent_level: u32,
 }
 
 impl<'a> Context<'a> {
@@ -10,11 +11,14 @@ impl<'a> Context<'a> {
         Context {
             file_text,
             configuration,
+            indent_level: 0,
         }
     }
 
     pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {
-        if end < start { return 0; } // ignore
+        if end < start {
+            return 0;
+        } // ignore
 
         let file_bytes = self.file_text.as_bytes();
         let mut count = 0;
@@ -26,7 +30,6 @@ impl<'a> Context<'a> {
         count
     }
 
-    #[allow(dead_code)]
     pub fn get_indent_level_at_pos(&self, pos: usize) -> u32 {
         let file_bytes = self.file_text.as_bytes();
         let mut count = 0;
@@ -41,7 +44,7 @@ impl<'a> Context<'a> {
             }
 
             if character == '\t' {
-                count += self.configuration.indent_width;
+                count += 4;
             } else if character.is_whitespace() {
                 count += 1;
             } else {
@@ -50,6 +53,7 @@ impl<'a> Context<'a> {
             }
         }
 
-        (count as f64 / self.configuration.indent_width as f64).round() as u32
+        const INDENT_WIDTH: usize = 1;
+        (count as f64 / INDENT_WIDTH as f64).round() as u32
     }
 }

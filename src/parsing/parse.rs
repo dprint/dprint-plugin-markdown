@@ -181,23 +181,30 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
     items
 }
 
-fn parse_code_block(code_block: &CodeBlock, _: &mut Context) -> PrintItems {
+fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
+    let indent_level = context.get_indent_level_at_pos(code_block.range.start) - context.indent_level;
+    let indent_level = ((indent_level as f64 / 4_f64).round() * 4_f64) as u32;
 
-    items.push_str("```");
-    if let Some(tag) = &code_block.tag {
-        items.push_str(tag);
+    // header
+    if code_block.is_fenced {
+        items.push_str("```");
+        if let Some(tag) = &code_block.tag {
+            items.push_str(tag);
+        }
+        items.push_signal(Signal::NewLine);
     }
-    items.push_signal(Signal::NewLine);
 
     // body
     items.extend(parser_helpers::parse_string(&code_block.code.trim()));
 
     // footer
-    items.push_signal(Signal::NewLine);
-    items.push_str("```");
+    if code_block.is_fenced {
+        items.push_signal(Signal::NewLine);
+        items.push_str("```");
+    }
 
-    items
+    with_indent_times(items, indent_level)
 }
 
 fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
@@ -384,6 +391,8 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
         } else {
             String::from("-")
         };
+        let indent_level = (prefix_text.chars().count() + 1) as u32;
+        context.indent_level += indent_level;
         items.push_str(&prefix_text);
         let after_child = Info::new("afterChild");
         items.push_condition(if_true(
@@ -391,8 +400,9 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
             move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
             " ".into()
         ));
-        items.extend(with_indent_times(parse_node(child, context), (prefix_text.chars().count() + 1) as u32));
+        items.extend(with_indent_times(parse_node(child, context), indent_level));
         items.push_info(after_child);
+        context.indent_level -= indent_level;
     }
     items
 }

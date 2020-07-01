@@ -26,8 +26,8 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-            // println!("Event: {:?}", event);
-            // println!("Range: {:?}", range);
+            println!("Event: {:?}", event);
+            println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
             Some(event)
@@ -227,6 +227,7 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
         }
     }
 
+    let is_fenced = matches!(code_block_kind, CodeBlockKind::Fenced(_));
     let tag = match code_block_kind {
         CodeBlockKind::Indented => None,
         CodeBlockKind::Fenced(tag) => {
@@ -238,6 +239,7 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
     Ok(CodeBlock {
         range: iterator.get_range_for_start(start),
         tag,
+        is_fenced,
         code,
     })
 }

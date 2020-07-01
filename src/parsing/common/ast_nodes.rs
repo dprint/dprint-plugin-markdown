@@ -169,6 +169,7 @@ pub struct Code {
 pub struct CodeBlock {
     pub range: Range,
     pub tag: Option<String>,
+    pub is_fenced: bool,
     pub code: String,
 }
 
@@ -250,7 +251,7 @@ macro_rules! generate_node {
     };
 }
 
-impl Node  {
+impl Node {
     pub fn starts_with_list_char(&self) -> bool {
         if let Node::Text(text) = self {
             text.starts_with_list_char()
