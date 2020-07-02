@@ -1,0 +1,13 @@
+!! should have blank line between html and code block !!
+<!-- test-comment -->
+```js
+```
+<!-- test-comment -->
+
+[expect]
+<!-- test-comment -->
+
+```js
+```
+
+<!-- test-comment -->

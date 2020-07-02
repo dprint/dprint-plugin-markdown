@@ -94,3 +94,11 @@ Here is a paragraph
    6. Test
 10. Other
     7. Testing
+
+!! should handle blank item with sub list !!
+1.
+   - test
+
+[expect]
+1.
+   - test

@@ -70,60 +70,70 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
     for node in nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_))) {
         // todo: this area needs to be thought out more
         if let Some(last_node) = last_node {
-            match last_node {
+            if matches!(
+                node,
                 Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
-                Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_) => {
-                    items.push_signal(Signal::NewLine);
-                    items.push_signal(Signal::NewLine);
-                },
-                Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) |
-                Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) |
-                Node::Text(_) | Node::Html(_) | Node::InlineImage(_) | Node::ReferenceImage(_) => {
-                    let between_range = (last_node.range().end, node.range().start);
-                    let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
-                    if new_line_count == 1 {
-                        if matches!(node, Node::Html(_)) {
+                    Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_)
+            ) {
+                items.push_signal(Signal::NewLine);
+                items.push_signal(Signal::NewLine);
+            } else {
+                match last_node {
+                    Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
+                    Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_) => {
+                        items.push_signal(Signal::NewLine);
+                        items.push_signal(Signal::NewLine);
+                    },
+                    Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) |
+                    Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) |
+                    Node::Text(_) | Node::Html(_) | Node::InlineImage(_) | Node::ReferenceImage(_) => {
+                        let between_range = (last_node.range().end, node.range().start);
+                        let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
+
+                        if new_line_count == 1 {
+                            if matches!(node, Node::Html(_)) {
+                                items.push_signal(Signal::NewLine);
+                            } else {
+                                items.extend(get_newline_wrapping_based_on_config(context));
+                            }
+                        } else if new_line_count > 1 {
+                            items.push_signal(Signal::NewLine);
                             items.push_signal(Signal::NewLine);
                         } else {
-                            items.extend(get_newline_wrapping_based_on_config(context));
-                        }
-                    } else if new_line_count > 1 {
-                        items.push_signal(Signal::NewLine);
-                        items.push_signal(Signal::NewLine);
-                    } else {
-                        let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
-                            if let Node::Html(_) = last_node {
+                            let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
+                                if let Node::Html(_) = last_node {
+                                    node.has_preceeding_space(&context.file_text)
+                                } else {
+                                    node.has_preceeding_space(&context.file_text) || !last_node.ends_with_punctuation(&context.file_text) && !node.starts_with_punctuation(&context.file_text)
+                                }
+                            } else if let Node::FootnoteReference(_) = node {
+                                false
+                            } else if let Node::Html(_) = node {
                                 node.has_preceeding_space(&context.file_text)
                             } else {
-                                node.has_preceeding_space(&context.file_text) || !last_node.ends_with_punctuation(&context.file_text) && !node.starts_with_punctuation(&context.file_text)
-                            }
-                        } else if let Node::FootnoteReference(_) = node {
-                            false
-                        } else if let Node::Html(_) = node {
-                            node.has_preceeding_space(&context.file_text)
-                        } else {
-                            true
-                        };
+                                true
+                            };
 
-                        if needs_space {
-                            if node.starts_with_list_char() {
-                                items.push_str(" ");
-                            } else {
-                                items.extend(get_space_or_newline_based_on_config(context));
+                            if needs_space {
+                                if node.starts_with_list_char() {
+                                    items.push_str(" ");
+                                } else {
+                                    items.extend(get_space_or_newline_based_on_config(context));
+                                }
                             }
                         }
+                    },
+                    Node::LinkReference(_) => {
+                        let needs_newline = if let Node::LinkReference(_) = node { true } else { false };
+                        if needs_newline {
+                            items.push_signal(Signal::NewLine);
+                        }
                     }
-                },
-                Node::LinkReference(_) => {
-                    let needs_newline = if let Node::LinkReference(_) = node { true } else { false };
-                    if needs_newline {
-                        items.push_signal(Signal::NewLine);
-                    }
+                    Node::TaskListMarker(_) => {
+                        items.push_str(" ");
+                    },
+                    _ => {},
                 }
-                Node::TaskListMarker(_) => {
-                    items.push_str(" ");
-                },
-                _ => {},
             }
         }
 
@@ -193,11 +203,12 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
     }
 
     // body
-    items.extend(parser_helpers::parse_string(&code_block.code.trim()));
+    let code = code_block.code.trim();
+    if !code.is_empty() { items.extend(parser_helpers::parse_string(&code)); }
 
     // footer
     if code_block.is_fenced {
-        items.push_signal(Signal::NewLine);
+        if !code.is_empty() { items.push_signal(Signal::NewLine); }
         items.push_str("```");
     }
 
@@ -422,7 +433,7 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
         items.push_condition(if_true(
             "spaceIfHasChild",
             move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
-            " ".into()
+            Signal::SpaceIfNotTrailing.into()
         ));
         items.extend(with_indent_times(parse_node(child, context), indent_level));
         items.push_info(after_child);
@@ -432,7 +443,13 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
 }
 
 fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
-    parse_nodes(&item.children, context)
+    let mut items = PrintItems::new();
+    items.extend(parse_nodes(&item.children, context));
+    if !item.sub_lists.is_empty() {
+        items.push_signal(Signal::NewLine);
+        items.extend(parse_nodes(&item.sub_lists, context));
+    }
+    items
 }
 
 fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {

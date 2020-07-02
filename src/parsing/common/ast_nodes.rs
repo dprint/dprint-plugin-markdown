@@ -111,7 +111,6 @@ pub struct ReferenceImage {
 }
 
 impl Text {
-
     pub fn starts_with_list_char(&self) -> bool {
         if let Some(first_char) = self.text.chars().next() {
             crate::parsing::utils::is_list_char(first_char)
@@ -138,6 +137,7 @@ pub struct List {
 pub struct Item {
     pub range: Range,
     pub children: Vec<Node>,
+    pub sub_lists: Vec<Node>,
 }
 
 pub struct TaskListMarker {

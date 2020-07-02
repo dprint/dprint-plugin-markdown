@@ -26,8 +26,8 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-            // println!("Event: {:?}", event);
-            // println!("Range: {:?}", range);
+            println!("Event: {:?}", event);
+            println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
             Some(event)
@@ -480,22 +480,26 @@ fn parse_table_cell(iterator: &mut EventIterator) -> Result<TableCell, ParseErro
 fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     let start = iterator.start();
     let mut children = Vec::new();
+    let mut sub_lists = Vec::new();
 
     while let Some(event) = iterator.next() {
         match event {
             Event::End(Tag::Item) => break,
+            Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
             _ => children.push(parse_event(event, iterator)?),
         }
     }
 
     let range = iterator.get_range_for_start(start);
 
-    if let Some(references) = parse_references(&children.last().map(|c| c.range().to_owned()), range.end, iterator)? {
+    let last_range = sub_lists.last().map(|c| c.range()).or(children.last().map(|c| c.range())).map(|r| r.to_owned());
+    if let Some(references) = parse_references(&last_range, range.end, iterator)? {
         children.push(references);
     }
 
     Ok(Item {
         range,
         children,
+        sub_lists,
     })
 }
