@@ -30,6 +30,16 @@ impl<'a> EventIterator<'a> {
             // println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
+
+            // skip over any empty texts
+            while let Some((Event::Text(text), _)) = &self.next {
+                if text.trim().is_empty() {
+                    self.next = self.iterator.next();
+                } else {
+                    break;
+                }
+            }
+
             Some(event)
         } else {
             None
@@ -127,7 +137,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
         Event::Start(tag) => parse_start(tag, iterator),
         Event::End(_) => Ok(iterator.get_not_implemented()), // do nothing
         Event::Code(code) => parse_code(code, iterator).map(|x| x.into()),
-        Event::Text(text) => parse_text(iterator).map(|x| x.into()),
+        Event::Text(_) => parse_text(iterator).map(|x| x.into()),
         Event::Html(html) => parse_html(html, iterator).map(|x| x.into()),
         Event::FootnoteReference(reference) => parse_footnote_reference(reference, iterator).map(|x| x.into()),
         Event::SoftBreak => Ok(SoftBreak { range: iterator.get_last_range() }.into()),
@@ -253,8 +263,8 @@ fn parse_code(code: CowStr, iterator: &mut EventIterator) -> Result<Code, ParseE
 }
 
 fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {
-    // it breaks up text items when they have escapes in them,
-    // so just combine the results
+    // Pulldown cmark breaks up text items when they have escape chars
+    // in them, so just combine the results.
     let raw_start = iterator.get_last_range().start;
     while let Some((Event::Text(_), _)) = iterator.peek() {
         iterator.next();
