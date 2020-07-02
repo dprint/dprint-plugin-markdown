@@ -1,0 +1,14 @@
+!! should newline before codeblock after text in list !!
+- here is a test:
+  ```ts
+  // some comment
+  console.log("test");
+  ```
+
+[expect]
+- here is a test:
+
+  ```ts
+  // some comment
+  console.log("test");
+  ```
