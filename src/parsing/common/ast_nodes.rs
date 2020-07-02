@@ -136,6 +136,7 @@ pub struct List {
 
 pub struct Item {
     pub range: Range,
+    pub marker: Option<TaskListMarker>,
     pub children: Vec<Node>,
     pub sub_lists: Vec<Node>,
 }

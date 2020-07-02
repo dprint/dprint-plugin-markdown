@@ -1,0 +1,13 @@
+!! should format as-is !!
+- [ ] a
+- [ ] b
+
+- [ ] c
+- [ ] d
+
+[expect]
+- [ ] a
+- [ ] b
+
+- [ ] c
+- [ ] d

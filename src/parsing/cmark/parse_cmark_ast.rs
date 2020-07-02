@@ -26,8 +26,7 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-            // println!("Event: {:?}", event);
-            // println!("Range: {:?}", range);
+            // println!("{:?} {:?}", range, event);
             self.last_range = range;
             self.next = self.iterator.next();
 
@@ -499,6 +498,14 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     let mut children = Vec::new();
     let mut sub_lists = Vec::new();
 
+    let marker = if let Some((Event::TaskListMarker(is_checked), _)) = iterator.peek() {
+        let marker = TaskListMarker { range: iterator.get_last_range(), is_checked: *is_checked };
+        iterator.next();
+        Some(marker)
+    } else {
+        None
+    };
+
     while let Some(event) = iterator.next() {
         match event {
             Event::End(Tag::Item) => break,
@@ -519,6 +526,7 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
     Ok(Item {
         range,
+        marker,
         children,
         sub_lists,
     })

@@ -129,9 +129,6 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                             items.push_signal(Signal::NewLine);
                         }
                     }
-                    Node::TaskListMarker(_) => {
-                        items.push_str(" ");
-                    },
                     _ => {},
                 }
             }
@@ -431,7 +428,12 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
 fn parse_list(list: &List, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     for (index, child) in list.children.iter().enumerate() {
-        if index > 0 { items.push_signal(Signal::NewLine); }
+        if index > 0 {
+            items.push_signal(Signal::NewLine);
+            if utils::has_leading_blankline(child.range().start, context.file_text) {
+                items.push_signal(Signal::NewLine);
+            }
+        }
         let prefix_text = if let Some(start_index) = list.start_index {
             format!("{}.", start_index + index as u64)
         } else {
@@ -455,6 +457,12 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
 
 fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
+
+    if let Some(marker) = &item.marker {
+        items.extend(parse_task_list_marker(marker, context));
+        if !item.children.is_empty() { items.push_str(" "); }
+    }
+
     items.extend(parse_nodes(&item.children, context));
     if !item.sub_lists.is_empty() {
         items.push_signal(Signal::NewLine);
