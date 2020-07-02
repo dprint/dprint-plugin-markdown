@@ -1,0 +1,45 @@
+!! should have a newline after a table !!
+## Verbs
+
+The following verbs are supported:
+
+| Verb  | Meaning                                                        |
+| ----- | -------------------------------------------------------------- |
+| `%`   | print a literal percent                                        |
+| `t`   | evaluate arg as boolean, print `true` or `false`               |
+| `b`   | eval as number, print binary                                   |
+| `c`   | eval as number, print character corresponding to the codePoint |
+| `o`   | eval as number, print octal                                    |
+| `x X` | print as hex (ff FF), treat string as list of bytes            |
+| `e E` | print number in scientific/exponent format 1.123123e+01        |
+| `f F` | print number as float with decimal point and no exponent       |
+| `g G` | use %e %E or %f %F depending on size of argument               |
+| `s`   | interpolate string                                             |
+| `T`   | type of arg, as returned by `typeof`                           |
+| `v`   | value of argument in 'default' format (see below)              |
+| `j`   | argument as formatted by `JSON.stringify`                      |
+
+## Width and Precision
+
+[expect]
+## Verbs
+
+The following verbs are supported:
+
+| Verb  | Meaning                                                        |
+| ----- | -------------------------------------------------------------- |
+| `%`   | print a literal percent                                        |
+| `t`   | evaluate arg as boolean, print `true` or `false`               |
+| `b`   | eval as number, print binary                                   |
+| `c`   | eval as number, print character corresponding to the codePoint |
+| `o`   | eval as number, print octal                                    |
+| `x X` | print as hex (ff FF), treat string as list of bytes            |
+| `e E` | print number in scientific/exponent format 1.123123e+01        |
+| `f F` | print number as float with decimal point and no exponent       |
+| `g G` | use %e %E or %f %F depending on size of argument               |
+| `s`   | interpolate string                                             |
+| `T`   | type of arg, as returned by `typeof`                           |
+| `v`   | value of argument in 'default' format (see below)              |
+| `j`   | argument as formatted by `JSON.stringify`                      |
+
+## Width and Precision

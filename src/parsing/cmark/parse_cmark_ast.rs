@@ -26,8 +26,8 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-             println!("Event: {:?}", event);
-             println!("Range: {:?}", range);
+            // println!("Event: {:?}", event);
+            // println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
             Some(event)
