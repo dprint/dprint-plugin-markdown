@@ -1,0 +1,9 @@
+!! should keep link reference !!
+* Testing
+
+  [test]: asdf
+
+[expect]
+- Testing
+
+  [test]: asdf

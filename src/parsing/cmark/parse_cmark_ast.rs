@@ -26,8 +26,8 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-            // println!("Event: {:?}", event);
-            // println!("Range: {:?}", range);
+             println!("Event: {:?}", event);
+             println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
             Some(event)
@@ -488,8 +488,14 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
         }
     }
 
+    let range = iterator.get_range_for_start(start);
+
+    if let Some(references) = parse_references(&children.last().map(|c| c.range().to_owned()), range.end, iterator)? {
+        children.push(references);
+    }
+
     Ok(Item {
-        range: iterator.get_range_for_start(start),
+        range,
         children,
     })
 }
