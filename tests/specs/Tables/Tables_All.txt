@@ -23,3 +23,15 @@ a|b|c|d
 | testing       | anb kdl l l j | $1234 |
 | asdfffff      |   what hap    |   $22 |
 | hereissometex |     allo      |  $224 |
+
+!! should correctly centre all the columns in this table !!
+|Tes|
+:---:
+testd
+test
+
+[expect]
+|  Tes  |
+| :---: |
+| testd |
+| test  |

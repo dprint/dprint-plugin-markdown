@@ -521,9 +521,7 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
                         items.push_str(&" ".repeat(difference));
                     },
                     ColumnAlignment::Center => {
-                        if difference > 1 {
-                            items.push_str(&" ".repeat((difference as f32 / 2_f32).ceil() as usize))
-                        }
+                        items.push_str(&" ".repeat((difference as f32 / 2_f32).ceil() as usize))
                     },
                     ColumnAlignment::Right => {},
                 }
