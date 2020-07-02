@@ -26,8 +26,8 @@ impl<'a> EventIterator<'a> {
 
     pub fn next(&mut self) -> Option<Event<'a>> {
         if let Some((event, range)) = self.next.take() {
-            println!("Event: {:?}", event);
-            println!("Range: {:?}", range);
+            // println!("Event: {:?}", event);
+            // println!("Range: {:?}", range);
             self.last_range = range;
             self.next = self.iterator.next();
             Some(event)
@@ -127,7 +127,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
         Event::Start(tag) => parse_start(tag, iterator),
         Event::End(_) => Ok(iterator.get_not_implemented()), // do nothing
         Event::Code(code) => parse_code(code, iterator).map(|x| x.into()),
-        Event::Text(text) => parse_text(text, iterator).map(|x| x.into()),
+        Event::Text(text) => parse_text(iterator).map(|x| x.into()),
         Event::Html(html) => parse_html(html, iterator).map(|x| x.into()),
         Event::FootnoteReference(reference) => parse_footnote_reference(reference, iterator).map(|x| x.into()),
         Event::SoftBreak => Ok(SoftBreak { range: iterator.get_last_range() }.into()),
@@ -252,10 +252,18 @@ fn parse_code(code: CowStr, iterator: &mut EventIterator) -> Result<Code, ParseE
     })
 }
 
-fn parse_text(text: CowStr, iterator: &mut EventIterator) -> Result<Text, ParseError> {
-    let text = text.as_ref();
-    let trimmed_text = text.trim();
-    let start = iterator.get_last_range().start + (text.len() - text.trim_start().len());
+fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {
+    // it breaks up text items when they have escapes in them,
+    // so just combine the results
+    let raw_start = iterator.get_last_range().start;
+    while let Some((Event::Text(_), _)) = iterator.peek() {
+        iterator.next();
+    }
+    let raw_end = iterator.get_last_range().end;
+
+    let raw_text = &iterator.file_text[raw_start..raw_end];
+    let trimmed_text = raw_text.trim();
+    let start = raw_start + (raw_text.len() - raw_text.trim_start().len());
 
     Ok(Text {
         range: Range { start, end: start + trimmed_text.len() },
@@ -396,7 +404,6 @@ fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -
     } else {
         return Err(ParseError::new(iterator.get_last_range(), &format!("Expected a table head event, but found: {:?}", head_event)))
     };
-
 
     let mut rows = Vec::new();
     while let Some(event) = iterator.next() {

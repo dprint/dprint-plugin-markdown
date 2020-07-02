@@ -1,0 +1,9 @@
+!! should escape certain characters !!
+- **--allow-net=\<allow-net\>** Testing.
+
+And (\`) backticks and dollar signs (\$).
+
+[expect]
+- **--allow-net=\<allow-net\>** Testing.
+
+And (\`) backticks and dollar signs (\$).
