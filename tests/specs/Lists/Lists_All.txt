@@ -102,3 +102,23 @@ Here is a paragraph
 [expect]
 1.
    - test
+
+!! should handle sub list between paragraphs !!
+1. Testing
+
+   Some other paragraph
+
+    - some list
+    - other list
+
+   Final text
+
+[expect]
+1. Testing
+
+   Some other paragraph
+
+   - some list
+   - other list
+
+   Final text

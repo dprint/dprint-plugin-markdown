@@ -18,3 +18,10 @@
 [expect]
 [Style Guide testing
 this](https://github.com/testing_this_out_with_some_link)
+
+!! should wrap before link !!
+Testing this out [test](https://google.com)
+
+[expect]
+Testing this out
+[test](https://google.com)

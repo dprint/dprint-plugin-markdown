@@ -352,16 +352,17 @@ fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: 
 fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     let parsed_children = parse_nodes(&link.children, context);
-    let (use_no_newlines, parsed_children) = {
-        if link.children.len() == 1 && matches!(link.children.get(0), Some(Node::Text(_))) {
-            let (parsed_children, children_width) = get_items_single_line_width(parsed_children);
-            (children_width < (context.configuration.line_width / 2) as usize, parsed_children)
-        } else {
-            (false, parsed_children)
-        }
-    };
     items.push_str("[");
-    items.extend(parsed_children);
+
+    // force the text to be on a single line in some scenarios
+    let (parsed_children, parsed_children_clone) = clone_items(parsed_children);
+    let single_line_text = get_items_text(parser_helpers::with_no_new_lines(parsed_children_clone));
+    if single_line_text.len() < (context.configuration.line_width / 2) as usize {
+        items.push_str(&single_line_text);
+    } else {
+        items.extend(parsed_children);
+    }
+
     items.push_str("]");
     items.push_str("(");
     items.push_str(&link.url.trim());
@@ -370,11 +371,7 @@ fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     }
     items.push_str(")");
 
-    if use_no_newlines {
-        parser_helpers::new_line_group(parser_helpers::with_no_new_lines(items))
-    } else {
-        parser_helpers::new_line_group(items)
-    }
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
@@ -619,12 +616,16 @@ fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
 
 fn measure_single_line_width(items: PrintItems) -> usize {
     // this doesn't seem ideal, but good enough for now
+    get_items_text(items).chars().count()
+}
+
+fn get_items_text(items: PrintItems) -> String {
     print(parser_helpers::with_no_new_lines(items), PrintOptions {
         indent_width: 0,
         max_width: std::u32::MAX,
         use_tabs: false,
         new_line_text: "",
-    }).chars().count()
+    })
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {

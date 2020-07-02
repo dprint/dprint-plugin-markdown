@@ -503,7 +503,10 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
         match event {
             Event::End(Tag::Item) => break,
             Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
-            _ => children.push(parse_event(event, iterator)?),
+            _ => {
+                children.extend(sub_lists.drain(..)); // only add to the sub_lists if it's the last children
+                children.push(parse_event(event, iterator)?)
+            },
         }
     }
 
