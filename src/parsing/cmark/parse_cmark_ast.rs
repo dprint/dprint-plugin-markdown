@@ -51,6 +51,7 @@ impl<'a> EventIterator<'a> {
         self.last_range.clone()
     }
 
+    #[allow(dead_code)]
     pub fn peek(&self) -> &Option<(Event, Range)> {
         &self.next
     }
@@ -327,8 +328,7 @@ fn parse_link(link_type: LinkType, destination_url: &str, link_title: &str, iter
         }
     }
 
-    // iterator.get_last_range().end in pulldown-cmark is wrong, but will be fixed in the next version. For now, do this madness.
-    let end = iterator.peek().as_ref().map(|(_, range)| if range.start <= start { range.end } else { range.start }).unwrap_or(iterator.file_text.len());
+    let end = iterator.get_last_range().end;
     let range = Range { start, end };
     match link_type {
         LinkType::Inline => Ok(InlineLink {
