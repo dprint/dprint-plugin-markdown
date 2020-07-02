@@ -72,7 +72,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         if let Some(last_node) = last_node {
             match last_node {
                 Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
-                Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) => {
+                Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_) => {
                     items.push_signal(Signal::NewLine);
                     items.push_signal(Signal::NewLine);
                 },

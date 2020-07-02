@@ -1,0 +1,11 @@
+!! should have a newline after block quotes !!
+> This is an unstable feature. Learn more about
+> [unstable features](./stability.md).
+
+By default the namespace is not available in worker scope.
+
+[expect]
+> This is an unstable feature. Learn more about
+> [unstable features](./stability.md).
+
+By default the namespace is not available in worker scope.
