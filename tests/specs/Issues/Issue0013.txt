@@ -1,0 +1,23 @@
+!! should not add blank line on first item !!
+## Comparison to Testing
+
+- Testing this out `test`
+  - Testing testing testing
+- Testing this out with some long text
+  and some more text
+
+  ```javascript
+  import * as log from "test"
+  ```
+
+[expect]
+## Comparison to Testing
+
+- Testing this out `test`
+  - Testing testing testing
+- Testing this out with some long text
+  and some more text
+
+  ```javascript
+  import * as log from "test"
+  ```
