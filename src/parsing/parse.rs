@@ -339,7 +339,7 @@ fn parse_html(html: &Html, _: &mut Context) -> PrintItems {
 fn parse_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     items.push_str(&format!("[^{}]", footnote_reference.name.trim()));
-    items
+    parser_helpers::with_no_new_lines(items)
 }
 
 fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
@@ -351,8 +351,17 @@ fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: 
 
 fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
+    let parsed_children = parse_nodes(&link.children, context);
+    let (use_no_newlines, parsed_children) = {
+        if link.children.len() == 1 && matches!(link.children.get(0), Some(Node::Text(_))) {
+            let (parsed_children, children_width) = get_items_single_line_width(parsed_children);
+            (children_width < (context.configuration.line_width / 2) as usize, parsed_children)
+        } else {
+            (false, parsed_children)
+        }
+    };
     items.push_str("[");
-    items.extend(parse_nodes(&link.children, context));
+    items.extend(parsed_children);
     items.push_str("]");
     items.push_str("(");
     items.push_str(&link.url.trim());
@@ -360,7 +369,12 @@ fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
         items.push_str(&format!(" \"{}\"", title.trim()));
     }
     items.push_str(")");
-    items
+
+    if use_no_newlines {
+        parser_helpers::new_line_group(parser_helpers::with_no_new_lines(items))
+    } else {
+        parser_helpers::new_line_group(items)
+    }
 }
 
 fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
@@ -369,7 +383,7 @@ fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintIte
     items.extend(parse_nodes(&link.children, context));
     items.push_str("]");
     items.push_str(&format!("[{}]", link.reference.trim()));
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
@@ -377,7 +391,7 @@ fn parse_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems
     items.push_str("[");
     items.extend(parse_nodes(&link.children, context));
     items.push_str("]");
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
@@ -385,7 +399,7 @@ fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
     items.push_str("<");
     items.extend(parse_nodes(&link.children, context));
     items.push_str(">");
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
@@ -395,7 +409,7 @@ fn parse_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems
     if let Some(title) = &link_ref.title {
         items.push_str(&format!(" \"{}\"", title.trim()));
     }
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
@@ -407,14 +421,14 @@ fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
         items.push_str(&format!(" \"{}\"", title.trim()));
     }
     items.push_str(")");
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     items.push_str(&format!("![{}]", image.text.trim()));
     items.push_str(&format!("[{}]", image.reference.trim()));
-    items
+    parser_helpers::new_line_group(items)
 }
 
 fn parse_list(list: &List, context: &mut Context) -> PrintItems {
@@ -579,14 +593,18 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
 
     fn get_cell_items_and_width(cell: &TableCell, context: &mut Context) -> (PrintItems, usize) {
         let items = parse_table_cell(cell, context);
-        let (items, cloned_items) = clone_items(items);
-        let width = measure_single_line_width(cloned_items);
-        (items, width)
+        get_items_single_line_width(items)
     }
 }
 
 fn parse_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
     parse_nodes(&table_cell.children, context)
+}
+
+fn get_items_single_line_width(items: PrintItems) -> (PrintItems, usize) {
+    let (items, cloned_items) = clone_items(items);
+    let width = measure_single_line_width(cloned_items);
+    (items, width)
 }
 
 fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {

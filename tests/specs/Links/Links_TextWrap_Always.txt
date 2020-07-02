@@ -5,3 +5,16 @@
 [expect]
 - [test](https://github.com) - Testing
   this out
+
+!! should stay on same line when text is half below line width !!
+[Style Guide](https://github.com/testing_this_out_with_some_link)
+
+[expect]
+[Style Guide](https://github.com/testing_this_out_with_some_link)
+
+!! should wrap once the children expand past half the width !!
+[Style Guide testing this](https://github.com/testing_this_out_with_some_link)
+
+[expect]
+[Style Guide testing
+this](https://github.com/testing_this_out_with_some_link)
