@@ -26,7 +26,7 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
         Node::LinkReference(node) => parse_link_reference(node, context),
         Node::InlineImage(node) => parse_inline_image(node, context),
         Node::ReferenceImage(node) => parse_reference_image(node, context),
-        Node::List(node) => parse_list(node, context),
+        Node::List(node) => parse_list(node, false, context),
         Node::Item(node) => parse_item(node, context),
         Node::TaskListMarker(node) => parse_task_list_marker(node, context),
         Node::HorizontalRule(node) => parse_horizontal_rule(node, context),
@@ -69,6 +69,25 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
     let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
 
     while let Some(node) = node_iterator.next() {
+        let mut node = node;
+
+        // handle alternate lists
+        if let Some(Node::List(last_list)) = &last_node {
+            if let Node::List(list) = &node {
+                if last_list.start_index.is_some() == list.start_index.is_some() {
+                    items.push_signal(Signal::NewLine);
+                    items.push_signal(Signal::NewLine);
+                    items.extend(parse_list(list, true, context));
+                    if let Some(current_node) = node_iterator.next() {
+                        last_node = Some(node);
+                        node = current_node;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
         // todo: this area needs to be thought out more
         if let Some(last_node) = last_node {
             if matches!(
@@ -455,7 +474,7 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
     parser_helpers::new_line_group(items)
 }
 
-fn parse_list(list: &List, context: &mut Context) -> PrintItems {
+fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     for (index, child) in list.children.iter().enumerate() {
         if index > 0 {
@@ -465,9 +484,10 @@ fn parse_list(list: &List, context: &mut Context) -> PrintItems {
             }
         }
         let prefix_text = if let Some(start_index) = list.start_index {
-            format!("{}.", start_index + index as u64)
+            let end_char = if is_alternate { ")" } else { "." };
+            format!("{}{}", start_index + index as u64, end_char)
         } else {
-            String::from("-")
+            String::from(if is_alternate { "*" } else { "-" })
         };
         let indent_level = (prefix_text.chars().count() + 1) as u32;
         context.indent_level += indent_level;

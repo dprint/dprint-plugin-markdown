@@ -122,3 +122,39 @@ Here is a paragraph
    - other list
 
    Final text
+
+!! should handle multiple lists one after the other !!
+* test
+* test
+
+- test
+- test
+
+* test
+
+[expect]
+- test
+- test
+
+* test
+* test
+
+- test
+
+!! should handle multiple number lists one after the other !!
+1) test
+2) test
+
+1. test
+2. test
+
+1) test
+
+[expect]
+1. test
+2. test
+
+1) test
+2) test
+
+1. test
