@@ -11,11 +11,21 @@ repository = "https://github.com/dprint/dprint-plugin-markdown"
 [lib]
 crate-type = ["lib", "cdylib"]
 
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+debug-assertions = false
+overflow-checks = false
+panic = "abort"
+
 [dependencies]
 dprint-core = "0.23.0"
 pulldown-cmark = { version = "0.7.2", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }
 serde_json = "1.0"
+regex = "1"
+lazy_static = "1.4.0"
 
 [dev-dependencies]
 dprint-development = "0.2.0"

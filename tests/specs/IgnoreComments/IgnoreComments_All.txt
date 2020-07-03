@@ -1,0 +1,69 @@
+!! should handle ignore comments !!
+<!-- dprint-ignore -->
+testing     this     out
+
+testing    this    out
+
+[expect]
+<!-- dprint-ignore -->
+testing     this     out
+
+testing this out
+
+!! should handle start and finish ignore comments !!
+testing   this  out
+<!-- dprint-ignore-start -->
+testing   this  out
+
+
+
+testing    more   and    more
+<!-- dprint-ignore-end -->
+testing   this   out
+
+[expect]
+testing this out
+
+<!-- dprint-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+<!-- dprint-ignore-end -->
+
+testing this out
+
+!! should handle no end ignore comment !!
+testing  this out
+
+<!-- dprint-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+[expect]
+testing this out
+
+<!-- dprint-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+!! should handle an ignore start at the end of the file !!
+testing  this out
+
+<!-- dprint-ignore-start -->
+
+[expect]
+testing this out
+
+<!-- dprint-ignore-start -->

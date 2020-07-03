@@ -66,8 +66,9 @@ fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintIt
 fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     let mut last_node: Option<&Node> = None;
+    let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
 
-    for node in nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_))) {
+    while let Some(node) = node_iterator.next() {
         // todo: this area needs to be thought out more
         if let Some(last_node) = last_node {
             if matches!(
@@ -136,6 +137,47 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
 
         items.extend(parse_node(node, context));
         last_node = Some(node);
+
+        // check for ignore comment
+        if let Node::Html(html) = node {
+            if utils::is_ignore_comment(&html.text) {
+                items.push_signal(Signal::NewLine);
+                if let Some(node) = node_iterator.next() {
+                    items.extend(parser_helpers::parse_raw_string(node.text(context).trim_end()));
+                    last_node = Some(node);
+                }
+            } else if utils::is_ignore_start_comment(&html.text) {
+                let mut range: Option<Range> = None;
+                let mut end_comment = None;
+                while let Some(node) = node_iterator.next() {
+                    last_node = Some(node);
+
+                    if let Node::Html(html) = node {
+                        if utils::is_ignore_end_comment(&html.text) {
+                            end_comment = Some(html);
+                            break;
+                        }
+                    }
+
+                    if let Some(taken_range) = range {
+                        range = Some(Range { start: taken_range.start, end: node.range().end });
+                    } else {
+                        range = Some(node.range().to_owned());
+                    }
+                }
+
+                if let Some(range) = range {
+                    items.push_signal(Signal::NewLine);
+                    items.push_signal(Signal::NewLine);
+                    items.extend(parser_helpers::parse_raw_string(&context.file_text[range.start..range.end].trim()));
+                    if let Some(end_comment) = end_comment {
+                        items.push_signal(Signal::NewLine);
+                        items.push_signal(Signal::NewLine);
+                        items.extend(parse_html(end_comment, context));
+                    }
+                }
+            }
+        }
     }
 
     items
