@@ -1,10 +1,40 @@
 use regex::Regex;
 use lazy_static;
 
-/// List characters shouldn't have a newline added before them
-/// as we don't want to create a list out of a series of text.
-pub fn is_list_char(character: char) -> bool {
-    character == '*' || character == '-'
+/// Checks if the provided word is a word that could be a list.
+/// Assumes the provided string is one word and doesn't have whitespace.
+pub fn is_list_word(word: &str) -> bool {
+    debug_assert!(!word.chars().any(|c| c.is_whitespace()));
+
+    if word == "*" || word == "-" || word == "+" {
+        true
+    } else {
+        let mut had_number = false;
+        let mut had_end_char = false;
+        for c in word.chars() {
+            if had_end_char {
+                return false;
+            }
+
+            if !had_number {
+                if c.is_numeric() {
+                    had_number = true;
+                } else {
+                    return false;
+                }
+            } else {
+                if !c.is_numeric() {
+                    if c == '.' || c == ')' {
+                        had_end_char = true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        had_end_char
+    }
 }
 
 pub fn has_leading_blankline(index: usize, text: &str) -> bool {
@@ -41,4 +71,22 @@ pub fn is_ignore_end_comment(text: &str) -> bool {
         static ref IS_IGNORE_END_REGEX: Regex = Regex::new(r"\s*<!\-\-\s*dprint-ignore-end\s*\-\->\s*").unwrap();
     }
     IS_IGNORE_END_REGEX.is_match(text)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn it_should_find_list_words() {
+        assert_eq!(is_list_word("test"), false);
+        assert_eq!(is_list_word("*"), true);
+        assert_eq!(is_list_word("+"), true);
+        assert_eq!(is_list_word("-"), true);
+        assert_eq!(is_list_word("1."), true);
+        assert_eq!(is_list_word("99."), true);
+        assert_eq!(is_list_word("10)"), true);
+        assert_eq!(is_list_word("9999)"), true);
+        assert_eq!(is_list_word("9999)."), false);
+    }
 }

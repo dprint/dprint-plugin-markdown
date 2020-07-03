@@ -116,7 +116,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                             };
 
                             if needs_space {
-                                if node.starts_with_list_char() {
+                                if node.starts_with_list_word() {
                                     items.push_str(" ");
                                 } else {
                                     items.extend(get_space_or_newline_based_on_config(context));
@@ -269,7 +269,6 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
 
     struct TextBuilder<'a> {
         items: PrintItems,
-        was_last_whitespace: bool,
         was_last_newline: bool,
         current_word: Option<String>,
         context: &'a Context<'a>,
@@ -279,7 +278,6 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
         pub fn new(context: &'a Context) -> TextBuilder<'a> {
             TextBuilder {
                 items: PrintItems::new(),
-                was_last_whitespace: false,
                 was_last_newline: false,
                 current_word: None,
                 context,
@@ -301,18 +299,6 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
                 return;
             }
 
-            if self.was_last_whitespace {
-                if utils::is_list_char(character) {
-                    self.items.push_str(" ");
-                } else if self.was_last_newline {
-                    self.items.push_signal(Signal::NewLine)
-                } else {
-                    self.items.extend(get_space_or_newline_based_on_config(self.context));
-                }
-                self.was_last_whitespace = false;
-                self.was_last_newline = false;
-            }
-
             if let Some(current_word) = self.current_word.as_mut() {
                 current_word.push(character);
             } else {
@@ -323,26 +309,28 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
         }
 
         fn space_or_newline(&mut self) {
-            self.set_last_whitespace();
+            self.flush_current_word();
         }
 
         fn newline(&mut self) {
-            self.was_last_newline = true;
-            self.set_last_whitespace();
-        }
-
-        fn set_last_whitespace(&mut self) {
-            if self.items.is_empty() && self.current_word.is_none() { return; }
-            if self.was_last_whitespace { return; }
-
             self.flush_current_word();
-
-            self.was_last_whitespace = true;
+            self.was_last_newline = true;
         }
 
         fn flush_current_word(&mut self) {
             if let Some(current_word) = self.current_word.take() {
+                if !self.items.is_empty() {
+                    if utils::is_list_word(&current_word) {
+                        self.items.push_str(" ");
+                    } else if self.was_last_newline {
+                        self.items.push_signal(Signal::NewLine)
+                    } else {
+                        self.items.extend(get_space_or_newline_based_on_config(self.context));
+                    }
+                }
+
                 self.items.push_str(&current_word);
+                self.was_last_newline = false;
             }
         }
     }

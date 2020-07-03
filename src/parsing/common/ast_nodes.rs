@@ -111,11 +111,18 @@ pub struct ReferenceImage {
 }
 
 impl Text {
-    pub fn starts_with_list_char(&self) -> bool {
-        if let Some(first_char) = self.text.chars().next() {
-            crate::parsing::utils::is_list_char(first_char)
-        } else {
-            false
+    pub fn starts_with_list_word(&self) -> bool {
+        return crate::parsing::utils::is_list_word(&get_first_word(&self.text));
+
+        fn get_first_word<'a>(text: &'a str) -> String {
+            let mut result = String::new();
+            for c in text.chars() {
+                if c.is_whitespace() {
+                    break;
+                }
+                result.push(c);
+            }
+            result
         }
     }
 }
@@ -238,9 +245,9 @@ macro_rules! generate_node {
 }
 
 impl Node {
-    pub fn starts_with_list_char(&self) -> bool {
+    pub fn starts_with_list_word(&self) -> bool {
         if let Node::Text(text) = self {
-            text.starts_with_list_char()
+            text.starts_with_list_word()
         } else {
             false
         }

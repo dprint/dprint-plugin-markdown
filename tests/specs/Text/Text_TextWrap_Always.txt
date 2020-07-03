@@ -19,3 +19,31 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa - testing
 [expect]
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa -
 testing
+
+!! should not wrap a number with a dot on the end to the next line !!
+testing this out with some text thatt 40.
+
+[expect]
+testing this out with some text
+thatt 40.
+
+!! should not wrap a number with a paren on the end to the next line !!
+testing this out with some text thatt 40)
+
+[expect]
+testing this out with some text
+thatt 40)
+
+!! should not wrap a number with a dot on the end to the next line when preceeded by another node !!
+testing this out with some text `tht` 40.
+
+[expect]
+testing this out with some text
+`tht` 40.
+
+!! should not wrap a number with a paren on the end to the next line when preceeded by another node !!
+testing this out with some text `tht` 40)
+
+[expect]
+testing this out with some text
+`tht` 40)
