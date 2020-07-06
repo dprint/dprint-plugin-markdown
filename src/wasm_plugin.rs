@@ -11,7 +11,30 @@ fn get_plugin_file_extensions() -> Vec<String> {
 }
 
 fn format_text(_: &PathBuf, file_text: &str, config: &Configuration) -> Result<String, String> {
-    super::format_text(file_text, config)
+    return super::format_text(
+        file_text,
+        config,
+        Box::new(|tag, file_text| {
+            if let Some(ext) = tag_to_extension(tag) {
+                let file_path = PathBuf::from(format!("file.{}", ext));
+                format_with_host(&file_path, file_text.to_string())
+            } else {
+                Ok(file_text.to_string())
+            }
+        })
+    );
+
+    fn tag_to_extension(tag: &str) -> Option<&'static str> {
+        match tag.trim().to_lowercase().as_str() {
+            "typescript" | "ts" => Some("ts"),
+            "tsx" => Some("tsx"),
+            "javascript" | "js" => Some("js"),
+            "jsx" => Some("jsx"),
+            "json" | "jsonc" => Some("json"),
+            "rust" | "rs" => Some("rs"),
+            _ => None,
+        }
+    }
 }
 
 fn get_plugin_help_url() -> String {

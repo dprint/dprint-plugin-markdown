@@ -22,7 +22,17 @@ fn test_specs() {
             let config_result = resolve_config(spec_config.clone(), &global_config);
             ensure_no_diagnostics(&config_result.diagnostics);
 
-            format_text(&file_text, &config_result.config)
+            format_text(
+                &file_text,
+                &config_result.config,
+                Box::new(|tag, file_text| {
+                    if tag == "format" && !file_text.ends_with("_formatted") {
+                        Ok(format!("{}_formatted\n\n", file_text.to_string()))
+                    } else {
+                        Ok(file_text.to_string())
+                    }
+                })
+            )
         }
     );
 }

@@ -7,7 +7,11 @@ use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context};
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
-pub fn format_text(file_text: &str, config: &Configuration) -> Result<String, String> {
+pub fn format_text(
+    file_text: &str,
+    config: &Configuration,
+    format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>,
+) -> Result<String, String> {
     let yaml_header = parse_yaml_header(file_text); // todo: improve... this is kind of hacked into here
     let markdown_text = match &yaml_header {
         Some(yaml_header) => &file_text[yaml_header.range.end..],
@@ -27,7 +31,8 @@ pub fn format_text(file_text: &str, config: &Configuration) -> Result<String, St
             ));
         }
     };
-    let print_items = parse_node(&source_file.into(), &mut Context::new(markdown_text, config));
+    let mut context = Context::new(markdown_text, config, format_code_block_text);
+    let print_items = parse_node(&source_file.into(), &mut context);
 
     // println!("{}", print_items.get_as_text());
 

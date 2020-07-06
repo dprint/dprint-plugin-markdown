@@ -262,7 +262,17 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
 
     // body
     let code = code_block.code.trim();
-    if !code.is_empty() { items.extend(parser_helpers::parse_string(&code)); }
+    if !code.is_empty() {
+        if let Some(tag) = &code_block.tag {
+            if let Ok(text) = context.format_text(tag, code) {
+                items.extend(parser_helpers::parse_string(text.trim()));
+            } else {
+                items.extend(parser_helpers::parse_string(code));
+            }
+        } else {
+            items.extend(parser_helpers::parse_string(code));
+        }
+    }
 
     // footer
     if code_block.is_fenced {

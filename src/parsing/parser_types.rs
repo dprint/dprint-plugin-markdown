@@ -4,15 +4,25 @@ pub struct Context<'a> {
     pub file_text: &'a str,
     pub configuration: &'a Configuration,
     pub indent_level: u32,
+    pub format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>,
 }
 
 impl<'a> Context<'a> {
-    pub fn new(file_text: &'a str, configuration: &'a Configuration) -> Context<'a> {
+    pub fn new(
+        file_text: &'a str,
+        configuration: &'a Configuration,
+        format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>
+    ) -> Context<'a> {
         Context {
             file_text,
             configuration,
             indent_level: 0,
+            format_code_block_text,
         }
+    }
+
+    pub fn format_text(&self, tag: &str, text: &str) -> Result<String, String> {
+        (self.format_code_block_text)(tag, text)
     }
 
     pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {

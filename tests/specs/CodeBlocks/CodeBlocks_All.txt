@@ -82,3 +82,13 @@ Test:
         ```
         testing
         ```
+
+!! should format certain tags !!
+```format
+testing
+```
+
+[expect]
+```format
+testing_formatted
+```
