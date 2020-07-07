@@ -309,7 +309,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
                 _ => count = 0,
             }
         }
-        std::cmp::max(2, count) + 1
+        std::cmp::max(2, max_count) + 1
     }
 }
 
