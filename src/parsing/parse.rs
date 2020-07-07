@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use dprint_core::*;
 use dprint_core::{conditions::*, parser_helpers::*, condition_resolvers};
 use crate::configuration::*;
@@ -95,14 +96,12 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                 Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
                     Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_)
             ) {
-                items.push_signal(Signal::NewLine);
-                items.push_signal(Signal::NewLine);
+                items.extend(get_conditional_blank_line(node.range(), context));
             } else {
                 match last_node {
                     Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
                     Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_) => {
-                        items.push_signal(Signal::NewLine);
-                        items.push_signal(Signal::NewLine);
+                        items.extend(get_conditional_blank_line(node.range(), context));
                     },
                     Node::Code(_) | Node::SoftBreak(_) | Node::TextDecoration(_) | Node::FootnoteReference(_) |
                     Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::AutoLink(_) |
@@ -186,12 +185,10 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                 }
 
                 if let Some(range) = range {
-                    items.push_signal(Signal::NewLine);
-                    items.push_signal(Signal::NewLine);
+                    items.extend(get_conditional_blank_line(&range, context));
                     items.extend(parser_helpers::parse_raw_string(&context.file_text[range.start..range.end].trim()));
                     if let Some(end_comment) = end_comment {
-                        items.push_signal(Signal::NewLine);
-                        items.push_signal(Signal::NewLine);
+                        items.extend(get_conditional_blank_line(end_comment.range(), context));
                         items.extend(parse_html(end_comment, context));
                     }
                 }
@@ -199,7 +196,16 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         }
     }
 
-    items
+    return items;
+
+    fn get_conditional_blank_line(range: &Range, context: &mut Context) -> PrintItems {
+        let mut items = PrintItems::new();
+        if !context.is_in_list() || utils::has_leading_blankline(range.start, context.file_text) {
+            items.push_signal(Signal::NewLine);
+        }
+        items.push_signal(Signal::NewLine);
+        items
+    }
 }
 
 fn parse_heading(heading: &Heading, context: &mut Context) -> PrintItems {
@@ -248,12 +254,14 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
 
 fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    let indent_level = context.get_indent_level_at_pos(code_block.range.start) - context.indent_level;
-    let indent_level = ((indent_level as f64 / 4_f64).round() * 4_f64) as u32;
+    let raw_indent_level = context.get_indent_level_at_pos(code_block.range.start) - context.indent_level;
+    let indent_level = ((raw_indent_level as f64 / 4_f64).round() * 4_f64) as u32;
+    let code_text = get_code_text(code_block, context);
+    let backtick_text = "`".repeat(get_backtick_count(&code_text));
 
     // header
     if code_block.is_fenced {
-        items.push_str("```");
+        items.push_str(&backtick_text);
         if let Some(tag) = &code_block.tag {
             items.push_str(tag);
         }
@@ -261,26 +269,45 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
     }
 
     // body
-    let code = code_block.code.trim();
-    if !code.is_empty() {
-        if let Some(tag) = &code_block.tag {
-            if let Ok(text) = context.format_text(tag, code) {
-                items.extend(parser_helpers::parse_string(text.trim()));
-            } else {
-                items.extend(parser_helpers::parse_string(code));
-            }
-        } else {
-            items.extend(parser_helpers::parse_string(code));
-        }
+    if !code_text.is_empty() {
+        items.extend(parser_helpers::parse_string(&code_text));
     }
 
     // footer
     if code_block.is_fenced {
-        if !code.is_empty() { items.push_signal(Signal::NewLine); }
-        items.push_str("```");
+        if !code_text.is_empty() { items.push_signal(Signal::NewLine); }
+        items.push_str(&backtick_text);
     }
 
-    with_indent_times(items, indent_level)
+    return with_indent_times(items, indent_level);
+
+    fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
+        let code = code_block.code.trim();
+        if !code.is_empty() {
+            if let Some(tag) = &code_block.tag {
+                if let Ok(text) = context.format_text(tag, code) {
+                    return Cow::Owned(text.trim().to_string())
+                }
+            }
+        }
+        Cow::Borrowed(code)
+    }
+
+    fn get_backtick_count(text: &str) -> usize {
+        // need to count how many consecutive backticks there are in the text
+        let mut count = 0;
+        let mut max_count = 0;
+        for c in text.chars() {
+            match c {
+                '`' => {
+                    count += 1;
+                    max_count = std::cmp::max(count, max_count);
+                },
+                _ => count = 0,
+            }
+        }
+        std::cmp::max(2, count) + 1
+    }
 }
 
 fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
@@ -496,6 +523,7 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
 
 fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
+    context.is_in_list_count += 1;
     for (index, child) in list.children.iter().enumerate() {
         if index > 0 {
             items.push_signal(Signal::NewLine);
@@ -522,6 +550,7 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
         items.push_info(after_child);
         context.indent_level -= indent_level;
     }
+    context.is_in_list_count -= 1;
     items
 }
 

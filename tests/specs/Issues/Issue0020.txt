@@ -1,0 +1,15 @@
+!! should not add blank lines in list !!
+1. test
+2. test
+3. test
+   ```shell
+   test
+   ```
+
+[expect]
+1. test
+2. test
+3. test
+   ```shell
+   test
+   ```

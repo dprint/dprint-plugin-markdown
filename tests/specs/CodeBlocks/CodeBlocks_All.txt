@@ -92,3 +92,27 @@ testing
 ```format
 testing_formatted
 ```
+
+!! should add one extra backtick per set of backticks inside code block !!
+````
+Test
+```
+nested
+```
+````
+
+`````
+t````
+`````
+
+[expect]
+````
+Test
+```
+nested
+```
+````
+
+`````
+t````
+`````

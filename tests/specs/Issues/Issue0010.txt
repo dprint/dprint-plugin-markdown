@@ -1,14 +1,24 @@
-!! should newline before codeblock after text in list !!
+!! should not newline before codeblock after text in list (behaviour here was changed because adding a newline here changes the list rendering) !!
 - here is a test:
   ```ts
   // some comment
   console.log("test");
   ```
+
+testing
+```
+test
+```
 
 [expect]
 - here is a test:
-
   ```ts
   // some comment
   console.log("test");
   ```
+
+testing
+
+```
+test
+```

@@ -4,6 +4,7 @@ pub struct Context<'a> {
     pub file_text: &'a str,
     pub configuration: &'a Configuration,
     pub indent_level: u32,
+    pub is_in_list_count: u32,
     pub format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>,
 }
 
@@ -17,8 +18,13 @@ impl<'a> Context<'a> {
             file_text,
             configuration,
             indent_level: 0,
+            is_in_list_count: 0,
             format_code_block_text,
         }
+    }
+
+    pub fn is_in_list(&self) -> bool {
+        self.is_in_list_count > 0
     }
 
     pub fn format_text(&self, tag: &str, text: &str) -> Result<String, String> {
