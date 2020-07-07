@@ -7,6 +7,7 @@ struct EventIterator<'a> {
     file_text: &'a str,
     last_range: Range,
     next: Option<(Event<'a>, Range)>,
+    allow_empty_text_events: bool,
 }
 
 impl<'a> EventIterator<'a> {
@@ -21,6 +22,7 @@ impl<'a> EventIterator<'a> {
                 end: 0
             },
             next,
+            allow_empty_text_events: false,
         }
     }
 
@@ -30,12 +32,14 @@ impl<'a> EventIterator<'a> {
             self.last_range = range;
             self.next = self.iterator.next();
 
-            // skip over any empty texts
-            while let Some((Event::Text(text), _)) = &self.next {
-                if text.trim().is_empty() {
-                    self.next = self.iterator.next();
-                } else {
-                    break;
+            if !self.allow_empty_text_events {
+                // skip over any empty texts
+                while let Some((Event::Text(text), _)) = &self.next {
+                    if text.trim().is_empty() {
+                        self.next = self.iterator.next();
+                    } else {
+                        break;
+                    }
                 }
             }
 
@@ -229,6 +233,8 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
     let start = iterator.start();
     let mut code = String::new();
 
+    iterator.allow_empty_text_events = true;
+
     while let Some(event) = iterator.next() {
         match event {
             Event::End(Tag::CodeBlock(_)) => break,
@@ -236,6 +242,8 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
             _ => return Err(ParseError::new(iterator.get_last_range(), "Unexpected event found when parsing code block.")),
         }
     }
+
+    iterator.allow_empty_text_events = false;
 
     let is_fenced = matches!(code_block_kind, CodeBlockKind::Fenced(_));
     let tag = match code_block_kind {
