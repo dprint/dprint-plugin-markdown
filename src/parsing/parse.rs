@@ -161,6 +161,9 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
             if utils::is_ignore_comment(&html.text) {
                 items.push_signal(Signal::NewLine);
                 if let Some(node) = node_iterator.next() {
+                    if utils::has_leading_blankline(node.range().start, context.file_text) {
+                        items.push_signal(Signal::NewLine);
+                    }
                     items.extend(parser_helpers::parse_raw_string(node.text(context).trim_end()));
                     last_node = Some(node);
                 }

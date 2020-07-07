@@ -67,3 +67,21 @@ testing  this out
 testing this out
 
 <!-- dprint-ignore-start -->
+
+!! should keep a blank line between ignore comment and code block !!
+test
+
+<!-- dprint-ignore -->
+
+```ts
+testing
+```
+
+[expect]
+test
+
+<!-- dprint-ignore -->
+
+```ts
+testing
+```
