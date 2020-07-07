@@ -76,8 +76,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         if let Some(Node::List(last_list)) = &last_node {
             if let Node::List(list) = &node {
                 if last_list.start_index.is_some() == list.start_index.is_some() {
-                    items.push_signal(Signal::NewLine);
-                    items.push_signal(Signal::NewLine);
+                    items.extend(get_conditional_blank_line(node.range(), context));
                     items.extend(parse_list(list, true, context));
                     if let Some(current_node) = node_iterator.next() {
                         last_node = Some(node);
@@ -566,10 +565,15 @@ fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
     }
 
     items.extend(parse_nodes(&item.children, context));
+
     if !item.sub_lists.is_empty() {
         items.push_signal(Signal::NewLine);
+        if utils::has_leading_blankline(item.sub_lists.first().unwrap().range().start, context.file_text) {
+            items.push_signal(Signal::NewLine);
+        }
         items.extend(parse_nodes(&item.sub_lists, context));
     }
+
     items
 }
 

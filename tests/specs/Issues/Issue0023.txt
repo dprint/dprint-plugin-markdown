@@ -1,0 +1,13 @@
+!! should format as-is !!
+1. This is a test
+
+   - test
+   - test
+   - test
+
+[expect]
+1. This is a test
+
+   - test
+   - test
+   - test
