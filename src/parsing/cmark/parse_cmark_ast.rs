@@ -33,12 +33,17 @@ impl<'a> EventIterator<'a> {
             self.next = self.iterator.next();
 
             if !self.allow_empty_text_events {
-                // skip over any empty texts
-                while let Some((Event::Text(text), _)) = &self.next {
-                    if text.trim().is_empty() {
-                        self.next = self.iterator.next();
-                    } else {
-                        break;
+                // skip over any empty text or html events
+                loop {
+                    match &self.next {
+                        Some((Event::Text(text), _)) | Some((Event::Html(text), _)) => {
+                            if text.trim().is_empty() {
+                                self.next = self.iterator.next();
+                            } else {
+                                break;
+                            }
+                        }
+                        _ => break,
                     }
                 }
             }
