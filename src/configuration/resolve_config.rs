@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use dprint_core::configuration::*;
 use super::Configuration;
 use super::types::*;
@@ -25,7 +24,7 @@ use super::types::*;
 ///
 /// // check config_result.diagnostics here and use config_result.config
 /// ```
-pub fn resolve_config(config: HashMap<String, String>, global_config: &GlobalConfiguration) -> ResolveConfigurationResult<Configuration> {
+pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration) -> ResolveConfigurationResult<Configuration> {
     let mut diagnostics = Vec::new();
     let mut config = config;
 

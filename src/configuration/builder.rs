@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use dprint_core::configuration::{GlobalConfiguration, resolve_global_config, NewLineKind};
+use dprint_core::configuration::{GlobalConfiguration, resolve_global_config, NewLineKind, ConfigKeyMap, ConfigKeyValue};
 
 use super::*;
 
@@ -15,7 +15,7 @@ use super::*;
 ///     .build();
 /// ```
 pub struct ConfigurationBuilder {
-    config: HashMap<String, String>,
+    config: ConfigKeyMap,
     global_config: Option<GlobalConfiguration>,
 }
 
@@ -47,40 +47,40 @@ impl ConfigurationBuilder {
     /// The width of a line the printer will try to stay under. Note that the printer may exceed this width in certain cases.
     /// Default: 80
     pub fn line_width(&mut self, value: u32) -> &mut Self {
-        self.insert("lineWidth", value)
+        self.insert("lineWidth", (value as i32).into())
     }
 
     /// The kind of newline to use.
     /// Default: `NewLineKind::Auto`
     pub fn new_line_kind(&mut self, value: NewLineKind) -> &mut Self {
-        self.insert("newLineKind", value)
+        self.insert("newLineKind", value.to_string().into())
     }
 
     /// The kind of text wrapping to use.
     /// Default: `TextWrap::Maintain`
     pub fn text_wrap(&mut self, value: TextWrap) -> &mut Self {
-        self.insert("textWrap", value)
+        self.insert("textWrap", value.to_string().into())
     }
 
     /// The character to use for emphasis/italics.
     /// Default: `EmphasisKind::Underscores`
     pub fn emphasis_kind(&mut self, value: EmphasisKind) -> &mut Self {
-        self.insert("emphasisKind", value)
+        self.insert("emphasisKind", value.to_string().into())
     }
 
     /// The character to use for strong emphasis/bold.
     /// Default: `StrongKind::Underscores`
     pub fn strong_kind(&mut self, value: StrongKind) -> &mut Self {
-        self.insert("strongKind", value)
+        self.insert("strongKind", value.to_string().into())
     }
 
     #[cfg(test)]
-    pub(super) fn get_inner_config(&self) -> HashMap<String, String> {
+    pub(super) fn get_inner_config(&self) -> ConfigKeyMap {
         self.config.clone()
     }
 
-    fn insert<T>(&mut self, name: &str, value: T) -> &mut Self where T : std::string::ToString {
-        self.config.insert(String::from(name), value.to_string());
+    fn insert(&mut self, name: &str, value: ConfigKeyValue) -> &mut Self {
+        self.config.insert(String::from(name), value);
         self
     }
 }
@@ -110,9 +110,9 @@ mod tests {
     #[test]
     fn handle_global_config() {
         let mut global_config = HashMap::new();
-        global_config.insert(String::from("lineWidth"), String::from("90"));
-        global_config.insert(String::from("newLineKind"), String::from("crlf"));
-        global_config.insert(String::from("useTabs"), String::from("true"));
+        global_config.insert(String::from("lineWidth"), 90.into());
+        global_config.insert(String::from("newLineKind"), "crlf".into());
+        global_config.insert(String::from("useTabs"), true.into());
         let global_config = resolve_global_config(global_config).config;
         let mut config_builder = ConfigurationBuilder::new();
         let config = config_builder.global_config(global_config).build();
