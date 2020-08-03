@@ -1,4 +1,4 @@
-use dprint_core::*;
+use dprint_core::formatting::*;
 use dprint_core::configuration::{resolve_new_line_kind};
 
 use super::configuration::Configuration;
@@ -24,7 +24,7 @@ pub fn format_text(
             source_file
         },
         Err(error) => {
-            return Err(dprint_core::utils::string_utils::format_diagnostic(
+            return Err(dprint_core::formatting::utils::string_utils::format_diagnostic(
                 Some((error.range.start, error.range.end)),
                 &error.message,
                 file_text

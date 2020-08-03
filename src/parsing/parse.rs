@@ -1,6 +1,6 @@
 use std::borrow::Cow;
-use dprint_core::*;
-use dprint_core::{conditions::*, parser_helpers::*, condition_resolvers};
+use dprint_core::formatting::*;
+use dprint_core::formatting::{conditions::*, parser_helpers::*, condition_resolvers};
 use crate::configuration::*;
 use super::common::*;
 use super::parser_types::*;

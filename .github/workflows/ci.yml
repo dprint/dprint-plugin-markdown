@@ -45,7 +45,7 @@ jobs:
       run: cargo build --verbose
     - name: Build release
       if: matrix.config.kind == 'test_release'
-      run: cargo build --target wasm32-unknown-unknown --release --locked --verbose
+      run: cargo build --target wasm32-unknown-unknown --release --locked --verbose --features "wasm"
 
     - name: Test debug
       if: matrix.config.kind == 'test_debug'

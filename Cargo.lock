@@ -17,9 +17,9 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "dprint-core"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb13f434a98b4fc4f35ae52d5130c9bbe2a514f56c3d6529df11df91080fbd8f"
+checksum = "080bb0bf2115ad1dba504cf93f620ae923e2c6b82ad6e3f207712676a511e182"
 dependencies = [
  "serde",
 ]
@@ -32,7 +32,7 @@ checksum = "417ed417346ddd21939fd451061d93d13e9df53c97dc15a2c71faa9c9881710e"
 
 [[package]]
 name = "dprint-plugin-markdown"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "dprint-core",
  "dprint-development",
