@@ -32,6 +32,13 @@ fn format_text(_: &PathBuf, file_text: &str, config: &Configuration) -> Result<S
             "jsx" => Some("jsx"),
             "json" | "jsonc" => Some("json"),
             "rust" | "rs" => Some("rs"),
+            "csharp" | "cs" => Some("cs"),
+            "visualbasic" | "vb" => Some("vb"),
+            "css" => Some("css"),
+            "less" => Some("less"),
+            "toml" => Some("toml"),
+            "scss" => Some("scss"),
+            "vue" => Some("vue"),
             _ => None,
         }
     }
