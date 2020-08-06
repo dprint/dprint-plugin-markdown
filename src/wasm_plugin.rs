@@ -1,4 +1,6 @@
 use std::path::PathBuf;
+use std::collections::HashMap;
+
 use dprint_core::generate_plugin_code;
 use super::configuration::{Configuration, resolve_config};
 
@@ -14,10 +16,12 @@ fn format_text(_: &PathBuf, file_text: &str, config: &Configuration) -> Result<S
     return super::format_text(
         file_text,
         config,
-        Box::new(|tag, file_text| {
+        Box::new(|tag, file_text, line_width| {
             if let Some(ext) = tag_to_extension(tag) {
                 let file_path = PathBuf::from(format!("file.{}", ext));
-                format_with_host(&file_path, file_text.to_string())
+                let mut additional_config = HashMap::new();
+                additional_config.insert("lineWidth".into(), (line_width as i32).into());
+                format_with_host(&file_path, file_text.to_string(), &additional_config)
             } else {
                 Ok(file_text.to_string())
             }

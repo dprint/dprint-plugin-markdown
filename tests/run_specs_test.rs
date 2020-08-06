@@ -25,9 +25,10 @@ fn test_specs() {
             format_text(
                 &file_text,
                 &config_result.config,
-                Box::new(|tag, file_text| {
-                    if tag == "format" && !file_text.ends_with("_formatted") {
-                        Ok(format!("{}_formatted\n\n", file_text.to_string()))
+                Box::new(|tag, file_text, line_width| {
+                    let end = format!("_formatted_{}", line_width);
+                    if tag == "format" && !file_text.ends_with(&end) {
+                        Ok(format!("{}{}\n\n", file_text.to_string(), end))
                     } else {
                         Ok(file_text.to_string())
                     }

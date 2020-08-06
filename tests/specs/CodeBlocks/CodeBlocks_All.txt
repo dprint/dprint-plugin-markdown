@@ -88,10 +88,24 @@ Test:
 testing
 ```
 
+Then indented:
+
+1. Testing
+   ```format
+   other
+   ```
+
 [expect]
 ```format
-testing_formatted
+testing_formatted_80
 ```
+
+Then indented:
+
+1. Testing
+   ```format
+   other_formatted_77
+   ```
 
 !! should add one extra backtick per set of backticks inside code block !!
 ````

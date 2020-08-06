@@ -1,7 +1,7 @@
 [package]
 name = "dprint-plugin-markdown"
 description = "Markdown formatter for dprint."
-version = "0.3.1"
+version = "0.4.0"
 authors = ["David Sherret <dsherret@gmail.com>"]
 license-file = "LICENSE"
 edition = "2018"
@@ -23,7 +23,7 @@ panic = "abort"
 wasm = ["serde_json", "dprint-core/wasm"]
 
 [dependencies]
-dprint-core = { version = "0.26.0", features = ["formatting"] }
+dprint-core = { version = "0.27.0", features = ["formatting"] }
 lazy_static = "1.4.0"
 pulldown-cmark = { version = "0.7.2", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }

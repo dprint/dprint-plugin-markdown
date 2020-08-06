@@ -5,14 +5,14 @@ pub struct Context<'a> {
     pub configuration: &'a Configuration,
     pub indent_level: u32,
     pub is_in_list_count: u32,
-    pub format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>,
+    pub format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
 }
 
 impl<'a> Context<'a> {
     pub fn new(
         file_text: &'a str,
         configuration: &'a Configuration,
-        format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>
+        format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>
     ) -> Context<'a> {
         Context {
             file_text,
@@ -28,7 +28,8 @@ impl<'a> Context<'a> {
     }
 
     pub fn format_text(&self, tag: &str, text: &str) -> Result<String, String> {
-        (self.format_code_block_text)(tag, text)
+        let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
+        (self.format_code_block_text)(tag, text, line_width)
     }
 
     pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {

@@ -10,7 +10,7 @@ use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context};
 pub fn format_text(
     file_text: &str,
     config: &Configuration,
-    format_code_block_text: Box<dyn Fn(&str, &str) -> Result<String, String>>,
+    format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
 ) -> Result<String, String> {
     let yaml_header = parse_yaml_header(file_text); // todo: improve... this is kind of hacked into here
     let markdown_text = match &yaml_header {
