@@ -23,7 +23,7 @@ panic = "abort"
 wasm = ["serde_json", "dprint-core/wasm"]
 
 [dependencies]
-dprint-core = { version = "0.27.0", features = ["formatting"] }
+dprint-core = { version = "0.28.0", features = ["formatting"] }
 lazy_static = "1.4.0"
 pulldown-cmark = { version = "0.7.2", default-features = false }
 serde = { version = "1.0.88", features = ["derive"] }
