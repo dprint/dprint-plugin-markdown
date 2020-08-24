@@ -258,7 +258,7 @@ impl Node {
         if range.start == 0 {
             false
         } else {
-            &file_text[range.start - 1..range.start] == " "
+            file_text.as_bytes().get(range.start - 1) == " ".as_bytes().get(0)
         }
     }
 

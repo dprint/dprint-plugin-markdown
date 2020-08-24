@@ -1,0 +1,5 @@
+!! should not panic for em dash followed by code block !!
+test—`cargo install gvm`
+
+[expect]
+test—`cargo install gvm`
