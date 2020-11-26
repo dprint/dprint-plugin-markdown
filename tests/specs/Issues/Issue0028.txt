@@ -1,0 +1,66 @@
+!! should handle code blocks within "incorrectly" indented lists !!
+
+## Section
+
+  - List item 1
+
+    Paragraph content at same indentation as list item 1
+
+    ```
+    code block at same indentation as list item 1
+    ```
+
+    - Sublist item A
+
+      Paragraph content at same indentation as sublist item A
+
+      ```
+      code block at same indentation as sublist item A
+      ```
+
+    More paragraph content at same indentation as list item 1
+
+    ```
+    code block at same indentation as list item 1
+    ```
+
+  - List item 2
+
+    Paragraph content at same indentation as list item 2
+
+    ```
+    code block at same indentation as list item 2
+    ```
+
+[expect]
+## Section
+
+- List item 1
+
+  Paragraph content at same indentation as list item 1
+
+  ```
+  code block at same indentation as list item 1
+  ```
+
+  - Sublist item A
+
+    Paragraph content at same indentation as sublist item A
+
+    ```
+    code block at same indentation as sublist item A
+    ```
+
+  More paragraph content at same indentation as list item 1
+
+  ```
+  code block at same indentation as list item 1
+  ```
+
+- List item 2
+
+  Paragraph content at same indentation as list item 2
+
+  ```
+  code block at same indentation as list item 2
+  ```

@@ -3,7 +3,10 @@ use super::super::configuration::Configuration;
 pub struct Context<'a> {
     pub file_text: &'a str,
     pub configuration: &'a Configuration,
+    /** The current indentation level of what's being printed out. */
     pub indent_level: u32,
+    /** The current indentation level within the file being formatted. */
+    pub raw_indent_level: u32,
     pub is_in_list_count: u32,
     pub format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
 }
@@ -18,6 +21,7 @@ impl<'a> Context<'a> {
             file_text,
             configuration,
             indent_level: 0,
+            raw_indent_level: 0,
             is_in_list_count: 0,
             format_code_block_text,
         }
@@ -51,6 +55,17 @@ impl<'a> Context<'a> {
         let file_bytes = self.file_text.as_bytes();
         let mut count = 0;
 
+        // get the whitespace at and after the pos
+        for byte in file_bytes[pos..].iter() {
+            let c = *byte as char;
+            if c != '\r' && c != '\n' && c != '\t' && c.is_whitespace() {
+                count += 1;
+            } else {
+                break;
+            }
+        }
+
+        // get the whitespace before the pos
         for byte in file_bytes[0..pos].iter().rev() {
             // This is ok because we are just investigating whitespace chars
             // which I believe are only 1 byte.

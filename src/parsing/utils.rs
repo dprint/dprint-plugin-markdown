@@ -73,6 +73,14 @@ pub fn is_ignore_end_comment(text: &str) -> bool {
     IS_IGNORE_END_REGEX.is_match(text)
 }
 
+pub fn safe_subtract_to_zero(a: u32, b: u32) -> u32 {
+    if a < b {
+        0
+    } else {
+        a - b
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -256,8 +256,9 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
 
 fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    let raw_indent_level = context.get_indent_level_at_pos(code_block.range.start) - context.indent_level;
-    let indent_level = ((raw_indent_level as f64 / 4_f64).round() * 4_f64) as u32;
+    let measured_raw_indent_level = context.get_indent_level_at_pos(code_block.range.start);
+    let relative_raw_indent_level = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
+    let relative_indent_level = ((relative_raw_indent_level as f64 / 4_f64).round() * 4_f64) as u32;
     let code_text = get_code_text(code_block, context);
     let backtick_text = "`".repeat(get_backtick_count(&code_text));
 
@@ -281,7 +282,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
         items.push_str(&backtick_text);
     }
 
-    return with_indent_times(items, indent_level);
+    return with_indent_times(items, relative_indent_level);
 
     fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
         let code = code_block.code.trim();
@@ -526,6 +527,11 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
 fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     context.is_in_list_count += 1;
+    let measured_raw_indent_level = context.get_indent_level_at_pos(list.range.start);
+    let raw_list_start_indent_increment = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
+    context.raw_indent_level += raw_list_start_indent_increment;
+
+    // parse items
     for (index, child) in list.children.iter().enumerate() {
         if index > 0 {
             items.push_signal(Signal::NewLine);
@@ -539,8 +545,9 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
         } else {
             String::from(if is_alternate { "*" } else { "-" })
         };
-        let indent_level = (prefix_text.chars().count() + 1) as u32;
-        context.indent_level += indent_level;
+        let indent_increment = (prefix_text.chars().count() + 1) as u32;
+        context.indent_level += indent_increment;
+        context.raw_indent_level += indent_increment;
         items.push_str(&prefix_text);
         let after_child = Info::new("afterChild");
         items.push_condition(if_true(
@@ -548,10 +555,13 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
             move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
             Signal::SpaceIfNotTrailing.into()
         ));
-        items.extend(with_indent_times(parse_node(child, context), indent_level));
+        items.extend(with_indent_times(parse_node(child, context), indent_increment));
         items.push_info(after_child);
-        context.indent_level -= indent_level;
+        context.indent_level -= indent_increment;
+        context.raw_indent_level -= indent_increment;
     }
+
+    context.raw_indent_level -= raw_list_start_indent_increment;
     context.is_in_list_count -= 1;
     items
 }
