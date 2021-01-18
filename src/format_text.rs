@@ -31,12 +31,13 @@ pub fn format_text(
             ));
         }
     };
-    let mut context = Context::new(markdown_text, config, format_code_block_text);
-    let print_items = parse_node(&source_file.into(), &mut context);
 
-    // println!("{}", print_items.get_as_text());
-
-    Ok(print(print_items, PrintOptions {
+    Ok(dprint_core::formatting::format(|| {
+        let mut context = Context::new(markdown_text, config, format_code_block_text);
+        let print_items = parse_node(&source_file.into(), &mut context);
+        // println!("{}", print_items.get_as_text());
+        print_items
+    }, PrintOptions {
         indent_width: 1, // force
         max_width: config.line_width,
         use_tabs: false, // ignore tabs, always use spaces

@@ -237,7 +237,7 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
                     {
                         let mut items = PrintItems::new();
                         items.push_str("> ");
-                        items.push_item(PrintItem::String(text.clone()));
+                        items.push_item(PrintItem::String(text));
                         items
                     },
                     {
