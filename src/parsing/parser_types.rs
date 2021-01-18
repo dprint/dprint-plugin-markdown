@@ -1,3 +1,4 @@
+use regex::Regex;
 use super::super::configuration::Configuration;
 
 pub struct Context<'a> {
@@ -9,6 +10,9 @@ pub struct Context<'a> {
     pub raw_indent_level: u32,
     pub is_in_list_count: u32,
     pub format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
+    pub ignore_regex: Regex,
+    pub ignore_start_regex: Regex,
+    pub ignore_end_regex: Regex,
 }
 
 impl<'a> Context<'a> {
@@ -17,6 +21,10 @@ impl<'a> Context<'a> {
         configuration: &'a Configuration,
         format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>
     ) -> Context<'a> {
+        let ignore_regex = format!(r"\s*<!\-\-\s*{}\s*\-\->\s*", configuration.ignore_directive);
+        let ignore_start_regex = format!(r"\s*<!\-\-\s*{}\s*\-\->\s*", configuration.ignore_start_directive);
+        let ignore_end_regex = format!(r"\s*<!\-\-\s*{}\s*\-\->\s*", configuration.ignore_end_directive);
+
         Context {
             file_text,
             configuration,
@@ -24,6 +32,9 @@ impl<'a> Context<'a> {
             raw_indent_level: 0,
             is_in_list_count: 0,
             format_code_block_text,
+            ignore_regex: Regex::new(&ignore_regex).unwrap(),
+            ignore_start_regex: Regex::new(&ignore_start_regex).unwrap(),
+            ignore_end_regex: Regex::new(&ignore_end_regex).unwrap(),
         }
     }
 

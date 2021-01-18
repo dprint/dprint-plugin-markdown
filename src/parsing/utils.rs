@@ -52,25 +52,16 @@ pub fn has_leading_blankline(index: usize, text: &str) -> bool {
     false
 }
 
-pub fn is_ignore_comment(text: &str) -> bool {
-    lazy_static! {
-        static ref IS_IGNORE_REGEX: Regex = Regex::new(r"\s*<!\-\-\s*dprint-ignore\s*\-\->\s*").unwrap();
-    }
-    IS_IGNORE_REGEX.is_match(text)
+pub fn is_ignore_comment(is_ignore_regex: &Regex, text: &str) -> bool {
+    is_ignore_regex.is_match(text)
 }
 
-pub fn is_ignore_start_comment(text: &str) -> bool {
-    lazy_static! {
-        static ref IS_IGNORE_START_REGEX: Regex = Regex::new(r"\s*<!\-\-\s*dprint-ignore-start\s*\-\->\s*").unwrap();
-    }
-    IS_IGNORE_START_REGEX.is_match(text)
+pub fn is_ignore_start_comment(is_ignore_start_regex: &Regex, text: &str) -> bool {
+    is_ignore_start_regex.is_match(text)
 }
 
-pub fn is_ignore_end_comment(text: &str) -> bool {
-    lazy_static! {
-        static ref IS_IGNORE_END_REGEX: Regex = Regex::new(r"\s*<!\-\-\s*dprint-ignore-end\s*\-\->\s*").unwrap();
-    }
-    IS_IGNORE_END_REGEX.is_match(text)
+pub fn is_ignore_end_comment(is_ignore_end_regex: &Regex, text: &str) -> bool {
+    is_ignore_end_regex.is_match(text)
 }
 
 pub fn safe_subtract_to_zero(a: u32, b: u32) -> u32 {

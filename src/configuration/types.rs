@@ -11,6 +11,9 @@ pub struct Configuration {
     pub text_wrap: TextWrap,
     pub emphasis_kind: EmphasisKind,
     pub strong_kind: StrongKind,
+    pub ignore_directive: String,
+    pub ignore_start_directive: String,
+    pub ignore_end_directive: String,
 }
 
 /// Text wrapping possibilities.
