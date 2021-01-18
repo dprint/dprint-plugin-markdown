@@ -1,5 +1,4 @@
 use regex::Regex;
-use lazy_static;
 
 /// Checks if the provided word is a word that could be a list.
 /// Assumes the provided string is one word and doesn't have whitespace.
