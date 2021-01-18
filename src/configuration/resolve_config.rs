@@ -34,6 +34,9 @@ pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration)
         text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
         emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
         strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
+        ignore_directive: get_value(&mut config, "ignoreDirective", "dprint-ignore".to_string(), &mut diagnostics),
+        ignore_start_directive: get_value(&mut config, "ignoreStartDirective", "dprint-ignore-start".to_string(), &mut diagnostics),
+        ignore_end_directive: get_value(&mut config, "ignoreEndDirective", "dprint-ignore-end".to_string(), &mut diagnostics),
     };
 
     for (key, _) in config.iter() {

@@ -1,0 +1,88 @@
+~~ ignoreDirective: foo-ignore, ignoreStartDirective: foo-ignore-start, ignoreEndDirective: foo-ignore-end ~~
+!! should handle ignore comments !!
+<!-- foo-ignore -->
+testing     this     out
+
+testing    this    out
+
+[expect]
+<!-- foo-ignore -->
+testing     this     out
+
+testing this out
+
+!! should handle start and finish ignore comments !!
+testing   this  out
+<!-- foo-ignore-start -->
+testing   this  out
+
+
+
+testing    more   and    more
+<!-- foo-ignore-end -->
+testing   this   out
+
+[expect]
+testing this out
+
+<!-- foo-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+<!-- foo-ignore-end -->
+
+testing this out
+
+!! should handle no end ignore comment !!
+testing  this out
+
+<!-- foo-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+[expect]
+testing this out
+
+<!-- foo-ignore-start -->
+
+testing   this  out
+
+
+
+testing    more   and    more
+
+!! should handle an ignore start at the end of the file !!
+testing  this out
+
+<!-- foo-ignore-start -->
+
+[expect]
+testing this out
+
+<!-- foo-ignore-start -->
+
+!! should keep a blank line between ignore comment and code block !!
+test
+
+<!-- foo-ignore -->
+
+```ts
+testing
+```
+
+[expect]
+test
+
+<!-- foo-ignore -->
+
+```ts
+testing
+```

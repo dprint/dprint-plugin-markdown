@@ -44,7 +44,6 @@ version = "0.4.4"
 dependencies = [
  "dprint-core",
  "dprint-development",
- "lazy_static",
  "pulldown-cmark",
  "regex",
  "serde",

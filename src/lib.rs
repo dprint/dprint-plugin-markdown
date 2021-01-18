@@ -1,6 +1,5 @@
 extern crate pulldown_cmark;
 extern crate dprint_core;
-#[macro_use] extern crate lazy_static;
 extern crate regex;
 
 pub mod configuration;

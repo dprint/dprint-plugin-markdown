@@ -74,6 +74,24 @@ impl ConfigurationBuilder {
         self.insert("strongKind", value.to_string().into())
     }
 
+    /// The directive used to ignore a line.
+    /// Default: `dprint-ignore`
+    pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
+        self.insert("ignoreDirective", value.to_string().into())
+    }
+
+    /// The directive used to mark start of ignored section.
+    /// Default: `dprint-ignore-start`
+    pub fn ignore_start_directive(&mut self, value: &str) -> &mut Self {
+        self.insert("ignoreStartDirective", value.to_string().into())
+    }
+    
+    /// The directive used to mark end of ignored section.
+    /// Default: `dprint-ignore-end`
+    pub fn ignore_end_directive(&mut self, value: &str) -> &mut Self {
+        self.insert("ignoreEndDirective", value.to_string().into())
+    }
+
     #[cfg(test)]
     pub(super) fn get_inner_config(&self) -> ConfigKeyMap {
         self.config.clone()
