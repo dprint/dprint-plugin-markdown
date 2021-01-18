@@ -1,30 +1,31 @@
+~~ ignoreDirective: foo-ignore, ignoreStartDirective: foo-ignore-start, ignoreEndDirective: foo-ignore-end ~~
 !! should handle ignore comments !!
-<!-- dprint-ignore -->
+<!-- foo-ignore -->
 testing     this     out
 
 testing    this    out
 
 [expect]
-<!-- dprint-ignore -->
+<!-- foo-ignore -->
 testing     this     out
 
 testing this out
 
 !! should handle start and finish ignore comments !!
 testing   this  out
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 testing   this  out
 
 
 
 testing    more   and    more
-<!-- dprint-ignore-end -->
+<!-- foo-ignore-end -->
 testing   this   out
 
 [expect]
 testing this out
 
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 
 testing   this  out
 
@@ -32,14 +33,14 @@ testing   this  out
 
 testing    more   and    more
 
-<!-- dprint-ignore-end -->
+<!-- foo-ignore-end -->
 
 testing this out
 
 !! should handle no end ignore comment !!
 testing  this out
 
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 
 testing   this  out
 
@@ -50,7 +51,7 @@ testing    more   and    more
 [expect]
 testing this out
 
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 
 testing   this  out
 
@@ -61,17 +62,17 @@ testing    more   and    more
 !! should handle an ignore start at the end of the file !!
 testing  this out
 
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 
 [expect]
 testing this out
 
-<!-- dprint-ignore-start -->
+<!-- foo-ignore-start -->
 
 !! should keep a blank line between ignore comment and code block !!
 test
 
-<!-- dprint-ignore -->
+<!-- foo-ignore -->
 
 ```ts
 testing
@@ -80,7 +81,7 @@ testing
 [expect]
 test
 
-<!-- dprint-ignore -->
+<!-- foo-ignore -->
 
 ```ts
 testing
