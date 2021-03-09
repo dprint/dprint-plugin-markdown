@@ -1,0 +1,39 @@
+~~ deno: true ~~
+!! should format according to deno config !!
+testing this out by going very far over the line and more testing and testing testing
+
+<!-- deno-fmt-ignore -->
+testing this out by going very far over the line and more testing and testing testing
+
+testing this out by going very far over the line and more testing and testing testing
+
+<!-- deno-fmt-ignore-start -->
+
+testing this out by going very far over the line and more testing and testing testing
+
+testing this out by going very far over the line and more testing and testing testing
+
+<!-- deno-fmt-ignore-end -->
+
+testing this out by going very far over the line and more testing and testing testing
+
+[expect]
+testing this out by going very far over the line and more testing and testing
+testing
+
+<!-- deno-fmt-ignore -->
+testing this out by going very far over the line and more testing and testing testing
+
+testing this out by going very far over the line and more testing and testing
+testing
+
+<!-- deno-fmt-ignore-start -->
+
+testing this out by going very far over the line and more testing and testing testing
+
+testing this out by going very far over the line and more testing and testing testing
+
+<!-- deno-fmt-ignore-end -->
+
+testing this out by going very far over the line and more testing and testing
+testing

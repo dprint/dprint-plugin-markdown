@@ -15,7 +15,7 @@ use super::*;
 ///     .build();
 /// ```
 pub struct ConfigurationBuilder {
-    config: ConfigKeyMap,
+    pub(super) config: ConfigKeyMap,
     global_config: Option<GlobalConfiguration>,
 }
 
@@ -90,6 +90,13 @@ impl ConfigurationBuilder {
     /// Default: `dprint-ignore-end`
     pub fn ignore_end_directive(&mut self, value: &str) -> &mut Self {
         self.insert("ignoreEndDirective", value.to_string().into())
+    }
+
+    pub fn deno(&mut self) -> &mut Self {
+        self.text_wrap(TextWrap::Always)
+            .ignore_directive("deno-fmt-ignore")
+            .ignore_start_directive("deno-fmt-ignore-start")
+            .ignore_end_directive("deno-fmt-ignore-end")
     }
 
     #[cfg(test)]

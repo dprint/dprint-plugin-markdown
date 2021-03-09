@@ -1,4 +1,5 @@
 use dprint_core::configuration::*;
+use super::builder::ConfigurationBuilder;
 use super::Configuration;
 use super::types::*;
 
@@ -28,6 +29,10 @@ pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration)
     let mut diagnostics = Vec::new();
     let mut config = config;
 
+    if get_value(&mut config, "deno", false, &mut diagnostics) {
+        fill_deno_config(&mut config);
+    }
+
     let resolved_config = Configuration {
         line_width: get_value(&mut config, "lineWidth", global_config.line_width.unwrap_or(80), &mut diagnostics),
         new_line_kind: get_value(&mut config, "newLineKind", global_config.new_line_kind.unwrap_or(DEFAULT_GLOBAL_CONFIGURATION.new_line_kind), &mut diagnostics),
@@ -49,5 +54,13 @@ pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration)
     ResolveConfigurationResult {
         config: resolved_config,
         diagnostics,
+    }
+}
+
+fn fill_deno_config(config: &mut ConfigKeyMap) {
+    for (key, value) in ConfigurationBuilder::new().deno().config.iter() {
+        if !config.contains_key(key) {
+            config.insert(key.clone(), value.clone());
+        }
     }
 }
