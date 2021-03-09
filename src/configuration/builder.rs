@@ -51,7 +51,7 @@ impl ConfigurationBuilder {
     }
 
     /// The kind of newline to use.
-    /// Default: `NewLineKind::Auto`
+    /// Default: `NewLineKind::LineFeed`
     pub fn new_line_kind(&mut self, value: NewLineKind) -> &mut Self {
         self.insert("newLineKind", value.to_string().into())
     }
@@ -85,7 +85,7 @@ impl ConfigurationBuilder {
     pub fn ignore_start_directive(&mut self, value: &str) -> &mut Self {
         self.insert("ignoreStartDirective", value.to_string().into())
     }
-    
+
     /// The directive used to mark end of ignored section.
     /// Default: `dprint-ignore-end`
     pub fn ignore_end_directive(&mut self, value: &str) -> &mut Self {

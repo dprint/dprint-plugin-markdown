@@ -1,0 +1,7 @@
+!! should handle hard breaks !!
+test\
+asdf
+
+[expect]
+test\
+asdf

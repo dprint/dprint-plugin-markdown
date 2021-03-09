@@ -32,7 +32,7 @@ pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
         Node::TaskListMarker(node) => parse_task_list_marker(node, context),
         Node::HorizontalRule(node) => parse_horizontal_rule(node, context),
         Node::SoftBreak(_) => PrintItems::new(),
-        Node::HardBreak(_) => Signal::NewLine.into(),
+        Node::HardBreak(_) => parse_hard_break(context),
         Node::Table(node) => parse_table(node, context),
         Node::TableHead(_) => unreachable!(),
         Node::TableRow(_) => unreachable!(),
@@ -96,7 +96,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                     Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_)
             ) {
                 items.extend(get_conditional_blank_line(node.range(), context));
-            } else {
+            } else if !matches!(node, Node::HardBreak(_)) {
                 match last_node {
                     Node::Heading(_) | Node::Paragraph(_) | Node::CodeBlock(_) | Node::FootnoteDefinition(_) |
                     Node::HorizontalRule(_) | Node::List(_) | Node::Table(_) | Node::BlockQuote(_) => {
@@ -597,6 +597,13 @@ fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItem
 
 fn parse_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
     "---".into()
+}
+
+fn parse_hard_break(_: &mut Context) -> PrintItems {
+    let mut items = PrintItems::new();
+    items.push_str("\\");
+    items.push_signal(Signal::NewLine);
+    items
 }
 
 fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
