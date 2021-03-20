@@ -8,6 +8,7 @@ struct EventIterator<'a> {
     last_range: Range,
     next: Option<(Event<'a>, Range)>,
     allow_empty_text_events: bool,
+    in_table_count: i8,
 }
 
 impl<'a> EventIterator<'a> {
@@ -23,6 +24,7 @@ impl<'a> EventIterator<'a> {
             },
             next,
             allow_empty_text_events: false,
+            in_table_count: 0,
         }
     }
 
@@ -30,7 +32,7 @@ impl<'a> EventIterator<'a> {
         if let Some((event, range)) = self.next.take() {
             // println!("{:?} {:?}", range, event);
             self.last_range = range;
-            self.next = self.iterator.next();
+            self.next = self.move_iterator_next();
 
             if !self.allow_empty_text_events {
                 // skip over any empty text or html events
@@ -38,7 +40,7 @@ impl<'a> EventIterator<'a> {
                     match &self.next {
                         Some((Event::Text(text), _)) | Some((Event::Html(text), _)) => {
                             if text.trim().is_empty() {
-                                self.next = self.iterator.next();
+                                self.next = self.move_iterator_next();
                             } else {
                                 break;
                             }
@@ -52,6 +54,22 @@ impl<'a> EventIterator<'a> {
         } else {
             None
         }
+    }
+
+    fn move_iterator_next(&mut self) -> Option<(Event<'a>, Range)> {
+        let next = self.iterator.next();
+
+        match next {
+            Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
+            Some((Event::End(Tag::Table(_)), _)) => self.in_table_count -= 1,
+            _ => {}
+        }
+
+        next
+    }
+
+    pub fn is_in_table(&self) -> bool {
+        self.in_table_count > 0
     }
 
     pub fn start(&self) -> usize {
@@ -91,19 +109,12 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     let mut children: Vec<Node> = Vec::new();
     let mut iterator = EventIterator::new(markdown_text, Parser::new_ext(markdown_text, options).into_offset_iter());
     let mut last_event_range: Option<Range> = None;
-    let mut is_in_table = 0;
 
     while let Some(event) = iterator.next() {
-        match event {
-            Event::Start(Tag::Table(_)) => is_in_table += 1,
-            Event::End(Tag::Table(_)) => is_in_table += 1,
-            _ => {}
-        }
-
         let current_range = iterator.get_last_range();
 
         // do not parse for link references while inside a table
-        if is_in_table == 0 {
+        if !iterator.is_in_table() {
             if let Some(references) = parse_references(&last_event_range, current_range.start, &mut iterator)? {
                 children.push(references);
             }

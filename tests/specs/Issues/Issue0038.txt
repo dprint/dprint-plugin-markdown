@@ -1,0 +1,38 @@
+!! should handle reference links not at the end of the file !!
+
+# Test
+
+| Company                    |
+| -------------------------- |
+| [GitHub][github]           |
+| [Google][google]           |
+| [Amazon Web Services][aws] |
+
+[github]: https://github.com
+
+test
+
+[google]: https://google.com
+
+A paragraph.
+
+[aws]: https://aws.amazon.com
+
+[expect]
+# Test
+
+| Company                    |
+| -------------------------- |
+| [GitHub][github]           |
+| [Google][google]           |
+| [Amazon Web Services][aws] |
+
+[github]: https://github.com
+
+test
+
+[google]: https://google.com
+
+A paragraph.
+
+[aws]: https://aws.amazon.com
