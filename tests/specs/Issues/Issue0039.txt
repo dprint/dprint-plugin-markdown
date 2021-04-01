@@ -1,0 +1,16 @@
+!! Should not panic formatting this table due to column alignment colon count being greater than text width !!
+
+>||Name|Runs|Total (ms)|Average (ms)|Thresholds||
+>|:-:|:--|--:|--:|--:|--:|:-:|
+>| |Rotating other things|1000|2143.992|2.144|-|-|
+>||Rotating arrays|1000|2021.054|2.021|<small><= 3.5 <br><= 4.4 <br> > 4.4 </small>||
+>|%|Proving NP==P|1|4384.908|4384.908|<small><= 4141 <br><= 6000 <br> > 6000 </small>||
+>||Standing out|1000|375.708|0.376|<small><= 0.3 <br><= 0.33 <br> > 0.33 </small>||
+
+[expect]
+> |     | Name                  | Runs | Total (ms) | Average (ms) |                                      Thresholds |     |
+> | :-: | :-------------------- | ---: | ---------: | -----------: | ----------------------------------------------: | :-: |
+> |     | Rotating other things | 1000 |   2143.992 |        2.144 |                                               - |  -  |
+> |     | Rotating arrays       | 1000 |   2021.054 |        2.021 |    <small><= 3.5 <br><= 4.4 <br> > 4.4 </small> |     |
+> |  %  | Proving NP==P         |    1 |   4384.908 |     4384.908 | <small><= 4141 <br><= 6000 <br> > 6000 </small> |     |
+> |     | Standing out          | 1000 |    375.708 |        0.376 |  <small><= 0.3 <br><= 0.33 <br> > 0.33 </small> |     |

@@ -609,7 +609,7 @@ fn parse_hard_break(_: &mut Context) -> PrintItems {
 fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
     let header = table.header.cells.iter().map(|cell| get_cell_items_and_width(cell, context)).collect::<Vec<_>>();
     let rows = table.rows.iter().map(|row| row.cells.iter().map(|cell| get_cell_items_and_width(cell, context)).collect::<Vec<_>>()).collect::<Vec<_>>();
-    let column_widths = get_column_widths(&header, &rows);
+    let column_widths = get_column_widths(&header, &rows, &table.column_alignment);
     let mut items = PrintItems::new();
 
     items.extend(get_row_items(header, &column_widths, &table.column_alignment));
@@ -633,13 +633,12 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
                 items.push_str(" ");
             }
 
-            let has_left_colon = column_alignment == ColumnAlignment::Left || column_alignment == ColumnAlignment::Center;
-            let has_right_colon = column_alignment == ColumnAlignment::Right || column_alignment == ColumnAlignment::Center;
-            let dashes_count = column_width - (if has_left_colon { 1 } else { 0 }) - (if has_right_colon { 1 } else { 0 });
+            let column_alignment_props = get_column_alignment_properties(column_alignment);
+            let dashes_count = column_width - column_alignment_props.count();
 
-            if has_left_colon { items.push_str(":"); }
+            if column_alignment_props.has_left_colon { items.push_str(":"); }
             items.push_str(&"-".repeat(dashes_count));
-            if has_right_colon { items.push_str(":"); }
+            if column_alignment_props.has_right_colon { items.push_str(":"); }
 
             items.push_str(" |");
         }
@@ -693,16 +692,26 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
         parser_helpers::with_no_new_lines(items)
     }
 
-    fn get_column_widths(header: &Vec<(PrintItems, usize)>, rows: &Vec<Vec<(PrintItems, usize)>>) -> Vec<usize> {
+    fn get_column_widths(header: &Vec<(PrintItems, usize)>, rows: &Vec<Vec<(PrintItems, usize)>>, column_alignments: &Vec<ColumnAlignment>) -> Vec<usize> {
         let mut column_widths = Vec::new();
         for i in 0.. {
             let mut had_column = false;
             let mut max_width = 0;
+
+            // get header width
             if let Some((_, width)) = header.get(i) {
                 max_width = *width;
                 had_column = true;
             }
 
+            // check column alignment row width
+            if let Some(column_alignment) = column_alignments.get(i) {
+                // + 1 in order to have at least one dash
+                max_width = std::cmp::max(max_width, get_column_alignment_properties(*column_alignment).count() + 1);
+                had_column = true;
+            }
+
+            // check each row width
             for row in rows.iter() {
                 if let Some((_, width)) = row.get(i) {
                     max_width = std::cmp::max(max_width, *width);
@@ -717,6 +726,26 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
             }
         }
         column_widths
+    }
+
+    struct ColumnAlignmentProperties {
+        has_left_colon: bool,
+        has_right_colon: bool,
+    }
+
+    impl ColumnAlignmentProperties {
+        pub fn count(&self) -> usize {
+            (if self.has_left_colon { 1 } else { 0 }) + (if self.has_right_colon { 1 } else { 0 })
+        }
+    }
+
+    fn get_column_alignment_properties(column_alignment: ColumnAlignment) -> ColumnAlignmentProperties {
+        let has_left_colon = column_alignment == ColumnAlignment::Left || column_alignment == ColumnAlignment::Center;
+        let has_right_colon = column_alignment == ColumnAlignment::Right || column_alignment == ColumnAlignment::Center;
+        ColumnAlignmentProperties {
+            has_left_colon,
+            has_right_colon,
+        }
     }
 
     fn get_cell_items_and_width(cell: &TableCell, context: &mut Context) -> (PrintItems, usize) {
