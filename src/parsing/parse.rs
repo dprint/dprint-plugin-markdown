@@ -157,7 +157,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
 
         // check for ignore comment
         if let Node::Html(html) = node {
-            if utils::is_ignore_comment(&context.ignore_regex, &html.text) {
+            if context.ignore_regex.is_match(&html.text) {
                 items.push_signal(Signal::NewLine);
                 if let Some(node) = node_iterator.next() {
                     if utils::has_leading_blankline(node.range().start, context.file_text) {
@@ -166,14 +166,14 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
                     items.extend(parser_helpers::parse_raw_string(node.text(context).trim_end()));
                     last_node = Some(node);
                 }
-            } else if utils::is_ignore_start_comment(&context.ignore_start_regex, &html.text) {
+            } else if context.ignore_start_regex.is_match(&html.text) {
                 let mut range: Option<Range> = None;
                 let mut end_comment = None;
                 while let Some(node) = node_iterator.next() {
                     last_node = Some(node);
 
                     if let Node::Html(html) = node {
-                        if utils::is_ignore_end_comment(&context.ignore_end_regex, &html.text) {
+                        if context.ignore_end_regex.is_match(&html.text) {
                             end_comment = Some(html);
                             break;
                         }

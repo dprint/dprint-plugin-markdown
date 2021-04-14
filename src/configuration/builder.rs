@@ -80,6 +80,12 @@ impl ConfigurationBuilder {
         self.insert("ignoreDirective", value.to_string().into())
     }
 
+    /// The directive used to ignore a file.
+    /// Default: `dprint-ignore-file`
+    pub fn ignore_file_directive(&mut self, value: &str) -> &mut Self {
+        self.insert("ignoreFileDirective", value.to_string().into())
+    }
+
     /// The directive used to mark start of ignored section.
     /// Default: `dprint-ignore-start`
     pub fn ignore_start_directive(&mut self, value: &str) -> &mut Self {
@@ -97,6 +103,7 @@ impl ConfigurationBuilder {
             .ignore_directive("deno-fmt-ignore")
             .ignore_start_directive("deno-fmt-ignore-start")
             .ignore_end_directive("deno-fmt-ignore-end")
+            .ignore_file_directive("deno-fmt-ignore-file")
     }
 
     #[cfg(test)]
@@ -124,10 +131,14 @@ mod tests {
             .line_width(90)
             .text_wrap(TextWrap::Always)
             .emphasis_kind(EmphasisKind::Asterisks)
-            .strong_kind(StrongKind::Underscores);
+            .strong_kind(StrongKind::Underscores)
+            .ignore_directive("test")
+            .ignore_file_directive("test")
+            .ignore_start_directive("test")
+            .ignore_end_directive("test");
 
         let inner_config = config.get_inner_config();
-        assert_eq!(inner_config.len(), 5);
+        assert_eq!(inner_config.len(), 9);
         let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new()).config).diagnostics;
         assert_eq!(diagnostics.len(), 0);
     }

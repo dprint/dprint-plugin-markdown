@@ -1,4 +1,4 @@
-~~ ignoreDirective: foo-ignore, ignoreStartDirective: foo-ignore-start, ignoreEndDirective: foo-ignore-end ~~
+~~ ignoreDirective: foo-ignore, ignoreStartDirective: foo-ignore-start, ignoreEndDirective: foo-ignore-end, ignoreFileDirective: foo-ignore-file ~~
 !! should handle ignore comments !!
 <!-- foo-ignore -->
 testing     this     out
@@ -86,3 +86,15 @@ test
 ```ts
 testing
 ```
+
+!! should handle ignore file comments !!
+<!-- foo-ignore-file -->
+testing     this     out
+
+testing    this    out
+
+[expect]
+<!-- foo-ignore-file -->
+testing     this     out
+
+testing    this    out

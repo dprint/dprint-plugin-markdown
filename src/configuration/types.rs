@@ -12,6 +12,7 @@ pub struct Configuration {
     pub emphasis_kind: EmphasisKind,
     pub strong_kind: StrongKind,
     pub ignore_directive: String,
+    pub ignore_file_directive: String,
     pub ignore_start_directive: String,
     pub ignore_end_directive: String,
 }

@@ -85,3 +85,37 @@ test
 ```ts
 testing
 ```
+
+!! should handle ignore file comments !!
+<!-- dprint-ignore-file -->
+testing     this     out
+
+testing    this    out
+
+[expect]
+<!-- dprint-ignore-file -->
+testing     this     out
+
+testing    this    out
+
+!! should handle ignore file comments in a file with a yaml header !!
+---
+title: Some Title
+description: Some description
+---
+
+<!-- dprint-ignore-file -->
+testing     this     out
+
+testing    this    out
+
+[expect]
+---
+title: Some Title
+description: Some description
+---
+
+<!-- dprint-ignore-file -->
+testing     this     out
+
+testing    this    out

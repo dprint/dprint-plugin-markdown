@@ -51,16 +51,15 @@ pub fn has_leading_blankline(index: usize, text: &str) -> bool {
     false
 }
 
-pub fn is_ignore_comment(is_ignore_regex: &Regex, text: &str) -> bool {
-    is_ignore_regex.is_match(text)
+pub fn file_has_ignore_file_directive(file_text: &str, directive_inner_text: &str) -> bool {
+    let ignore_regex = get_ignore_comment_regex(directive_inner_text);
+    ignore_regex.is_match(file_text)
 }
 
-pub fn is_ignore_start_comment(is_ignore_start_regex: &Regex, text: &str) -> bool {
-    is_ignore_start_regex.is_match(text)
-}
-
-pub fn is_ignore_end_comment(is_ignore_end_regex: &Regex, text: &str) -> bool {
-    is_ignore_end_regex.is_match(text)
+pub fn get_ignore_comment_regex(inner_text: &str) -> Regex {
+    // todo: don't use regex
+    let text = format!(r"\s*<!\-\-\s*{}\s*\-\->\s*", inner_text);
+    Regex::new(&text).unwrap()
 }
 
 pub fn safe_subtract_to_zero(a: u32, b: u32) -> u32 {

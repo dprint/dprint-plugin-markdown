@@ -2,7 +2,7 @@ use dprint_core::formatting::*;
 use dprint_core::configuration::{resolve_new_line_kind};
 
 use super::configuration::Configuration;
-use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context};
+use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context, file_has_ignore_file_directive};
 
 /// Formats a file.
 ///
@@ -17,6 +17,12 @@ pub fn format_text(
         Some(yaml_header) => &file_text[yaml_header.range.end..],
         None => file_text,
     };
+
+    // check for the presence of an dprint-ignore-file comment before parsing
+    if file_has_ignore_file_directive(&markdown_text, &config.ignore_file_directive) {
+        return Ok(file_text.to_string());
+    }
+
     let source_file = match parse_cmark_ast(markdown_text) {
         Ok(source_file) => {
             let mut source_file = source_file;
