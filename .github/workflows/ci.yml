@@ -71,7 +71,7 @@ jobs:
 
           [Install](https://dprint.dev/install/) and [setup](https://dprint.dev/setup/) dprint.
 
-          Then in your project's *dprint.json*:
+          Then in your project's dprint configuration file:
 
           1. Specify the plugin url in the `"plugins"` array.
           2. Ensure `.md` file extensions are matched in an `"includes"` pattern.
