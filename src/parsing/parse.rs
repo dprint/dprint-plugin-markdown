@@ -316,15 +316,15 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
 fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
     let text = code.code.trim();
     let mut backtick_text = "`";
-    let mut start_separator = "";
-    let mut end_separator = "";
+    let mut separator = "";
     if text.contains("`") {
         backtick_text = "``";
-        if text.starts_with("`") { start_separator = " "; };
-        if text.ends_with("`") { end_separator = " "; };
+        if text.starts_with("`") || text.ends_with("`") {
+            separator = " ";
+        }
     }
 
-    format!("{}{}{}{}{}", backtick_text, start_separator, text, end_separator, backtick_text).into()
+    format!("{}{}{}{}{}", backtick_text, separator, text, separator, backtick_text).into()
 }
 
 fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
