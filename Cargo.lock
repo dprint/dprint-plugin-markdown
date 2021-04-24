@@ -38,9 +38,9 @@ dependencies = [
 
 [[package]]
 name = "dprint-core"
-version = "0.37.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1573a8cdbb2fce7f180099a74a0252288a13d7169a9dd43f0f0ff9448a1b1f4e"
+checksum = "a9eef318dc38909f86fa9723ae9b2fd564554bd8115acbf6f67b89bb9d4101da"
 dependencies = [
  "bumpalo",
  "fnv",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "dprint-plugin-markdown"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "dprint-core",
  "dprint-development",
