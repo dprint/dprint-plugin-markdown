@@ -98,6 +98,19 @@ testing     this     out
 
 testing    this    out
 
+!! should not ignore when the comment is not at the start of a file !!
+testing     this     out
+
+<!-- dprint-ignore-file -->
+testing    this    out
+
+[expect]
+testing this out
+
+<!-- dprint-ignore-file -->
+
+testing this out
+
 !! should handle ignore file comments in a file with a yaml header !!
 ---
 title: Some Title
