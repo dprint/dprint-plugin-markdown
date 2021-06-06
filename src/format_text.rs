@@ -1,5 +1,6 @@
 use dprint_core::formatting::*;
 use dprint_core::configuration::{resolve_new_line_kind};
+use dprint_core::types::ErrBox;
 
 use super::configuration::Configuration;
 use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context, file_has_ignore_file_directive};
@@ -10,8 +11,8 @@ use super::parsing::{parse_cmark_ast, parse_yaml_header, parse_node, Context, fi
 pub fn format_text(
     file_text: &str,
     config: &Configuration,
-    format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
-) -> Result<String, String> {
+    format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String, ErrBox>,
+) -> Result<String, ErrBox> {
     let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
         ParseFileResult::IgnoreFile => return Ok(file_text.to_string()),
         ParseFileResult::SourceFile(file) => file,
