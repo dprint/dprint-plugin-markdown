@@ -1,5 +1,7 @@
 use regex::Regex;
-use super::super::configuration::Configuration;
+use dprint_core::types::ErrBox;
+
+use crate::configuration::Configuration;
 use super::utils::*;
 
 pub struct Context<'a> {
@@ -10,7 +12,7 @@ pub struct Context<'a> {
     /** The current indentation level within the file being formatted. */
     pub raw_indent_level: u32,
     pub is_in_list_count: u32,
-    pub format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
+    pub format_code_block_text: Box<dyn FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a>,
     pub ignore_regex: Regex,
     pub ignore_start_regex: Regex,
     pub ignore_end_regex: Regex,
@@ -20,7 +22,7 @@ impl<'a> Context<'a> {
     pub fn new(
         file_text: &'a str,
         configuration: &'a Configuration,
-        format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>
+        format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a,
     ) -> Context<'a> {
         Context {
             file_text,
@@ -28,7 +30,7 @@ impl<'a> Context<'a> {
             indent_level: 0,
             raw_indent_level: 0,
             is_in_list_count: 0,
-            format_code_block_text,
+            format_code_block_text: Box::new(format_code_block_text),
             ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
             ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
             ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
@@ -39,7 +41,7 @@ impl<'a> Context<'a> {
         self.is_in_list_count > 0
     }
 
-    pub fn format_text(&self, tag: &str, text: &str) -> Result<String, String> {
+    pub fn format_text(&mut self, tag: &str, text: &str) -> Result<String, ErrBox> {
         let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
         (self.format_code_block_text)(tag, text, line_width)
     }

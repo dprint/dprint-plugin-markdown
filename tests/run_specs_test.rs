@@ -27,14 +27,14 @@ fn test_specs() {
                 format_text(
                     &file_text,
                     &config_result.config,
-                    Box::new(|tag, file_text, line_width| {
+                    |tag, file_text, line_width| {
                         let end = format!("_formatted_{}", line_width);
                         if tag == "format" && !file_text.ends_with(&end) {
                             Ok(format!("{}{}\n\n", file_text.to_string(), end))
                         } else {
                             Ok(file_text.to_string())
                         }
-                    }),
+                    },
                 )
             }
         },
@@ -46,14 +46,14 @@ fn test_specs() {
                 return serde_json::to_string(&trace_file(
                     &_file_text,
                     &config_result.config,
-                    Box::new(|tag, file_text, line_width| {
+                    |tag, file_text, line_width| {
                         let end = format!("_formatted_{}", line_width);
                         if tag == "format" && !file_text.ends_with(&end) {
                             Ok(format!("{}{}\n\n", file_text.to_string(), end))
                         } else {
                             Ok(file_text.to_string())
                         }
-                    }),
+                    },
                 )).unwrap();
             }
 
