@@ -31,6 +31,7 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
             version: env!("CARGO_PKG_VERSION").to_string(),
             config_key: "markdown".to_string(),
             file_extensions: vec!["md".to_string()],
+            file_names: vec![],
             help_url: "https://dprint.dev/plugins/markdown".to_string(),
             config_schema_url: "".to_string(), // none until https://github.com/microsoft/vscode/issues/98443 is resolved
         }
