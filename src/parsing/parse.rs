@@ -541,7 +541,8 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
         }
         let prefix_text = if let Some(start_index) = list.start_index {
             let end_char = if is_alternate { ")" } else { "." };
-            format!("{}{}", start_index + index as u64, end_char)
+            let display_index = if is_all_ones_list(list, context) { 1 } else { start_index + index as u64 };
+            format!("{}{}", display_index, end_char)
         } else {
             String::from(if is_alternate { "*" } else { "-" })
         };
@@ -801,4 +802,14 @@ fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
         TextWrap::Never => " ".into(),
         TextWrap::Maintain => Signal::NewLine.into(),
     }
+}
+
+/// If the list's first items are both 1s
+fn is_all_ones_list(list: &List, context: &Context) -> bool {
+    list.children.len() > 1
+        && list.start_index.unwrap_or(0) == 1
+        && {
+            let text = list.children.get(1).unwrap().text(context).trim();
+            text.starts_with("1.") || text.starts_with("1)")
+        }
 }
