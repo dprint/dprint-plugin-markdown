@@ -12,3 +12,21 @@
 
 [expect]
 > First line that goes very very very long.
+
+!! should keep blank lines in the middle !!
+>
+> First
+>
+> Second
+>
+>
+> Third
+>
+>
+
+[expect]
+> First
+>
+> Second
+>
+> Third

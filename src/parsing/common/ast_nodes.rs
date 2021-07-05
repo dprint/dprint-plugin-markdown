@@ -210,6 +210,22 @@ macro_rules! generate_node {
             $($node_name($node_name)),*,
         }
 
+        #[cfg(debug_assertions)]
+        #[derive(Debug)]
+        pub enum NodeKind {
+            $($node_name),*,
+        }
+
+        #[cfg(debug_assertions)]
+        impl Node {
+            #[allow(dead_code)]
+            pub fn kind(&self) -> NodeKind {
+                match self {
+                    $(Node::$node_name(_) => NodeKind::$node_name),*
+                }
+            }
+        }
+
         impl Ranged for Node {
             fn range<'a>(&'a self) -> &'a Range {
                 match self {

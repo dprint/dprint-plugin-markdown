@@ -7,6 +7,7 @@ use super::parser_types::*;
 use super::utils;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
+    // println!("Kind: {:?}", node.kind());
     // println!("Text: {:?}", node.text(context));
     match node {
         Node::SourceFile(node) => parse_source_file(node, context),
@@ -225,27 +226,25 @@ fn parse_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 
 fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    items.push_str("> ");
 
     // add a > for any string that is on the start of a line
     for print_item in parse_nodes(&block_quote.children, context).iter() {
         match print_item {
             PrintItem::String(text) => {
-                items.push_condition(if_true_or(
-                    "isStartOfLine",
+                items.push_condition(if_true(
+                    "angleBracketIfStartOfLine",
                     |context| Some(context.writer_info.is_start_of_line()),
-                    {
-                        let mut items = PrintItems::new();
-                        items.push_str("> ");
-                        items.push_item(PrintItem::String(text));
-                        items
-                    },
-                    {
-                        let mut items = PrintItems::new();
-                        items.push_item(PrintItem::String(text));
-                        items
-                    },
+                    "> ".into(),
                 ));
+                items.push_item(PrintItem::String(text));
+            },
+            PrintItem::Signal(Signal::NewLine) => {
+                items.push_condition(if_true(
+                    "angleBracketIfStartOfLine",
+                    |context| Some(context.writer_info.is_start_of_line()),
+                    ">".into(),
+                ));
+                items.push_signal(Signal::NewLine);
             },
             _ => items.push_item(print_item),
         }
