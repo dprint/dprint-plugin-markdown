@@ -2,3 +2,4 @@
 **/*.rs.bk
 deployment/npm/buffer.generated.js
 deployment/npm/node_modules
+Cargo.lock
