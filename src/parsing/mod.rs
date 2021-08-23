@@ -1,12 +1,12 @@
-pub mod common;
 mod cmark;
+pub mod common;
 mod parse;
 mod parser_types;
-mod yaml;
 mod utils;
+mod yaml;
 
 pub use cmark::*;
 pub use parse::*;
 pub use parser_types::*;
-pub use yaml::*;
 pub use utils::*;
+pub use yaml::*;
