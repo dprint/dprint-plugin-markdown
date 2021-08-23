@@ -20,12 +20,22 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
     resolve_config(config, global_config)
   }
 
+  // Markdown extensions: markdown, mdown, mkdn, mdwn, mkd, md
+  // ref: https://superuser.com/questions/249436/file-extension-for-markdown-files/285878#285878
+  // ref: https://github.com/denoland/deno_registry2/issues/206
   fn get_plugin_info(&mut self) -> PluginInfo {
     PluginInfo {
       name: env!("CARGO_PKG_NAME").to_string(),
       version: env!("CARGO_PKG_VERSION").to_string(),
       config_key: "markdown".to_string(),
-      file_extensions: vec!["md".to_string()],
+      file_extensions: vec![
+        "md".to_string(),
+        "mkd".to_string(),
+        "mdwn".to_string(),
+        "mkdn".to_string(),
+        "mdown".to_string(),
+        "markdown".to_string(),
+      ],
       file_names: vec![],
       help_url: "https://dprint.dev/plugins/markdown".to_string(),
       config_schema_url: "".to_string(), // none until https://github.com/microsoft/vscode/issues/98443 is resolved
