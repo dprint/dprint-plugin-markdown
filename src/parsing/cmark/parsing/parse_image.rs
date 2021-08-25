@@ -30,7 +30,7 @@ fn parse_inline(start_pos: usize, char_scanner: &mut CharScanner) -> Result<Node
     InlineImage {
       range: Range {
         start: start_pos,
-        end: char_scanner.pos(),
+        end: char_scanner.end(),
       },
       text,
       url,
@@ -51,11 +51,25 @@ fn parse_reference(start_pos: usize, char_scanner: &mut CharScanner) -> Result<N
     ReferenceImage {
       range: Range {
         start: start_pos,
-        end: char_scanner.pos(),
+        end: char_scanner.end(),
       },
       text,
       reference,
     }
     .into(),
   )
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn it_should_parse_image() {
+    let result = parse_image(10, "![text](url)\n", LinkType::Inline);
+    assert_eq!(result.is_ok(), true);
+    let image = result.ok().unwrap();
+    assert_eq!(image.range().start, 10);
+    assert_eq!(image.range().end, 22);
+  }
 }

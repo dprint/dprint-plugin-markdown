@@ -26,3 +26,22 @@ pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
 
   return None;
 }
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  #[test]
+  fn it_should_parse_yaml_header() {
+    let result = parse_yaml_header(
+      r#"---
+a: b
+---
+
+Test"#,
+    )
+    .unwrap();
+
+    assert_eq!(result.range.start, 0);
+    assert_eq!(result.range.end, 12);
+  }
+}

@@ -17,7 +17,7 @@ fn parse_text_in_container(start_pos: usize, char_scanner: &mut CharScanner, ope
       return Err(ParseError::new(
         Range {
           start: byte_pos,
-          end: byte_pos,
+          end: byte_pos + c.len_utf8(),
         },
         &format!("Unexpected open container char `{}`.", open_char),
       ));

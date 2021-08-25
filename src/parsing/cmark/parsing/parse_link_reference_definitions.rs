@@ -17,7 +17,7 @@ pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec
       return Err(ParseError::new(
         Range {
           start: byte_pos,
-          end: byte_pos,
+          end: byte_pos + c.len_utf8(),
         },
         &format!("Unexpected token `{}` while parsing link reference definition.", c),
       ));
@@ -37,7 +37,7 @@ fn parse_link_reference_definition(start_pos: usize, char_scanner: &mut CharScan
   Ok(LinkReference {
     range: Range {
       start: start_pos,
-      end: char_scanner.pos(),
+      end: char_scanner.pos(), // pos because it's at the next character
     },
     name,
     link: url,
@@ -67,7 +67,7 @@ fn parse_reference_link(start_pos: usize, char_scanner: &mut CharScanner) -> Res
     return Err(ParseError::new(
       Range {
         start: start_pos,
-        end: char_scanner.pos(),
+        end: char_scanner.pos(), // pos because it's at the next character
       },
       "Unexpected empty link parsing link reference definition link.",
     ));

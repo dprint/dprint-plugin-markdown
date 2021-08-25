@@ -87,7 +87,7 @@ impl<'a> CharScanner<'a> {
         return Err(ParseError::new(
           Range {
             start: byte_pos,
-            end: byte_pos,
+            end: byte_pos + c.len_utf8(),
           },
           &format!("Unexpected token `{}` when expected `{}`.", c, searching_char),
         ));
@@ -97,7 +97,7 @@ impl<'a> CharScanner<'a> {
     return Err(ParseError::new(
       Range {
         start: self.pos,
-        end: self.pos,
+        end: self.end(),
       },
       &format!("Did not find expected char of `{}`", searching_char),
     ));
@@ -136,7 +136,7 @@ impl<'a> CharScanner<'a> {
   }
 
   pub fn end(&self) -> usize {
-    self.current.as_ref().map(|(pos, c)| *pos + c.len_utf8()).unwrap_or(0)
+    self.current.as_ref().map(|(pos, c)| *pos + c.len_utf8()).unwrap_or(self.pos)
   }
 
   pub fn peek(&self) -> Option<(usize, char)> {
