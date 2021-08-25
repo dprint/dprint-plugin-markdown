@@ -5,6 +5,7 @@ use crate::configuration::*;
 use dprint_core::formatting::*;
 use dprint_core::formatting::{condition_resolvers, conditions::*, parser_helpers::*};
 use std::borrow::Cow;
+use utils::get_leading_non_space_tab_byte_pos;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
   // println!("Kind: {:?}", node.kind());
@@ -186,7 +187,12 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
           if utils::has_leading_blankline(node.range().start, context.file_text) {
             items.push_signal(Signal::NewLine);
           }
-          items.extend(parser_helpers::parse_raw_string(node.text(context).trim_end()));
+
+          // include the leading indent
+          let range = node.range();
+          let text_start = get_leading_non_space_tab_byte_pos(context.file_text, range.start);
+          items.extend(parser_helpers::parse_raw_string(context.file_text[text_start..range.end].trim_end()));
+
           last_node = Some(node);
         }
       } else if context.ignore_start_regex.is_match(&html.text) {
@@ -202,19 +208,19 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
             }
           }
 
-          if let Some(taken_range) = range {
-            range = Some(Range {
-              start: taken_range.start,
-              end: node.range().end,
-            });
-          } else {
-            range = Some(node.range().to_owned());
-          }
+          let node_range = node.range();
+          range = Some(Range {
+            start: range.map(|r| r.start).unwrap_or(node_range.start),
+            end: node_range.end,
+          });
         }
 
         if let Some(range) = range {
           items.extend(get_conditional_blank_line(&range, context));
-          items.extend(parser_helpers::parse_raw_string(&context.file_text[range.start..range.end].trim()));
+          // get the leading indent
+          let text_start = get_leading_non_space_tab_byte_pos(context.file_text, range.start);
+          items.extend(parser_helpers::parse_raw_string(&context.file_text[text_start..range.end].trim_end()));
+
           if let Some(end_comment) = end_comment {
             items.extend(get_conditional_blank_line(end_comment.range(), context));
             items.extend(parse_html(end_comment, context));

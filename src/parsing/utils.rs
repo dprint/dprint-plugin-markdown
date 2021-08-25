@@ -70,6 +70,18 @@ pub fn safe_subtract_to_zero(a: u32, b: u32) -> u32 {
   }
 }
 
+pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
+  let text_bytes = text.as_bytes();
+  for i in (0..pos).rev() {
+    let current_char = text_bytes.get(i);
+    if current_char != Some(&(b' ')) && current_char != Some(&(b'\t')) {
+      return i + 1;
+    }
+  }
+
+  0
+}
+
 #[cfg(test)]
 mod test {
   use super::*;

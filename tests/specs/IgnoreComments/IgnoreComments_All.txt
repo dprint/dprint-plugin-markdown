@@ -10,6 +10,20 @@ testing     this     out
 
 testing this out
 
+!! should respect indentation in ignore comments !!
+<!-- dprint-ignore -->
+    testing   this  out
+
+<!-- dprint-ignore -->
+				testing   this  out
+
+[expect]
+<!-- dprint-ignore -->
+    testing   this  out
+
+<!-- dprint-ignore -->
+				testing   this  out
+
 !! should handle start and finish ignore comments !!
 testing   this  out
 <!-- dprint-ignore-start -->
@@ -35,6 +49,28 @@ testing    more   and    more
 <!-- dprint-ignore-end -->
 
 testing this out
+
+!! should respect indentation in start and finish ignore comments !!
+<!-- dprint-ignore-start -->
+    testing   this  out
+<!-- dprint-ignore-end -->
+
+<!-- dprint-ignore-start -->
+				testing   this  out
+<!-- dprint-ignore-end -->
+
+[expect]
+<!-- dprint-ignore-start -->
+
+    testing   this  out
+
+<!-- dprint-ignore-end -->
+
+<!-- dprint-ignore-start -->
+
+				testing   this  out
+
+<!-- dprint-ignore-end -->
 
 !! should handle no end ignore comment !!
 testing  this out
