@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://plugins.dprint.dev/schemas/markdown-0.0.0.json",
+  "type": "object",
+  "definitions": {
+    "newLineKind": {
+      "description": "The kind of newline to use.",
+      "type": "string",
+      "default": "lf",
+      "oneOf": [{
+        "const": "auto",
+        "description": "For each file, uses the newline kind found at the end of the last line."
+      }, {
+        "const": "crlf",
+        "description": "Uses carriage return, line feed."
+      }, {
+        "const": "lf",
+        "description": "Uses line feed."
+      }, {
+        "const": "system",
+        "description": "Uses the system standard (ex. crlf on Windows)."
+      }]
+    },
+    "textWrap": {
+      "description": "Text wrapping possibilities.",
+      "type": "string",
+      "default": "maintain",
+      "oneOf": [{
+        "const": "always",
+        "description": "Always wraps text."
+      }, {
+        "const": "maintain",
+        "description": "Maintains line breaks."
+      }, {
+        "const": "never",
+        "description": "Never wraps text."
+      }]
+    },
+    "emphasisKind": {
+      "description": "The character to use for emphasis/italics.",
+      "type": "string",
+      "default": "underscores",
+      "oneOf": [{
+        "const": "asterisks",
+        "description": "Uses asterisks (*) for emphasis."
+      }, {
+        "const": "underscores",
+        "description": "Uses underscores (_) for emphasis."
+      }]
+    },
+    "strongKind": {
+      "description": "The character to use for strong emphasis/bold.",
+      "type": "string",
+      "default": "asterisks",
+      "oneOf": [{
+        "const": "asterisks",
+        "description": "Uses asterisks (**) for strong emphasis."
+      }, {
+        "const": "underscores",
+        "description": "Uses underscores (__) for strong emphasis."
+      }]
+    },
+    "deno": {
+      "description": "Top level configuration that sets the configuration to what is used in Deno.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": ""
+      }, {
+        "const": false,
+        "description": ""
+      }]
+    }
+  },
+  "properties": {
+    "$schema": {
+      "description": "The JSON schema reference.",
+      "type": "string"
+    },
+    "locked": {
+      "description": "Whether the configuration is not allowed to be overriden or extended.",
+      "type": "boolean"
+    },
+    "lineWidth": {
+      "description": "The width of a line the printer will try to stay under. Note that the printer may exceed this width in certain cases.",
+      "default": 80,
+      "type": "number"
+    },
+    "newLineKind": {
+      "$ref": "#/definitions/newLineKind"
+    },
+    "textWrap": {
+      "$ref": "#/definitions/textWrap"
+    },
+    "emphasisKind": {
+      "$ref": "#/definitions/emphasisKind"
+    },
+    "strongKind": {
+      "$ref": "#/definitions/strongKind"
+    },
+    "deno": {
+      "$ref": "#/definitions/deno"
+    },
+    "ignoreDirective": {
+      "description": "The text to use for an ignore directive (ex. `<!-- dprint-ignore -->`).",
+      "default": "dprint-ignore",
+      "type": "string"
+    },
+    "ignoreFileDirective": {
+      "description": "The text to use for an ignore file directive (ex. `<!-- dprint-ignore-file -->`).",
+      "default": "dprint-ignore-file",
+      "type": "string"
+    },
+    "ignoreStartDirective": {
+      "description": "The text to use for an ignore start directive (ex. `<!-- dprint-ignore-start -->`).",
+      "default": "dprint-ignore-start",
+      "type": "string"
+    },
+    "ignoreEndDirective": {
+      "description": "The text to use for an ignore end directive (ex. `<!-- dprint-ignore-end -->`).",
+      "default": "dprint-ignore-end",
+      "type": "string"
+    }
+  }
+}
