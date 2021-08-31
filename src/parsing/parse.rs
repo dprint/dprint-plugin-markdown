@@ -479,6 +479,7 @@ fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: 
 
 fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
+  context.is_in_link = true;
   let parsed_children = parse_nodes(&link.children, context);
   items.push_str("[");
 
@@ -499,6 +500,7 @@ fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   }
   items.push_str(")");
 
+  context.is_in_link = false;
   parser_helpers::new_line_group(items)
 }
 
@@ -838,6 +840,9 @@ fn get_items_text(items: PrintItems) -> String {
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
+  if context.is_in_link {
+    return " ".into();
+  }
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
     TextWrap::Never | TextWrap::Maintain => " ".into(),
