@@ -24,9 +24,10 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
   // ref: https://superuser.com/questions/249436/file-extension-for-markdown-files/285878#285878
   // ref: https://github.com/denoland/deno_registry2/issues/206
   fn get_plugin_info(&mut self) -> PluginInfo {
+    let version = env!("CARGO_PKG_VERSION").to_string();
     PluginInfo {
       name: env!("CARGO_PKG_NAME").to_string(),
-      version: env!("CARGO_PKG_VERSION").to_string(),
+      version: version.clone(),
       config_key: "markdown".to_string(),
       file_extensions: vec![
         "md".to_string(),
@@ -38,7 +39,7 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
       ],
       file_names: vec![],
       help_url: "https://dprint.dev/plugins/markdown".to_string(),
-      config_schema_url: "".to_string(), // none until https://github.com/microsoft/vscode/issues/98443 is resolved
+      config_schema_url: format!("https://plugins.dprint.dev/schemas/markdown-{}.json", version),
     }
   }
 
