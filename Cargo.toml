@@ -1,6 +1,6 @@
 [package]
 name = "dprint-plugin-markdown"
-version = "0.9.6"
+version = "0.10.0"
 authors = ["David Sherret <dsherret@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/dprint/dprint-plugin-markdown"
