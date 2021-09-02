@@ -33,7 +33,7 @@ impl ConfigurationBuilder {
     if let Some(global_config) = &self.global_config {
       resolve_config(self.config.clone(), global_config).config
     } else {
-      let global_config = resolve_global_config(HashMap::new()).config;
+      let global_config = resolve_global_config(HashMap::new(), &Default::default()).config;
       resolve_config(self.config.clone(), &global_config).config
     }
   }
@@ -141,7 +141,7 @@ mod tests {
 
     let inner_config = config.get_inner_config();
     assert_eq!(inner_config.len(), 9);
-    let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new()).config).diagnostics;
+    let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new(), &Default::default()).config).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
 
@@ -151,7 +151,7 @@ mod tests {
     global_config.insert(String::from("lineWidth"), 90.into());
     global_config.insert(String::from("newLineKind"), "crlf".into());
     global_config.insert(String::from("useTabs"), true.into());
-    let global_config = resolve_global_config(global_config).config;
+    let global_config = resolve_global_config(global_config, &Default::default()).config;
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 90);
@@ -160,7 +160,7 @@ mod tests {
 
   #[test]
   fn use_markdown_defaults_when_global_not_set() {
-    let global_config = resolve_global_config(HashMap::new()).config;
+    let global_config = resolve_global_config(HashMap::new(), &Default::default()).config;
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different

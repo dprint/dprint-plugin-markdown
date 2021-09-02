@@ -245,7 +245,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
 fn parse_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
-  items.push_str(&format!("{} ", "#".repeat(heading.level as usize)));
+  items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
   items.extend(with_no_new_lines(parse_nodes(&heading.children, context)));
 
   items
@@ -294,7 +294,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
 
   // header
   if code_block.is_fenced {
-    items.push_str(&backtick_text);
+    items.push_string(backtick_text.clone());
     if let Some(tag) = &code_block.tag {
       items.push_str(tag);
     }
@@ -311,7 +311,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
     if !code_text.is_empty() {
       items.push_signal(Signal::NewLine);
     }
-    items.push_str(&backtick_text);
+    items.push_string(backtick_text);
   }
 
   return with_indent_times(items, relative_indent_level);
@@ -430,7 +430,7 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
           }
         }
 
-        self.items.push_str(&current_word);
+        self.items.push_string(current_word);
         self.was_last_newline = false;
       }
     }
@@ -451,9 +451,9 @@ fn parse_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintI
     TextDecorationKind::Strikethrough => "~~",
   };
 
-  items.push_str(&decoration_text);
+  items.push_str(decoration_text);
   items.extend(parse_nodes(&text.children, context));
-  items.push_str(&decoration_text);
+  items.push_str(decoration_text);
 
   items
 }
@@ -466,13 +466,13 @@ fn parse_html(html: &Html, _: &mut Context) -> PrintItems {
 
 fn parse_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str(&format!("[^{}]", footnote_reference.name.trim()));
+  items.push_string(format!("[^{}]", footnote_reference.name.trim()));
   parser_helpers::with_no_new_lines(items)
 }
 
 fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str(&format!("[^{}]: ", footnote_definition.name.trim()));
+  items.push_string(format!("[^{}]: ", footnote_definition.name.trim()));
   items.extend(parse_nodes(&footnote_definition.children, context));
   items
 }
@@ -487,16 +487,16 @@ fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   let (parsed_children, parsed_children_clone) = clone_items(parsed_children);
   let single_line_text = get_items_text(parser_helpers::with_no_new_lines(parsed_children_clone));
   if single_line_text.len() < (context.configuration.line_width / 2) as usize {
-    items.push_str(&single_line_text);
+    items.push_string(single_line_text);
   } else {
     items.extend(parsed_children);
   }
 
   items.push_str("]");
   items.push_str("(");
-  items.push_str(&link.url.trim());
+  items.push_str(link.url.trim());
   if let Some(title) = &link.title {
-    items.push_str(&format!(" \"{}\"", title.trim()));
+    items.push_string(format!(" \"{}\"", title.trim()));
   }
   items.push_str(")");
 
@@ -509,7 +509,7 @@ fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintIte
   items.push_str("[");
   items.extend(parse_nodes(&link.children, context));
   items.push_str("]");
-  items.push_str(&format!("[{}]", link.reference.trim()));
+  items.push_string(format!("[{}]", link.reference.trim()));
   parser_helpers::new_line_group(items)
 }
 
@@ -531,21 +531,21 @@ fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
 
 fn parse_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str(&format!("[{}]: ", link_ref.name.trim()));
-  items.push_str(&link_ref.link.trim());
+  items.push_string(format!("[{}]: ", link_ref.name.trim()));
+  items.push_str(link_ref.link.trim());
   if let Some(title) = &link_ref.title {
-    items.push_str(&format!(" \"{}\"", title.trim()));
+    items.push_string(format!(" \"{}\"", title.trim()));
   }
   parser_helpers::new_line_group(items)
 }
 
 fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str(&format!("![{}]", image.text.trim()));
+  items.push_string(format!("![{}]", image.text.trim()));
   items.push_str("(");
-  items.push_str(&image.url.trim());
+  items.push_str(image.url.trim());
   if let Some(title) = &image.title {
-    items.push_str(&format!(" \"{}\"", title.trim()));
+    items.push_string(format!(" \"{}\"", title.trim()));
   }
   items.push_str(")");
   parser_helpers::new_line_group(items)
@@ -553,8 +553,8 @@ fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
 
 fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str(&format!("![{}]", image.text.trim()));
-  items.push_str(&format!("[{}]", image.reference.trim()));
+  items.push_string(format!("![{}]", image.text.trim()));
+  items.push_string(format!("[{}]", image.reference.trim()));
   parser_helpers::new_line_group(items)
 }
 
@@ -583,7 +583,7 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
     let indent_increment = (prefix_text.chars().count() + 1) as u32;
     context.indent_level += indent_increment;
     context.raw_indent_level += indent_increment;
-    items.push_str(&prefix_text);
+    items.push_string(prefix_text);
     let after_child = Info::new("afterChild");
     items.push_condition(if_true(
       "spaceIfHasChild",
@@ -685,7 +685,7 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
       if column_alignment_props.has_left_colon {
         items.push_str(":");
       }
-      items.push_str(&"-".repeat(dashes_count));
+      items.push_string("-".repeat(dashes_count));
       if column_alignment_props.has_right_colon {
         items.push_str(":");
       }
@@ -713,11 +713,11 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
           ColumnAlignment::None | ColumnAlignment::Left => {}
           ColumnAlignment::Center => {
             if difference > 1 {
-              items.push_str(&" ".repeat((difference as f32 / 2_f32).floor() as usize))
+              items.push_string(" ".repeat((difference as f32 / 2_f32).floor() as usize))
             }
           }
           ColumnAlignment::Right => {
-            items.push_str(&" ".repeat(difference));
+            items.push_string(" ".repeat(difference));
           }
         }
       }
@@ -727,9 +727,9 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
       if difference > 0 {
         match column_alignment {
           ColumnAlignment::None | ColumnAlignment::Left => {
-            items.push_str(&" ".repeat(difference));
+            items.push_string(" ".repeat(difference));
           }
-          ColumnAlignment::Center => items.push_str(&" ".repeat((difference as f32 / 2_f32).ceil() as usize)),
+          ColumnAlignment::Center => items.push_string(" ".repeat((difference as f32 / 2_f32).ceil() as usize)),
           ColumnAlignment::Right => {}
         }
       }
