@@ -478,55 +478,62 @@ fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: 
 }
 
 fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  context.is_in_link = true;
-  let parsed_children = parse_nodes(&link.children, context);
-  items.push_str("[");
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    let parsed_children = parse_nodes(&link.children, context);
+    items.push_str("[");
 
-  // force the text to be on a single line in some scenarios
-  let (parsed_children, parsed_children_clone) = clone_items(parsed_children);
-  let single_line_text = get_items_text(parser_helpers::with_no_new_lines(parsed_children_clone));
-  if single_line_text.len() < (context.configuration.line_width / 2) as usize {
-    items.push_string(single_line_text);
-  } else {
-    items.extend(parsed_children);
-  }
+    // force the text to be on a single line in some scenarios
+    let (parsed_children, parsed_children_clone) = clone_items(parsed_children);
+    let single_line_text = get_items_text(parser_helpers::with_no_new_lines(parsed_children_clone));
+    if single_line_text.len() < (context.configuration.line_width / 2) as usize {
+      items.push_string(single_line_text);
+    } else {
+      items.extend(parsed_children);
+    }
 
-  items.push_str("]");
-  items.push_str("(");
-  items.push_str(link.url.trim());
-  if let Some(title) = &link.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
-  }
-  items.push_str(")");
+    items.push_str("]");
+    items.push_str("(");
+    items.push_str(link.url.trim());
+    if let Some(title) = &link.title {
+      items.push_string(format!(" \"{}\"", title.trim()));
+    }
+    items.push_str(")");
 
-  context.is_in_link = false;
-  parser_helpers::new_line_group(items)
+    parser_helpers::new_line_group(items)
+  })
 }
 
 fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_str("[");
-  items.extend(parse_nodes(&link.children, context));
-  items.push_str("]");
-  items.push_string(format!("[{}]", link.reference.trim()));
-  parser_helpers::new_line_group(items)
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.push_str("[");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str("]");
+    items.push_string(format!("[{}]", link.reference.trim()));
+    parser_helpers::new_line_group(items)
+  })
 }
 
 fn parse_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_str("[");
-  items.extend(parse_nodes(&link.children, context));
-  items.push_str("]");
-  parser_helpers::new_line_group(items)
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.push_str("[");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str("]");
+    parser_helpers::new_line_group(items)
+  })
 }
 
 fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_str("<");
-  items.extend(parse_nodes(&link.children, context));
-  items.push_str(">");
-  parser_helpers::new_line_group(items)
+  // auto-links can't contain spaces, but do this anyway just in case
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.push_str("<");
+    items.extend(parse_nodes(&link.children, context));
+    items.push_str(">");
+    parser_helpers::new_line_group(items)
+  })
 }
 
 fn parse_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
@@ -559,46 +566,46 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
 }
 
 fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  context.is_in_list_count += 1;
-  let measured_raw_indent_level = context.get_indent_level_at_pos(list.range.start);
-  let raw_list_start_indent_increment = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
-  context.raw_indent_level += raw_list_start_indent_increment;
+  context.mark_in_list(|context| {
+    let mut items = PrintItems::new();
+    let measured_raw_indent_level = context.get_indent_level_at_pos(list.range.start);
+    let raw_list_start_indent_increment = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
+    context.raw_indent_level += raw_list_start_indent_increment;
 
-  // parse items
-  for (index, child) in list.children.iter().enumerate() {
-    if index > 0 {
-      items.push_signal(Signal::NewLine);
-      if utils::has_leading_blankline(child.range().start, context.file_text) {
+    // parse items
+    for (index, child) in list.children.iter().enumerate() {
+      if index > 0 {
         items.push_signal(Signal::NewLine);
+        if utils::has_leading_blankline(child.range().start, context.file_text) {
+          items.push_signal(Signal::NewLine);
+        }
       }
+      let prefix_text = if let Some(start_index) = list.start_index {
+        let end_char = if is_alternate { ")" } else { "." };
+        let display_index = if is_all_ones_list(list, context) { 1 } else { start_index + index as u64 };
+        format!("{}{}", display_index, end_char)
+      } else {
+        String::from(if is_alternate { "*" } else { "-" })
+      };
+      let indent_increment = (prefix_text.chars().count() + 1) as u32;
+      context.indent_level += indent_increment;
+      context.raw_indent_level += indent_increment;
+      items.push_string(prefix_text);
+      let after_child = Info::new("afterChild");
+      items.push_condition(if_true(
+        "spaceIfHasChild",
+        move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
+        Signal::SpaceIfNotTrailing.into(),
+      ));
+      items.extend(with_indent_times(parse_node(child, context), indent_increment));
+      items.push_info(after_child);
+      context.indent_level -= indent_increment;
+      context.raw_indent_level -= indent_increment;
     }
-    let prefix_text = if let Some(start_index) = list.start_index {
-      let end_char = if is_alternate { ")" } else { "." };
-      let display_index = if is_all_ones_list(list, context) { 1 } else { start_index + index as u64 };
-      format!("{}{}", display_index, end_char)
-    } else {
-      String::from(if is_alternate { "*" } else { "-" })
-    };
-    let indent_increment = (prefix_text.chars().count() + 1) as u32;
-    context.indent_level += indent_increment;
-    context.raw_indent_level += indent_increment;
-    items.push_string(prefix_text);
-    let after_child = Info::new("afterChild");
-    items.push_condition(if_true(
-      "spaceIfHasChild",
-      move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
-      Signal::SpaceIfNotTrailing.into(),
-    ));
-    items.extend(with_indent_times(parse_node(child, context), indent_increment));
-    items.push_info(after_child);
-    context.indent_level -= indent_increment;
-    context.raw_indent_level -= indent_increment;
-  }
 
-  context.raw_indent_level -= raw_list_start_indent_increment;
-  context.is_in_list_count -= 1;
-  items
+    context.raw_indent_level -= raw_list_start_indent_increment;
+    items
+  })
 }
 
 fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
@@ -840,7 +847,7 @@ fn get_items_text(items: PrintItems) -> String {
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
-  if context.is_in_link {
+  if context.is_text_wrap_disabled() {
     return " ".into();
   }
   match context.configuration.text_wrap {

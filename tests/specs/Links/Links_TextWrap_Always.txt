@@ -9,5 +9,25 @@
 !! should always stay on same line !!
 [Style Guide testing this](https://github.com/testing_this_out_with_some_link)
 
+Testing this out with some text to ensure wrapping still works after.
+
 [expect]
 [Style Guide testing this](https://github.com/testing_this_out_with_some_link)
+
+Testing this out with some text to
+ensure wrapping still works after.
+
+!! should not wrap a reference link !!
+[testing][Some reference with text that exceeds line width]
+
+Testing this out with some text to ensure wrapping still works after.
+
+[Some reference with text that exceeds line width]: https://github.com
+
+[expect]
+[testing][Some reference with text that exceeds line width]
+
+Testing this out with some text to
+ensure wrapping still works after.
+
+[Some reference with text that exceeds line width]: https://github.com

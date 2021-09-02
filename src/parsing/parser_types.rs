@@ -11,8 +11,8 @@ pub struct Context<'a> {
   pub indent_level: u32,
   /** The current indentation level within the file being formatted. */
   pub raw_indent_level: u32,
-  pub is_in_list_count: u32,
-  pub is_in_link: bool,
+  is_in_list_count: u32,
+  text_wrap_disabled_count: u32,
   pub format_code_block_text: Box<dyn FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
@@ -31,7 +31,7 @@ impl<'a> Context<'a> {
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
-      is_in_link: false,
+      text_wrap_disabled_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
@@ -39,8 +39,26 @@ impl<'a> Context<'a> {
     }
   }
 
+  pub fn mark_in_list<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
+    self.is_in_list_count += 1;
+    let items = func(self);
+    self.is_in_list_count -= 1;
+    items
+  }
+
   pub fn is_in_list(&self) -> bool {
     self.is_in_list_count > 0
+  }
+
+  pub fn with_no_text_wrap<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
+    self.text_wrap_disabled_count += 1;
+    let items = func(self);
+    self.text_wrap_disabled_count -= 1;
+    items
+  }
+
+  pub fn is_text_wrap_disabled(&self) -> bool {
+    self.text_wrap_disabled_count > 0
   }
 
   pub fn format_text(&mut self, tag: &str, text: &str) -> Result<String, ErrBox> {
