@@ -12,6 +12,7 @@ pub struct Context<'a> {
   /** The current indentation level within the file being formatted. */
   pub raw_indent_level: u32,
   pub is_in_list_count: u32,
+  pub is_in_link: bool,
   pub format_code_block_text: Box<dyn FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
@@ -30,6 +31,7 @@ impl<'a> Context<'a> {
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
+      is_in_link: false,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
