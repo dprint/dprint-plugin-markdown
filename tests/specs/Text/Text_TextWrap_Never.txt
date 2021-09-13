@@ -1,0 +1,13 @@
+~~ lineWidth: 40, textWrap: never ~~
+!! should move paragraphs onto the same line !!
+Testing this out
+with some text
+testing testing
+test
+
+some other paragraph
+
+[expect]
+Testing this out with some text testing testing test
+
+some other paragraph
