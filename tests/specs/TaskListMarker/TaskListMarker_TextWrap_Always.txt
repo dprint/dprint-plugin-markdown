@@ -1,5 +1,5 @@
 ~~ textWrap: always, lineWidth: 40 ~~
-!! should format indenting past task list marker (only) !!
+!! should format indenting past task list marker !!
 - [x] some text that will wrap beyond the line width
   - [ ]  nested testing this out testing testing testing
 - [ ] some more text that will also wrap beyond the line width

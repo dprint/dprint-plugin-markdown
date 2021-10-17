@@ -1,6 +1,6 @@
 [package]
 name = "dprint-plugin-markdown"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["David Sherret <dsherret@gmail.com>"]
 edition = "2018"
 homepage = "https://github.com/dprint/dprint-plugin-markdown"
@@ -24,7 +24,7 @@ wasm = ["serde_json", "dprint-core/wasm"]
 tracing = ["dprint-core/tracing"]
 
 [dependencies]
-dprint-core = { version = "0.46.0", features = ["formatting"] }
+dprint-core = { version = "0.46.4", features = ["formatting"] }
 pulldown-cmark = { version = "0.8.0", default-features = false }
 regex = "1"
 serde = { version = "1.0.88", features = ["derive"] }
