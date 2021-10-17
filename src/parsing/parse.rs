@@ -633,7 +633,11 @@ fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
     }
   }
 
-  items.extend(parse_nodes(&item.children, context));
+  // indent the children to beyond the task list marker
+  let marker_indent = if item.marker.is_some() { 4 } else { 0 };
+  context.raw_indent_level += marker_indent;
+  items.extend(with_indent_times(parse_nodes(&item.children, context), marker_indent));
+  context.raw_indent_level -= marker_indent;
 
   if !item.sub_lists.is_empty() {
     items.push_signal(Signal::NewLine);
