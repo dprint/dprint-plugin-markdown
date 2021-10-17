@@ -317,15 +317,30 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
   return with_indent_times(items, relative_indent_level);
 
   fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
-    let code = code_block.code.trim();
-    if !code.is_empty() {
-      if let Some(tag) = &code_block.tag {
-        if let Ok(text) = context.format_text(tag, code) {
-          return Cow::Owned(text.trim().to_string());
-        }
+    let code = &code_block.code;
+    if code.trim().is_empty() {
+      return Cow::Borrowed("");
+    }
+    let start_pos = get_code_block_start_pos(&code);
+    let code = code[start_pos..].trim_end();
+    if let Some(tag) = &code_block.tag {
+      if let Ok(text) = context.format_text(tag, code) {
+        return Cow::Owned(text.trim_end().to_string());
       }
     }
     Cow::Borrowed(code)
+  }
+
+  fn get_code_block_start_pos(text: &str) -> usize {
+    let mut start_pos = 0;
+    for (i, c) in text.char_indices() {
+      if c == '\n' {
+        start_pos = i + 1;
+      } else if !c.is_whitespace() {
+        break;
+      }
+    }
+    start_pos
   }
 
   fn get_backtick_count(text: &str) -> usize {
