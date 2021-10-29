@@ -5,7 +5,6 @@ use crate::configuration::*;
 use dprint_core::formatting::*;
 use dprint_core::formatting::{condition_resolvers, conditions::*, parser_helpers::*};
 use std::borrow::Cow;
-use utils::get_leading_non_space_tab_byte_pos;
 
 pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
   // println!("Kind: {:?}", node.kind());
@@ -190,7 +189,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
 
           // include the leading indent
           let range = node.range();
-          let text_start = get_leading_non_space_tab_byte_pos(context.file_text, range.start);
+          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
           items.extend(parser_helpers::parse_raw_string(context.file_text[text_start..range.end].trim_end()));
 
           last_node = Some(node);
@@ -218,7 +217,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
         if let Some(range) = range {
           items.extend(get_conditional_blank_line(&range, context));
           // get the leading indent
-          let text_start = get_leading_non_space_tab_byte_pos(context.file_text, range.start);
+          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
           items.extend(parser_helpers::parse_raw_string(&context.file_text[text_start..range.end].trim_end()));
 
           if let Some(end_comment) = end_comment {
@@ -286,11 +285,10 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
 
 fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  let measured_raw_indent_level = context.get_indent_level_at_pos(code_block.range.start);
-  let relative_raw_indent_level = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
-  let relative_indent_level = ((relative_raw_indent_level as f64 / 4_f64).round() * 4_f64) as u32;
   let code_text = get_code_text(code_block, context);
+  let code_text = utils::unindent(&code_text);
   let backtick_text = "`".repeat(get_backtick_count(&code_text));
+  let indent_level = if code_block.is_fenced { 0 } else { 4 };
 
   // header
   if code_block.is_fenced {
@@ -314,7 +312,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
     items.push_string(backtick_text);
   }
 
-  return with_indent_times(items, relative_indent_level);
+  return with_indent_times(items, indent_level);
 
   fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
     let code = &code_block.code;
@@ -583,9 +581,6 @@ fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems 
 fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
   context.mark_in_list(|context| {
     let mut items = PrintItems::new();
-    let measured_raw_indent_level = context.get_indent_level_at_pos(list.range.start);
-    let raw_list_start_indent_increment = utils::safe_subtract_to_zero(measured_raw_indent_level, context.raw_indent_level);
-    context.raw_indent_level += raw_list_start_indent_increment;
 
     // parse items
     for (index, child) in list.children.iter().enumerate() {
@@ -604,7 +599,6 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
       };
       let indent_increment = (prefix_text.chars().count() + 1) as u32;
       context.indent_level += indent_increment;
-      context.raw_indent_level += indent_increment;
       items.push_string(prefix_text);
       let after_child = Info::new("afterChild");
       items.push_condition(if_true(
@@ -615,10 +609,8 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
       items.extend(with_indent_times(parse_node(child, context), indent_increment));
       items.push_info(after_child);
       context.indent_level -= indent_increment;
-      context.raw_indent_level -= indent_increment;
     }
 
-    context.raw_indent_level -= raw_list_start_indent_increment;
     items
   })
 }

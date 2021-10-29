@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use regex::Regex;
 
 /// Checks if the provided word is a word that could be a list.
@@ -82,6 +84,30 @@ pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
   0
 }
 
+pub fn unindent(text: &str) -> Cow<str> {
+  let lines = text.split('\n').collect::<Vec<_>>();
+  let mut lines_with_indent = Vec::with_capacity(lines.len());
+  for line in lines.into_iter() {
+    let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+    if line_indent == 0 {
+      return Cow::Borrowed(text);
+    }
+    lines_with_indent.push((line, line_indent));
+  }
+  let min_indent = lines_with_indent.iter().map(|(_, indent)| indent).min().copied();
+  if let Some(min_indent) = min_indent {
+    Cow::Owned(
+      lines_with_indent
+        .into_iter()
+        .map(|(l, indent)| if indent >= min_indent { &l[min_indent..] } else { l })
+        .collect::<Vec<_>>()
+        .join("\n"),
+    )
+  } else {
+    Cow::Borrowed(text)
+  }
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
@@ -97,5 +123,13 @@ mod test {
     assert_eq!(is_list_word("10)"), true);
     assert_eq!(is_list_word("9999)"), true);
     assert_eq!(is_list_word("9999)."), false);
+  }
+
+  #[test]
+  fn should_unindent() {
+    assert_eq!(unindent("  1\r\n  2"), "1\r\n2");
+    assert_eq!(unindent("  1\n 2"), " 1\n2");
+    assert_eq!(unindent(" 1\n  2"), "1\n 2");
+    assert_eq!(unindent("1\n2"), "1\n2");
   }
 }

@@ -80,42 +80,4 @@ impl<'a> Context<'a> {
     }
     count
   }
-
-  pub fn get_indent_level_at_pos(&self, pos: usize) -> u32 {
-    let file_bytes = self.file_text.as_bytes();
-    let mut count = 0;
-
-    // get the whitespace at and after the pos
-    for byte in file_bytes[pos..].iter() {
-      let c = *byte as char;
-      if c != '\r' && c != '\n' && c != '\t' && c.is_whitespace() {
-        count += 1;
-      } else {
-        break;
-      }
-    }
-
-    // get the whitespace before the pos
-    for byte in file_bytes[0..pos].iter().rev() {
-      // This is ok because we are just investigating whitespace chars
-      // which I believe are only 1 byte.
-      let character = *byte as char;
-
-      if character == '\n' {
-        break;
-      }
-
-      if character == '\t' {
-        count += 4;
-      } else if character.is_whitespace() {
-        count += 1;
-      } else {
-        // todo: unexpected... I guess break?
-        break;
-      }
-    }
-
-    const INDENT_WIDTH: usize = 1;
-    (count as f64 / INDENT_WIDTH as f64).round() as u32
-  }
 }
