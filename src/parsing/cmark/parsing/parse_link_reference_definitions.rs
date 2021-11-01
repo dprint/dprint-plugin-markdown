@@ -8,7 +8,9 @@ pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec
   let mut references = Vec::new();
 
   while let Some((byte_pos, c)) = char_scanner.next() {
-    if c.is_whitespace() {
+    // Could encounter a `>` at the start of a line when checking
+    // markdown nodes within a block quote, so skip over any `>` chars.
+    if c.is_whitespace() || c == '>' {
       continue;
     } else if c == '[' {
       let link_ref_definition = parse_link_reference_definition(byte_pos, &mut char_scanner)?;
