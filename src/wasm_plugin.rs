@@ -79,6 +79,7 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
         "less" => Some("less"),
         "toml" => Some("toml"),
         "scss" => Some("scss"),
+        "svelte" => Some("svelte"),
         "vue" => Some("vue"),
         _ => None,
       }
