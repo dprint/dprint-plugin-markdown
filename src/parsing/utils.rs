@@ -64,14 +64,6 @@ pub fn get_ignore_comment_regex(inner_text: &str) -> Regex {
   Regex::new(&text).unwrap()
 }
 
-pub fn safe_subtract_to_zero(a: u32, b: u32) -> u32 {
-  if a < b {
-    0
-  } else {
-    a - b
-  }
-}
-
 pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
   let text_bytes = text.as_bytes();
   for i in (0..pos).rev() {

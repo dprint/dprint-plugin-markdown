@@ -1,4 +1,4 @@
-!! should format (only) !!
+!! should format !!
 > - Testing
 >
 > test
