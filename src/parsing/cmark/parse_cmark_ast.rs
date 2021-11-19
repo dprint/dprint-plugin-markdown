@@ -35,8 +35,8 @@ impl<'a> EventIterator<'a> {
         // skip over any empty text or html events
         loop {
           match &self.next {
-            Some((Event::Text(text), _)) | Some((Event::Html(text), _)) => {
-              if text.trim().is_empty() {
+            Some((Event::Text(_), range)) | Some((Event::Html(_), range)) => {
+              if self.file_text[range.start..range.end].trim().is_empty() {
                 self.next = self.move_iterator_next();
               } else {
                 break;

@@ -26,3 +26,15 @@ even more
 
 and more
 and more
+
+!! should keep non breaking spaces at start and end of line and between text items !!
+ &nbsp;a&nbsp;b&nbsp;
+&nbsp;&nbsp;&nbsp;c
+d&nbsp;&nbsp;
+e&nbsp;&nbsp;
+
+[expect]
+&nbsp;a&nbsp;b&nbsp;
+&nbsp;&nbsp;&nbsp;c
+d&nbsp;&nbsp;
+e&nbsp;&nbsp;
