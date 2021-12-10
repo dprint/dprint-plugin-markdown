@@ -1,52 +1,52 @@
 use super::common::*;
-use super::parser_types::*;
+use super::gen_types::*;
 use super::utils;
 use crate::configuration::*;
 use dprint_core::formatting::*;
-use dprint_core::formatting::{condition_resolvers, conditions::*, parser_helpers::*};
+use dprint_core::formatting::{condition_resolvers, conditions::*, ir_helpers::*};
 use std::borrow::Cow;
 
-pub fn parse_node(node: &Node, context: &mut Context) -> PrintItems {
+pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
   // println!("Kind: {:?}", node.kind());
   // println!("Text: {:?}", node.text(context));
   match node {
-    Node::SourceFile(node) => parse_source_file(node, context),
-    Node::Heading(node) => parse_heading(node, context),
-    Node::Paragraph(node) => parse_paragraph(node, context),
-    Node::BlockQuote(node) => parse_block_quote(node, context),
-    Node::CodeBlock(node) => parse_code_block(node, context),
-    Node::Code(node) => parse_code(node, context),
-    Node::Text(node) => parse_text(node, context),
-    Node::TextDecoration(node) => parse_text_decoration(node, context),
-    Node::Html(node) => parse_html(node, context),
-    Node::FootnoteReference(node) => parse_footnote_reference(node, context),
-    Node::FootnoteDefinition(node) => parse_footnote_definition(node, context),
-    Node::InlineLink(node) => parse_inline_link(node, context),
-    Node::ReferenceLink(node) => parse_reference_link(node, context),
-    Node::ShortcutLink(node) => parse_shortcut_link(node, context),
-    Node::AutoLink(node) => parse_auto_link(node, context),
-    Node::LinkReference(node) => parse_link_reference(node, context),
-    Node::InlineImage(node) => parse_inline_image(node, context),
-    Node::ReferenceImage(node) => parse_reference_image(node, context),
-    Node::List(node) => parse_list(node, false, context),
-    Node::Item(node) => parse_item(node, context),
-    Node::TaskListMarker(node) => parse_task_list_marker(node, context),
-    Node::HorizontalRule(node) => parse_horizontal_rule(node, context),
+    Node::SourceFile(node) => gen_source_file(node, context),
+    Node::Heading(node) => gen_heading(node, context),
+    Node::Paragraph(node) => gen_paragraph(node, context),
+    Node::BlockQuote(node) => gen_block_quote(node, context),
+    Node::CodeBlock(node) => gen_code_block(node, context),
+    Node::Code(node) => gen_code(node, context),
+    Node::Text(node) => gen_text(node, context),
+    Node::TextDecoration(node) => gen_text_decoration(node, context),
+    Node::Html(node) => gen_html(node, context),
+    Node::FootnoteReference(node) => gen_footnote_reference(node, context),
+    Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
+    Node::InlineLink(node) => gen_inline_link(node, context),
+    Node::ReferenceLink(node) => gen_reference_link(node, context),
+    Node::ShortcutLink(node) => gen_shortcut_link(node, context),
+    Node::AutoLink(node) => gen_auto_link(node, context),
+    Node::LinkReference(node) => gen_link_reference(node, context),
+    Node::InlineImage(node) => gen_inline_image(node, context),
+    Node::ReferenceImage(node) => gen_reference_image(node, context),
+    Node::List(node) => gen_list(node, false, context),
+    Node::Item(node) => gen_item(node, context),
+    Node::TaskListMarker(node) => gen_task_list_marker(node, context),
+    Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
-    Node::HardBreak(_) => parse_hard_break(context),
-    Node::Table(node) => parse_table(node, context),
+    Node::HardBreak(_) => gen_hard_break(context),
+    Node::Table(node) => gen_table(node, context),
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
-    Node::TableCell(node) => parse_table_cell(node, context),
-    Node::NotImplemented(_) => parse_raw_string(node.text(context)),
+    Node::TableCell(node) => gen_table_cell(node, context),
+    Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
 
-fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
+fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   if let Some(yaml_header) = &source_file.yaml_header {
-    items.extend(parser_helpers::parse_raw_string(&yaml_header.text));
+    items.extend(ir_helpers::gen_from_raw_string(&yaml_header.text));
 
     if source_file.children.len() > 0 {
       items.push_signal(Signal::NewLine);
@@ -54,7 +54,7 @@ fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintIt
     }
   }
 
-  items.extend(parse_nodes(&source_file.children, context));
+  items.extend(gen_nodes(&source_file.children, context));
 
   items.push_condition(if_true(
     "endOfFileNewLine",
@@ -65,7 +65,7 @@ fn parse_source_file(source_file: &SourceFile, context: &mut Context) -> PrintIt
   items
 }
 
-fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
+fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
@@ -78,7 +78,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
       if let Node::List(list) = &node {
         if last_list.start_index.is_some() == list.start_index.is_some() {
           items.extend(get_conditional_blank_line(node.range(), context));
-          items.extend(parse_list(list, true, context));
+          items.extend(gen_list(list, true, context));
           if let Some(current_node) = node_iterator.next() {
             last_node = Some(node);
             node = current_node;
@@ -175,7 +175,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
       }
     }
 
-    items.extend(parse_node(node, context));
+    items.extend(generate(node, context));
     last_node = Some(node);
 
     // check for ignore comment
@@ -190,7 +190,7 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
           // include the leading indent
           let range = node.range();
           let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(parser_helpers::parse_raw_string(context.file_text[text_start..range.end].trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(context.file_text[text_start..range.end].trim_end()));
 
           last_node = Some(node);
         }
@@ -218,11 +218,11 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
           items.extend(get_conditional_blank_line(&range, context));
           // get the leading indent
           let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(parser_helpers::parse_raw_string(&context.file_text[text_start..range.end].trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(&context.file_text[text_start..range.end].trim_end()));
 
           if let Some(end_comment) = end_comment {
             items.extend(get_conditional_blank_line(end_comment.range(), context));
-            items.extend(parse_html(end_comment, context));
+            items.extend(gen_html(end_comment, context));
           }
         }
       }
@@ -241,24 +241,24 @@ fn parse_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
   }
 }
 
-fn parse_heading(heading: &Heading, context: &mut Context) -> PrintItems {
+fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-  items.extend(with_no_new_lines(parse_nodes(&heading.children, context)));
+  items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
 
   items
 }
 
-fn parse_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
-  parse_nodes(&paragraph.children, context)
+fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
+  gen_nodes(&paragraph.children, context)
 }
 
-fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
+fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   // add a > for any string that is on the start of a line
-  for print_item in parse_nodes(&block_quote.children, context).iter() {
+  for print_item in gen_nodes(&block_quote.children, context).iter() {
     match print_item {
       PrintItem::String(text) => {
         items.push_condition(if_true(
@@ -283,7 +283,7 @@ fn parse_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintIt
   items
 }
 
-fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
+fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
   let code_text = utils::unindent(&code_text);
@@ -301,7 +301,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
 
   // body
   if !code_text.is_empty() {
-    items.extend(parser_helpers::parse_string(&code_text));
+    items.extend(ir_helpers::gen_from_string(&code_text));
   }
 
   // footer
@@ -358,7 +358,7 @@ fn parse_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems
   }
 }
 
-fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
+fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
   let text = code.code.trim();
   let mut backtick_text = "`";
   let mut separator = "";
@@ -372,7 +372,7 @@ fn parse_code(code: &Code, _: &mut Context) -> PrintItems {
   format!("{}{}{}{}{}", backtick_text, separator, text, separator, backtick_text).into()
 }
 
-fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
+fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   let mut text_builder = TextBuilder::new(context);
 
   for c in text.text.chars() {
@@ -450,7 +450,7 @@ fn parse_text(text: &Text, context: &mut Context) -> PrintItems {
   }
 }
 
-fn parse_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintItems {
+fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let decoration_text = match &text.kind {
     TextDecorationKind::Emphasis => match context.configuration.emphasis_kind {
@@ -465,44 +465,44 @@ fn parse_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintI
   };
 
   items.push_str(decoration_text);
-  items.extend(parse_nodes(&text.children, context));
+  items.extend(gen_nodes(&text.children, context));
   items.push_str(decoration_text);
 
   items
 }
 
-fn parse_html(html: &Html, _: &mut Context) -> PrintItems {
+fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_str(html.text.trim_end());
   items
 }
 
-fn parse_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
+fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]", footnote_reference.name.trim()));
-  parser_helpers::with_no_new_lines(items)
+  ir_helpers::with_no_new_lines(items)
 }
 
-fn parse_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
+fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]: ", footnote_definition.name.trim()));
-  items.extend(parse_nodes(&footnote_definition.children, context));
+  items.extend(gen_nodes(&footnote_definition.children, context));
   items
 }
 
-fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
+fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    let parsed_children = parse_nodes(&link.children, context);
+    let generated_children = gen_nodes(&link.children, context);
     items.push_str("[");
 
     // force the text to be on a single line in some scenarios
-    let (parsed_children, parsed_children_clone) = clone_items(parsed_children);
-    let single_line_text = get_items_text(parser_helpers::with_no_new_lines(parsed_children_clone));
+    let (generated_children, generated_children_clone) = clone_items(generated_children);
+    let single_line_text = get_items_text(ir_helpers::with_no_new_lines(generated_children_clone));
     if single_line_text.len() < (context.configuration.line_width / 2) as usize {
       items.push_string(single_line_text);
     } else {
-      items.extend(parsed_children);
+      items.extend(generated_children);
     }
 
     items.push_str("]");
@@ -513,53 +513,53 @@ fn parse_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     }
     items.push_str(")");
 
-    parser_helpers::new_line_group(items)
+    ir_helpers::new_line_group(items)
   })
 }
 
-fn parse_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
+fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     items.push_str("[");
-    items.extend(parse_nodes(&link.children, context));
+    items.extend(gen_nodes(&link.children, context));
     items.push_str("]");
     items.push_string(format!("[{}]", link.reference.trim()));
-    parser_helpers::new_line_group(items)
+    ir_helpers::new_line_group(items)
   })
 }
 
-fn parse_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
+fn gen_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     items.push_str("[");
-    items.extend(parse_nodes(&link.children, context));
+    items.extend(gen_nodes(&link.children, context));
     items.push_str("]");
-    parser_helpers::new_line_group(items)
+    ir_helpers::new_line_group(items)
   })
 }
 
-fn parse_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
+fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
   // auto-links can't contain spaces, but do this anyway just in case
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     items.push_str("<");
-    items.extend(parse_nodes(&link.children, context));
+    items.extend(gen_nodes(&link.children, context));
     items.push_str(">");
-    parser_helpers::new_line_group(items)
+    ir_helpers::new_line_group(items)
   })
 }
 
-fn parse_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
+fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
   items.push_str(link_ref.link.trim());
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
-  parser_helpers::new_line_group(items)
+  ir_helpers::new_line_group(items)
 }
 
-fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
+fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
   items.push_str("(");
@@ -568,21 +568,21 @@ fn parse_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
   items.push_str(")");
-  parser_helpers::new_line_group(items)
+  ir_helpers::new_line_group(items)
 }
 
-fn parse_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
+fn gen_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
   items.push_string(format!("[{}]", image.reference.trim()));
-  parser_helpers::new_line_group(items)
+  ir_helpers::new_line_group(items)
 }
 
-fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
+fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
   context.mark_in_list(|context| {
     let mut items = PrintItems::new();
 
-    // parse items
+    // generate items
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
         items.push_signal(Signal::NewLine);
@@ -606,7 +606,7 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
         move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
         Signal::SpaceIfNotTrailing.into(),
       ));
-      items.extend(with_indent_times(parse_node(child, context), indent_increment));
+      items.extend(with_indent_times(generate(child, context), indent_increment));
       items.push_info(after_child);
       context.indent_level -= indent_increment;
     }
@@ -615,11 +615,11 @@ fn parse_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintIt
   })
 }
 
-fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
+fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   if let Some(marker) = &item.marker {
-    items.extend(parse_task_list_marker(marker, context));
+    items.extend(gen_task_list_marker(marker, context));
     if !item.children.is_empty() {
       items.push_str(" ");
     }
@@ -628,7 +628,7 @@ fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
   // indent the children to beyond the task list marker
   let marker_indent = if item.marker.is_some() { 4 } else { 0 };
   context.raw_indent_level += marker_indent;
-  items.extend(with_indent_times(parse_nodes(&item.children, context), marker_indent));
+  items.extend(with_indent_times(gen_nodes(&item.children, context), marker_indent));
   context.raw_indent_level -= marker_indent;
 
   if !item.sub_lists.is_empty() {
@@ -636,13 +636,13 @@ fn parse_item(item: &Item, context: &mut Context) -> PrintItems {
     if utils::has_leading_blankline(item.sub_lists.first().unwrap().range().start, context.file_text) {
       items.push_signal(Signal::NewLine);
     }
-    items.extend(parse_nodes(&item.sub_lists, context));
+    items.extend(gen_nodes(&item.sub_lists, context));
   }
 
   items
 }
 
-fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
+fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
   if marker.is_checked {
     "[x]".into()
   } else {
@@ -650,18 +650,18 @@ fn parse_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItem
   }
 }
 
-fn parse_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
+fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
   "---".into()
 }
 
-fn parse_hard_break(_: &mut Context) -> PrintItems {
+fn gen_hard_break(_: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_str("\\");
   items.push_signal(Signal::NewLine);
   items
 }
 
-fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
+fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
   let header = table
     .header
     .cells
@@ -711,7 +711,7 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
       items.push_str(" |");
     }
 
-    parser_helpers::with_no_new_lines(items)
+    ir_helpers::with_no_new_lines(items)
   }
 
   fn get_row_items(row_cells: Vec<(PrintItems, usize)>, column_widths: &Vec<usize>, column_alignments: &Vec<ColumnAlignment>) -> PrintItems {
@@ -755,7 +755,7 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
       items.push_str(" |");
     }
 
-    parser_helpers::with_no_new_lines(items)
+    ir_helpers::with_no_new_lines(items)
   }
 
   fn get_column_widths(header: &Vec<(PrintItems, usize)>, rows: &Vec<Vec<(PrintItems, usize)>>, column_alignments: &Vec<ColumnAlignment>) -> Vec<usize> {
@@ -815,13 +815,13 @@ fn parse_table(table: &Table, context: &mut Context) -> PrintItems {
   }
 
   fn get_cell_items_and_width(cell: &TableCell, context: &mut Context) -> (PrintItems, usize) {
-    let items = parse_table_cell(cell, context);
+    let items = gen_table_cell(cell, context);
     get_items_single_line_width(items)
   }
 }
 
-fn parse_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
-  parse_nodes(&table_cell.children, context)
+fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
+  gen_nodes(&table_cell.children, context)
 }
 
 fn get_items_single_line_width(items: PrintItems) -> (PrintItems, usize) {
@@ -847,7 +847,7 @@ fn measure_single_line_width(items: PrintItems) -> usize {
 
 fn get_items_text(items: PrintItems) -> String {
   print(
-    parser_helpers::with_no_new_lines(items),
+    ir_helpers::with_no_new_lines(items),
     PrintOptions {
       indent_width: 0,
       max_width: std::u32::MAX,

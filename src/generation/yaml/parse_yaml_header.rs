@@ -1,4 +1,4 @@
-use crate::parsing::common::{CharScanner, YamlHeader};
+use crate::generation::common::{CharScanner, YamlHeader};
 
 pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
   let mut scanner = CharScanner::new(0, text);

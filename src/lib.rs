@@ -4,7 +4,7 @@ extern crate regex;
 
 pub mod configuration;
 mod format_text;
-mod parsing;
+mod generation;
 
 pub use format_text::format_text;
 

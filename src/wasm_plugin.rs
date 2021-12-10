@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use super::configuration::{resolve_config, Configuration};
+use anyhow::Result;
 use dprint_core::configuration::{ConfigKeyMap, GlobalConfiguration, ResolveConfigurationResult};
 use dprint_core::generate_plugin_code;
 use dprint_core::plugins::{PluginHandler, PluginInfo};
-use dprint_core::types::ErrBox;
+
+use super::configuration::{resolve_config, Configuration};
 
 struct MarkdownPluginHandler {}
 
@@ -52,8 +53,8 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
     _file_path: &Path,
     file_text: &str,
     config: &Configuration,
-    mut format_with_host: impl FnMut(&Path, String, &ConfigKeyMap) -> Result<String, ErrBox>,
-  ) -> Result<String, ErrBox> {
+    mut format_with_host: impl FnMut(&Path, String, &ConfigKeyMap) -> Result<String>,
+  ) -> Result<String> {
     return super::format_text(file_text, config, |tag, file_text, line_width| {
       if let Some(ext) = tag_to_extension(tag) {
         let file_path = PathBuf::from(format!("file.{}", ext));

@@ -1,18 +1,15 @@
+use anyhow::bail;
+use anyhow::Result;
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
-use dprint_core::types::ErrBox;
 
 use super::configuration::Configuration;
-use super::parsing::{file_has_ignore_file_directive, parse_cmark_ast, parse_node, parse_yaml_header, Context};
+use super::generation::{file_has_ignore_file_directive, generate, parse_cmark_ast, parse_yaml_header, Context};
 
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
-pub fn format_text(
-  file_text: &str,
-  config: &Configuration,
-  format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String, ErrBox>,
-) -> Result<String, ErrBox> {
+pub fn format_text(file_text: &str, config: &Configuration, format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String>) -> Result<String> {
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(file_text.to_string()),
     ParseFileResult::SourceFile(file) => file,
@@ -21,7 +18,7 @@ pub fn format_text(
   Ok(dprint_core::formatting::format(
     || {
       let mut context = Context::new(&markdown_text, config, format_code_block_text);
-      let print_items = parse_node(&source_file.into(), &mut context);
+      let print_items = generate(&source_file.into(), &mut context);
       // println!("{}", print_items.get_as_text());
       print_items
     },
@@ -33,7 +30,7 @@ pub fn format_text(
 pub fn trace_file(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String, String>>,
+  format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String>>,
 ) -> dprint_core::formatting::TracingResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
@@ -52,10 +49,10 @@ pub fn trace_file(
 
 enum ParseFileResult<'a> {
   IgnoreFile,
-  SourceFile((crate::parsing::common::SourceFile, &'a str)),
+  SourceFile((crate::generation::common::SourceFile, &'a str)),
 }
 
-fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, String> {
+fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>> {
   let yaml_header = parse_yaml_header(file_text); // todo: improve... this is kind of hacked into here
   let markdown_text = match &yaml_header {
     Some(yaml_header) => &file_text[yaml_header.range.end..],
@@ -73,11 +70,10 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
       source_file.yaml_header = yaml_header;
       Ok(ParseFileResult::SourceFile((source_file, markdown_text)))
     }
-    Err(error) => Err(dprint_core::formatting::utils::string_utils::format_diagnostic(
-      Some((error.range.start, error.range.end)),
-      &error.message,
-      file_text,
-    )),
+    Err(error) => bail!(
+      "{}",
+      dprint_core::formatting::utils::string_utils::format_diagnostic(Some((error.range.start, error.range.end)), &error.message, file_text)
+    ),
   }
 }
 

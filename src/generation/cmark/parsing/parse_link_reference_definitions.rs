@@ -1,6 +1,6 @@
 use super::{parse_link_url_and_title, parse_text_in_brackets};
-use crate::parsing::common::CharScanner;
-use crate::parsing::common::*;
+use crate::generation::common::CharScanner;
+use crate::generation::common::*;
 
 /// Crudely parses out link reference definitions from the provided text.
 pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec<LinkReference>, ParseError> {

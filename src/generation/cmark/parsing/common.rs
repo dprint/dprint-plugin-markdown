@@ -1,4 +1,4 @@
-use crate::parsing::common::*;
+use crate::generation::common::*;
 
 pub fn parse_text_in_brackets(start_pos: usize, char_scanner: &mut CharScanner) -> Result<String, ParseError> {
   parse_text_in_container(start_pos, char_scanner, '[', ']')

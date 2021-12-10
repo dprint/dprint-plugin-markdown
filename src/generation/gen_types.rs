@@ -1,4 +1,4 @@
-use dprint_core::types::ErrBox;
+use anyhow::Result;
 use regex::Regex;
 
 use super::utils::*;
@@ -13,18 +13,14 @@ pub struct Context<'a> {
   pub raw_indent_level: u32,
   is_in_list_count: u32,
   text_wrap_disabled_count: u32,
-  pub format_code_block_text: Box<dyn FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a>,
+  pub format_code_block_text: Box<dyn FnMut(&str, &str, u32) -> Result<String> + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
 }
 
 impl<'a> Context<'a> {
-  pub fn new(
-    file_text: &'a str,
-    configuration: &'a Configuration,
-    format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String, ErrBox> + 'a,
-  ) -> Context<'a> {
+  pub fn new(file_text: &'a str, configuration: &'a Configuration, format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String> + 'a) -> Context<'a> {
     Context {
       file_text,
       configuration,
@@ -61,7 +57,7 @@ impl<'a> Context<'a> {
     self.text_wrap_disabled_count > 0
   }
 
-  pub fn format_text(&mut self, tag: &str, text: &str) -> Result<String, ErrBox> {
+  pub fn format_text(&mut self, tag: &str, text: &str) -> Result<String> {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
     (self.format_code_block_text)(tag, text, line_width)
   }

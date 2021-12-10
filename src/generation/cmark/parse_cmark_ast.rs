@@ -1,5 +1,5 @@
 use super::parsing::{parse_image as parse_image_from_text, parse_link_reference, parse_link_reference_definitions};
-use crate::parsing::common::*;
+use crate::generation::common::*;
 use pulldown_cmark::*;
 
 struct EventIterator<'a> {

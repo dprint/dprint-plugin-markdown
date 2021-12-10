@@ -1,4 +1,4 @@
-use crate::parsing::parser_types::Context;
+use crate::generation::gen_types::Context;
 
 pub type Range = std::ops::Range<usize>;
 
@@ -112,7 +112,7 @@ pub struct ReferenceImage {
 
 impl Text {
   pub fn starts_with_list_word(&self) -> bool {
-    return crate::parsing::utils::is_list_word(&get_first_word(&self.text));
+    return crate::generation::utils::is_list_word(&get_first_word(&self.text));
 
     fn get_first_word<'a>(text: &'a str) -> String {
       let mut result = String::new();
