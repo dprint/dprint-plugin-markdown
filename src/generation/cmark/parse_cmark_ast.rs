@@ -7,7 +7,7 @@ use crate::generation::trim_start_spaces_and_newlines;
 use pulldown_cmark::*;
 
 struct EventIterator<'a> {
-  iterator: OffsetIter<'a>,
+  iterator: OffsetIter<'a, 'a>,
   file_text: &'a str,
   last_range: Range,
   next: Option<(Event<'a>, Range)>,
@@ -16,7 +16,7 @@ struct EventIterator<'a> {
 }
 
 impl<'a> EventIterator<'a> {
-  pub fn new(file_text: &'a str, iterator: OffsetIter<'a>) -> EventIterator<'a> {
+  pub fn new(file_text: &'a str, iterator: OffsetIter<'a, 'a>) -> EventIterator<'a> {
     let mut iterator = iterator;
     let next = iterator.next();
     EventIterator {
@@ -192,7 +192,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
 
 fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, ParseError> {
   match start_tag {
-    Tag::Heading(level) => parse_heading(level, iterator).map(|x| x.into()),
+    Tag::Heading(level, _, _) => parse_heading(level, iterator).map(|x| x.into()),
     Tag::Paragraph => parse_paragraph(iterator).map(|x| x.into()),
     Tag::BlockQuote => parse_block_quote(iterator).map(|x| x.into()),
     Tag::CodeBlock(kind) => parse_code_block(kind, iterator).map(|x| x.into()),
@@ -211,13 +211,13 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
   }
 }
 
-fn parse_heading(level: u32, iterator: &mut EventIterator) -> Result<Heading, ParseError> {
+fn parse_heading(level: HeadingLevel, iterator: &mut EventIterator) -> Result<Heading, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Heading(end_level)) => {
+      Event::End(Tag::Heading(end_level, _, _)) => {
         if end_level == level {
           break;
         }
@@ -232,7 +232,7 @@ fn parse_heading(level: u32, iterator: &mut EventIterator) -> Result<Heading, Pa
 
   Ok(Heading {
     range: iterator.get_range_for_start(start),
-    level,
+    level: level as u32,
     children,
   })
 }

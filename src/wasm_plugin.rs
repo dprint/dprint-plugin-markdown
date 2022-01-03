@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
@@ -65,9 +66,9 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = HashMap::new();
         additional_config.insert("lineWidth".into(), (line_width as i32).into());
-        format_with_host(&file_path, file_text.to_string(), &additional_config)
+        format_with_host(&file_path, file_text.to_string(), &additional_config).map(|text| Cow::Owned(text))
       } else {
-        Ok(file_text.to_string())
+        Ok(Cow::Borrowed(file_text))
       }
     });
 
