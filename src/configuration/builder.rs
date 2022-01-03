@@ -1,4 +1,8 @@
-use dprint_core::configuration::{resolve_global_config, ConfigKeyMap, ConfigKeyValue, GlobalConfiguration, NewLineKind};
+use dprint_core::configuration::resolve_global_config;
+use dprint_core::configuration::ConfigKeyMap;
+use dprint_core::configuration::ConfigKeyValue;
+use dprint_core::configuration::GlobalConfiguration;
+use dprint_core::configuration::NewLineKind;
 use std::collections::HashMap;
 
 use super::*;
@@ -120,7 +124,8 @@ impl ConfigurationBuilder {
 
 #[cfg(test)]
 mod tests {
-  use dprint_core::configuration::{resolve_global_config, NewLineKind};
+  use dprint_core::configuration::resolve_global_config;
+  use dprint_core::configuration::NewLineKind;
   use std::collections::HashMap;
 
   use super::*;

@@ -1,4 +1,5 @@
-use super::{parse_link_url_and_title, parse_text_in_brackets};
+use super::parse_link_url_and_title;
+use super::parse_text_in_brackets;
 use crate::generation::common::CharScanner;
 use crate::generation::common::*;
 

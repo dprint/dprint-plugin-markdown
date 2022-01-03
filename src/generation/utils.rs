@@ -100,6 +100,18 @@ pub fn unindent(text: &str) -> Cow<str> {
   }
 }
 
+pub fn trim_spaces_and_newlines(text: &str) -> &str {
+  text.trim_matches(is_space_tab_or_newline)
+}
+
+pub fn trim_start_spaces_and_newlines(text: &str) -> &str {
+  text.trim_start_matches(is_space_tab_or_newline)
+}
+
+fn is_space_tab_or_newline(c: char) -> bool {
+  matches!(c, ' ' | '\t' | '\r' | '\n')
+}
+
 #[cfg(test)]
 mod test {
   use super::*;

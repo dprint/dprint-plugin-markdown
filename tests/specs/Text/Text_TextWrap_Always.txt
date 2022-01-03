@@ -47,3 +47,9 @@ testing this out with some text `tht` 40)
 [expect]
 testing this out with some text
 `tht` 40)
+
+!! should handle non-breaking spaces !!
+testing testing testing testing testing `code` testing testing testing testing `code` testing
+
+[expect]
+testing testing testing testing testing `code` testing testing testing testing `code` testing

@@ -1,4 +1,6 @@
-use super::{parse_link_url_and_title, parse_text_in_brackets, parse_text_in_parens};
+use super::parse_link_url_and_title;
+use super::parse_text_in_brackets;
+use super::parse_text_in_parens;
 use crate::generation::common::*;
 use pulldown_cmark::LinkType;
 

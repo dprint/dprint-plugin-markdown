@@ -1,6 +1,7 @@
 use dprint_core::configuration::*;
 use dprint_core::generate_str_to_from;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Resolved markdown configuration.
 #[derive(Clone, Serialize, Deserialize)]

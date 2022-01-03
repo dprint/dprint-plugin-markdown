@@ -1,5 +1,9 @@
-use super::parsing::{parse_image as parse_image_from_text, parse_link_reference, parse_link_reference_definitions};
+use super::parsing::parse_image as parse_image_from_text;
+use super::parsing::parse_link_reference;
+use super::parsing::parse_link_reference_definitions;
 use crate::generation::common::*;
+use crate::generation::trim_spaces_and_newlines;
+use crate::generation::trim_start_spaces_and_newlines;
 use pulldown_cmark::*;
 
 struct EventIterator<'a> {
@@ -326,8 +330,8 @@ fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {
   let raw_end = iterator.get_last_range().end;
 
   let raw_text = &iterator.file_text[raw_start..raw_end];
-  let trimmed_text = raw_text.trim();
-  let start = raw_start + (raw_text.len() - raw_text.trim_start().len());
+  let trimmed_text = trim_spaces_and_newlines(raw_text);
+  let start = raw_start + (raw_text.len() - trim_start_spaces_and_newlines(raw_text).len());
 
   Ok(Text {
     range: Range {

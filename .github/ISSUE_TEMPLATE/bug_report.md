@@ -13,15 +13,15 @@ dprint-plugin-markdown version: x.x.x
 
 **Input Code**
 
-````md
-````
+```md
+```
 
 **Expected Output**
 
-````md
-````
+```md
+```
 
 **Actual Output**
 
-````md
-````
+```md
+```

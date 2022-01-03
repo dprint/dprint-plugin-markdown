@@ -1,12 +1,17 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
 use anyhow::Result;
-use dprint_core::configuration::{ConfigKeyMap, GlobalConfiguration, ResolveConfigurationResult};
+use dprint_core::configuration::ConfigKeyMap;
+use dprint_core::configuration::GlobalConfiguration;
+use dprint_core::configuration::ResolveConfigurationResult;
 use dprint_core::generate_plugin_code;
-use dprint_core::plugins::{PluginHandler, PluginInfo};
+use dprint_core::plugins::PluginHandler;
+use dprint_core::plugins::PluginInfo;
 
-use super::configuration::{resolve_config, Configuration};
+use super::configuration::resolve_config;
+use super::configuration::Configuration;
 
 struct MarkdownPluginHandler {}
 

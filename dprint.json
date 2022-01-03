@@ -2,7 +2,8 @@
   "incremental": true,
   "indentWidth": 2,
   "rustfmt": {
-    "lineWidth": 160
+    "lineWidth": 160,
+    "imports_granularity": "Item"
   },
   "includes": ["**/*.{ts,tsx,js,jsx,cjs,mjs,json,md,rs,toml}"],
   "excludes": [

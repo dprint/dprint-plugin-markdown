@@ -2,13 +2,15 @@ use super::common::*;
 use super::gen_types::*;
 use super::utils;
 use crate::configuration::*;
+use dprint_core::formatting::condition_resolvers;
+use dprint_core::formatting::conditions::*;
+use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
-use dprint_core::formatting::{condition_resolvers, conditions::*, ir_helpers::*};
 use std::borrow::Cow;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  // println!("Kind: {:?}", node.kind());
-  // println!("Text: {:?}", node.text(context));
+  println!("Kind: {:?}", node.kind());
+  println!("Text: {:?}", node.text(context));
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
     Node::Heading(node) => gen_heading(node, context),
@@ -369,7 +371,7 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
     }
   }
 
-  format!("{}{}{}{}{}", backtick_text, separator, text, separator, backtick_text).into()
+  format!("{0}{1}{2}{1}{0}", backtick_text, separator, text).into()
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
@@ -404,7 +406,7 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
     }
 
     pub fn add_char(&mut self, character: char) {
-      if character.is_whitespace() {
+      if character == '\n' || character == ' ' {
         if self.context.configuration.text_wrap == TextWrap::Maintain && character == '\n' {
           self.newline();
         } else {

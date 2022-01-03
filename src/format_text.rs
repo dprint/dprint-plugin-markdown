@@ -4,7 +4,11 @@ use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
 
 use super::configuration::Configuration;
-use super::generation::{file_has_ignore_file_directive, generate, parse_cmark_ast, parse_yaml_header, Context};
+use super::generation::file_has_ignore_file_directive;
+use super::generation::generate;
+use super::generation::parse_cmark_ast;
+use super::generation::parse_yaml_header;
+use super::generation::Context;
 
 /// Formats a file.
 ///
