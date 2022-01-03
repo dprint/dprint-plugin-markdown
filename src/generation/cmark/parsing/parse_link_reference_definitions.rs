@@ -27,7 +27,7 @@ pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec
     }
   }
 
-  return Ok(references);
+  Ok(references)
 }
 
 fn parse_link_reference_definition(start_pos: usize, char_scanner: &mut CharScanner) -> Result<LinkReference, ParseError> {
@@ -76,7 +76,7 @@ fn parse_reference_link(start_pos: usize, char_scanner: &mut CharScanner) -> Res
     ));
   }
 
-  return Ok(reference_link);
+  Ok(reference_link)
 }
 
 #[cfg(test)]

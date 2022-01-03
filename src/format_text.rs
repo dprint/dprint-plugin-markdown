@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use anyhow::bail;
 use anyhow::Result;
 use dprint_core::configuration::resolve_new_line_kind;
@@ -13,7 +15,11 @@ use super::generation::Context;
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
-pub fn format_text(file_text: &str, config: &Configuration, format_code_block_text: impl FnMut(&str, &str, u32) -> Result<String>) -> Result<String> {
+pub fn format_text(
+  file_text: &str,
+  config: &Configuration,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Cow<'a, str>>,
+) -> Result<String> {
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(file_text.to_string()),
     ParseFileResult::SourceFile(file) => file,
@@ -21,7 +27,7 @@ pub fn format_text(file_text: &str, config: &Configuration, format_code_block_te
 
   Ok(dprint_core::formatting::format(
     || {
-      let mut context = Context::new(&markdown_text, config, format_code_block_text);
+      let mut context = Context::new(markdown_text, config, format_code_block_text);
       let print_items = generate(&source_file.into(), &mut context);
       // println!("{}", print_items.get_as_text());
       print_items
@@ -64,7 +70,7 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
   };
 
   // check for the presence of an dprint-ignore-file comment before parsing
-  if file_has_ignore_file_directive(&markdown_text, &config.ignore_file_directive) {
+  if file_has_ignore_file_directive(markdown_text, &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }
 

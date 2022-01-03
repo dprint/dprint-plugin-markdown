@@ -104,16 +104,12 @@ impl<'a> CharScanner<'a> {
   }
 
   pub fn skip_spaces(&mut self) {
-    loop {
-      if let Some((_, c)) = &self.next {
-        if c == &'\n' || !c.is_whitespace() {
-          break;
-        }
-
-        self.next();
-      } else {
+    while let Some((_, c)) = &self.next {
+      if c == &'\n' || !c.is_whitespace() {
         break;
       }
+
+      self.next();
     }
   }
 

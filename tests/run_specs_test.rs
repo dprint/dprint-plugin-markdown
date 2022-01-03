@@ -1,6 +1,7 @@
 extern crate dprint_development;
 extern crate dprint_plugin_markdown;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -30,9 +31,9 @@ fn test_specs() {
         format_text(&file_text, &config_result.config, |tag, file_text, line_width| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
-            Ok(format!("{}{}\n\n", file_text.to_string(), end))
+            Ok(Cow::Owned(format!("{}{}\n\n", file_text.to_string(), end)))
           } else {
-            Ok(file_text.to_string())
+            Ok(Cow::Borrowed(file_text))
           }
         })
       }

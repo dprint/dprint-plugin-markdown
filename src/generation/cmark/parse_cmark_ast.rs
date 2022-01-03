@@ -37,16 +37,11 @@ impl<'a> EventIterator<'a> {
 
       if !self.allow_empty_text_events {
         // skip over any empty text or html events
-        loop {
-          match &self.next {
-            Some((Event::Text(_), range)) | Some((Event::Html(_), range)) => {
-              if self.file_text[range.start..range.end].trim().is_empty() {
-                self.next = self.move_iterator_next();
-              } else {
-                break;
-              }
-            }
-            _ => break,
+        while let Some((Event::Text(_), range)) | Some((Event::Html(_), range)) = &self.next {
+          if self.file_text[range.start..range.end].trim().is_empty() {
+            self.next = self.move_iterator_next();
+          } else {
+            break;
           }
         }
       }
@@ -338,7 +333,7 @@ fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {
       start,
       end: start + trimmed_text.len(),
     },
-    text: String::from(trimmed_text.replace("\r\n", "\n")),
+    text: trimmed_text.replace("\r\n", "\n"),
   })
 }
 
@@ -595,7 +590,7 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
       Event::End(Tag::Item) => break,
       Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
       _ => {
-        children.extend(sub_lists.drain(..)); // only add to the sub_lists if it's the last children
+        children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
         children.push(parse_event(event, iterator)?)
       }
     }
@@ -603,7 +598,11 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   let range = iterator.get_range_for_start(start);
 
-  let last_range = sub_lists.last().map(|c| c.range()).or(children.last().map(|c| c.range())).map(|r| r.to_owned());
+  let last_range = sub_lists
+    .last()
+    .map(|c| c.range())
+    .or_else(|| children.last().map(|c| c.range()))
+    .map(|r| r.to_owned());
   if let Some(references) = parse_references(&last_range, range.end, iterator)? {
     children.push(references);
   }

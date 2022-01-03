@@ -3,7 +3,7 @@ use crate::generation::gen_types::Context;
 pub type Range = std::ops::Range<usize>;
 
 pub trait Ranged {
-  fn range<'a>(&'a self) -> &'a Range;
+  fn range(&self) -> &Range;
   fn text<'a>(&self, context: &Context<'a>) -> &'a str;
 }
 
@@ -114,7 +114,7 @@ impl Text {
   pub fn starts_with_list_word(&self) -> bool {
     return crate::generation::utils::is_list_word(&get_first_word(&self.text));
 
-    fn get_first_word<'a>(text: &'a str) -> String {
+    fn get_first_word(text: &str) -> String {
       let mut result = String::new();
       for c in text.chars() {
         if c.is_whitespace() {

@@ -25,7 +25,7 @@ pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
     scanner.move_next_line();
   }
 
-  return None;
+  None
 }
 
 #[cfg(test)]

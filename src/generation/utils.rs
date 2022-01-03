@@ -23,13 +23,11 @@ pub fn is_list_word(word: &str) -> bool {
         } else {
           return false;
         }
-      } else {
-        if !c.is_numeric() {
-          if c == '.' || c == ')' {
-            had_end_char = true;
-          } else {
-            return false;
-          }
+      } else if !c.is_numeric() {
+        if c == '.' || c == ')' {
+          had_end_char = true;
+        } else {
+          return false;
         }
       }
     }

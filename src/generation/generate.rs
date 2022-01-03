@@ -9,8 +9,9 @@ use dprint_core::formatting::*;
 use std::borrow::Cow;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  println!("Kind: {:?}", node.kind());
-  println!("Text: {:?}", node.text(context));
+  // println!("Kind: {:?}", node.kind());
+  // println!("Text: {:?}", node.text(context));
+
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
     Node::Heading(node) => gen_heading(node, context),
@@ -50,7 +51,7 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
   if let Some(yaml_header) = &source_file.yaml_header {
     items.extend(ir_helpers::gen_from_raw_string(&yaml_header.text));
 
-    if source_file.children.len() > 0 {
+    if !source_file.children.is_empty() {
       items.push_signal(Signal::NewLine);
       items.push_signal(Signal::NewLine);
     }
@@ -67,7 +68,7 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
   items
 }
 
-fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
+fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
@@ -144,15 +145,15 @@ fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
             } else {
               let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
                 if let Node::Html(_) = last_node {
-                  node.has_preceeding_space(&context.file_text)
+                  node.has_preceeding_space(context.file_text)
                 } else {
-                  node.has_preceeding_space(&context.file_text)
-                    || !last_node.ends_with_punctuation(&context.file_text) && !node.starts_with_punctuation(&context.file_text)
+                  node.has_preceeding_space(context.file_text)
+                    || !last_node.ends_with_punctuation(context.file_text) && !node.starts_with_punctuation(context.file_text)
                 }
               } else if let Node::FootnoteReference(_) = node {
                 false
               } else if let Node::Html(_) = node {
-                node.has_preceeding_space(&context.file_text)
+                node.has_preceeding_space(context.file_text)
               } else {
                 true
               };
@@ -167,7 +168,7 @@ fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
             }
           }
           Node::LinkReference(_) => {
-            let needs_newline = if let Node::LinkReference(_) = node { true } else { false };
+            let needs_newline = matches!(node, Node::LinkReference(_));
             if needs_newline {
               items.push_signal(Signal::NewLine);
             }
@@ -199,7 +200,7 @@ fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
       } else if context.ignore_start_regex.is_match(&html.text) {
         let mut range: Option<Range> = None;
         let mut end_comment = None;
-        while let Some(node) = node_iterator.next() {
+        for node in node_iterator.by_ref() {
           last_node = Some(node);
 
           if let Node::Html(html) = node {
@@ -220,7 +221,7 @@ fn gen_nodes(nodes: &Vec<Node>, context: &mut Context) -> PrintItems {
           items.extend(get_conditional_blank_line(&range, context));
           // get the leading indent
           let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(ir_helpers::gen_from_raw_string(&context.file_text[text_start..range.end].trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(context.file_text[text_start..range.end].trim_end()));
 
           if let Some(end_comment) = end_comment {
             items.extend(get_conditional_blank_line(end_comment.range(), context));
@@ -288,7 +289,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
 fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
-  let code_text = utils::unindent(&code_text);
+  let code_text = utils::unindent(code_text.trim_end());
   let backtick_text = "`".repeat(get_backtick_count(&code_text));
   let indent_level = if code_block.is_fenced { 0 } else { 4 };
 
@@ -321,11 +322,11 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     if code.trim().is_empty() {
       return Cow::Borrowed("");
     }
-    let start_pos = get_code_block_start_pos(&code);
+    let start_pos = get_code_block_start_pos(code);
     let code = code[start_pos..].trim_end();
     if let Some(tag) = &code_block.tag {
       if let Ok(text) = context.format_text(tag, code) {
-        return Cow::Owned(text.trim_end().to_string());
+        return text;
       }
     }
     Cow::Borrowed(code)
@@ -364,9 +365,9 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
   let text = code.code.trim();
   let mut backtick_text = "`";
   let mut separator = "";
-  if text.contains("`") {
+  if text.contains('`') {
     backtick_text = "``";
-    if text.starts_with("`") || text.ends_with("`") {
+    if text.starts_with('`') || text.ends_with('`') {
       separator = " ";
     }
   }
@@ -689,10 +690,10 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
 
   return items;
 
-  fn get_divider_row(column_widths: &Vec<usize>, column_alignments: &Vec<ColumnAlignment>) -> PrintItems {
+  fn get_divider_row(column_widths: &[usize], column_alignments: &[ColumnAlignment]) -> PrintItems {
     let mut items = PrintItems::new();
     for (i, column_width) in column_widths.iter().enumerate() {
-      let column_alignment = column_alignments.get(i).map(|x| *x).unwrap_or(ColumnAlignment::None);
+      let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
       if i == 0 {
         items.push_str("| ");
       } else {
@@ -716,10 +717,10 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     ir_helpers::with_no_new_lines(items)
   }
 
-  fn get_row_items(row_cells: Vec<(PrintItems, usize)>, column_widths: &Vec<usize>, column_alignments: &Vec<ColumnAlignment>) -> PrintItems {
+  fn get_row_items(row_cells: Vec<(PrintItems, usize)>, column_widths: &[usize], column_alignments: &[ColumnAlignment]) -> PrintItems {
     let mut items = PrintItems::new();
     for (i, (cell_items, cell_width)) in row_cells.into_iter().enumerate() {
-      let column_alignment = column_alignments.get(i).map(|x| *x).unwrap_or(ColumnAlignment::None);
+      let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
       let column_max_width = *column_widths.get(i).unwrap();
       let difference = column_max_width - cell_width;
       if i == 0 {
@@ -760,7 +761,7 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     ir_helpers::with_no_new_lines(items)
   }
 
-  fn get_column_widths(header: &Vec<(PrintItems, usize)>, rows: &Vec<Vec<(PrintItems, usize)>>, column_alignments: &Vec<ColumnAlignment>) -> Vec<usize> {
+  fn get_column_widths(header: &[(PrintItems, usize)], rows: &[Vec<(PrintItems, usize)>], column_alignments: &[ColumnAlignment]) -> Vec<usize> {
     let mut column_widths = Vec::new();
     for i in 0.. {
       let mut had_column = false;
@@ -837,7 +838,7 @@ fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
   let rc_path = items.into_rc_path();
   let mut items1 = PrintItems::new();
   let mut items2 = PrintItems::new();
-  items1.push_optional_path(rc_path.clone());
+  items1.push_optional_path(rc_path);
   items2.push_optional_path(rc_path);
   (items1, items2)
 }
