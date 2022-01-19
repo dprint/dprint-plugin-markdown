@@ -1,0 +1,11 @@
+!! should not remove backslashes at start of line !!
+\\\\\\* asdasd
+\ttesting
+
+\\\\\\* asdasd
+
+[expect]
+\\\\\\* asdasd
+\ttesting
+
+\\\\\\* asdasd

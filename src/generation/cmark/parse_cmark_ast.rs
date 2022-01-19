@@ -19,6 +19,7 @@ impl<'a> EventIterator<'a> {
   pub fn new(file_text: &'a str, iterator: OffsetIter<'a, 'a>) -> EventIterator<'a> {
     let mut iterator = iterator;
     let next = iterator.next();
+    // println!("Raw event: {:?}", next);
     EventIterator {
       file_text,
       iterator,
@@ -54,6 +55,7 @@ impl<'a> EventIterator<'a> {
 
   fn move_iterator_next(&mut self) -> Option<(Event<'a>, Range)> {
     let next = self.iterator.next();
+    // println!("Raw event: {:?}", next);
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
@@ -319,6 +321,9 @@ fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {
   // Pulldown cmark breaks up text items when they have escape chars
   // in them, so just combine the results.
   let raw_start = iterator.get_last_range().start;
+  // Pulldown cmark has the start range in the wrong place when there's a leading backslash
+  let is_start_backslash = raw_start > 0 && iterator.file_text.as_bytes()[raw_start - 1] == b'\\';
+  let raw_start = if is_start_backslash { raw_start - 1 } else { raw_start };
   while let Some((Event::Text(_), _)) = iterator.peek() {
     iterator.next();
   }
