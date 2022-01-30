@@ -46,7 +46,8 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
       ],
       file_names: vec![],
       help_url: "https://dprint.dev/plugins/markdown".to_string(),
-      config_schema_url: format!("https://plugins.dprint.dev/schemas/markdown-{}.json", version),
+      config_schema_url: format!("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/{}/schema.json", version),
+      update_url: Some("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/latest.json".to_string()),
     }
   }
 
