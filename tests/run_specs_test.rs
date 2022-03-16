@@ -2,7 +2,6 @@ extern crate dprint_development;
 extern crate dprint_plugin_markdown;
 
 use std::borrow::Cow;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
 use dprint_core::configuration::*;
@@ -13,7 +12,7 @@ use dprint_plugin_markdown::*;
 #[test]
 fn test_specs() {
   //debug_here!();
-  let global_config = resolve_global_config(HashMap::new(), &Default::default()).config;
+  let global_config = resolve_global_config(ConfigKeyMap::new(), &Default::default()).config;
 
   run_specs(
     &PathBuf::from("./tests/specs"),

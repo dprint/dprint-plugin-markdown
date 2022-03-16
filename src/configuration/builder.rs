@@ -3,7 +3,6 @@ use dprint_core::configuration::ConfigKeyMap;
 use dprint_core::configuration::ConfigKeyValue;
 use dprint_core::configuration::GlobalConfiguration;
 use dprint_core::configuration::NewLineKind;
-use std::collections::HashMap;
 
 use super::*;
 
@@ -18,6 +17,7 @@ use super::*;
 ///     .line_width(80)
 ///     .build();
 /// ```
+#[derive(Default)]
 pub struct ConfigurationBuilder {
   pub(super) config: ConfigKeyMap,
   global_config: Option<GlobalConfiguration>,
@@ -25,11 +25,8 @@ pub struct ConfigurationBuilder {
 
 impl ConfigurationBuilder {
   /// Constructs a new configuration builder.
-  pub fn new() -> ConfigurationBuilder {
-    ConfigurationBuilder {
-      config: HashMap::new(),
-      global_config: None,
-    }
+  pub fn new() -> Self {
+    Self::default()
   }
 
   /// Gets the final configuration that can be used to format a file.
@@ -37,7 +34,7 @@ impl ConfigurationBuilder {
     if let Some(global_config) = &self.global_config {
       resolve_config(self.config.clone(), global_config).config
     } else {
-      let global_config = resolve_global_config(HashMap::new(), &Default::default()).config;
+      let global_config = resolve_global_config(ConfigKeyMap::new(), &Default::default()).config;
       resolve_config(self.config.clone(), &global_config).config
     }
   }
@@ -126,7 +123,6 @@ impl ConfigurationBuilder {
 mod tests {
   use dprint_core::configuration::resolve_global_config;
   use dprint_core::configuration::NewLineKind;
-  use std::collections::HashMap;
 
   use super::*;
 
@@ -146,13 +142,13 @@ mod tests {
 
     let inner_config = config.get_inner_config();
     assert_eq!(inner_config.len(), 9);
-    let diagnostics = resolve_config(inner_config, &resolve_global_config(HashMap::new(), &Default::default()).config).diagnostics;
+    let diagnostics = resolve_config(inner_config, &resolve_global_config(ConfigKeyMap::new(), &Default::default()).config).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
 
   #[test]
   fn handle_global_config() {
-    let mut global_config = HashMap::new();
+    let mut global_config = ConfigKeyMap::new();
     global_config.insert(String::from("lineWidth"), 90.into());
     global_config.insert(String::from("newLineKind"), "crlf".into());
     global_config.insert(String::from("useTabs"), true.into());
@@ -165,7 +161,7 @@ mod tests {
 
   #[test]
   fn use_markdown_defaults_when_global_not_set() {
-    let global_config = resolve_global_config(HashMap::new(), &Default::default()).config;
+    let global_config = resolve_global_config(ConfigKeyMap::new(), &Default::default()).config;
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
