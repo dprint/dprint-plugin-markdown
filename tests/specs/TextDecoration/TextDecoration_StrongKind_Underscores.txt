@@ -6,3 +6,14 @@ test **strong** or __strong__ test
 [expect]
 test _emphasis_ or _emphasis_ test
 test __strong__ or __strong__ test
+
+!! should leave as-is when asterisk is in middle of word for GitHub ~~
+
+**wor**d
+**word**1
+**word**?
+
+[expect]
+**wor**d
+**word**1
+__word__?

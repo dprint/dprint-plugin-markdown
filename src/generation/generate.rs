@@ -454,15 +454,35 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
 }
 
 fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintItems {
+  /// GitHub doesn't make `_` and `__` as being a text decoration when the character
+  /// after the underscore is alphanumeric. For example: `__word__something`. Due
+  /// to this, we need to keep the asterisk when configured for underscores
+  /// in order to ensure the text keeps its meaning on GitHub.
+  fn keep_asterisk(pos: usize, context: &Context) -> bool {
+    &context.file_text[pos - 1..pos] == "*" && context.file_text[pos..].chars().next().map(|c| c.is_alphanumeric()).unwrap_or(false)
+  }
+
   let mut items = PrintItems::new();
   let decoration_text = match &text.kind {
     TextDecorationKind::Emphasis => match context.configuration.emphasis_kind {
       EmphasisKind::Asterisks => "*",
-      EmphasisKind::Underscores => "_",
+      EmphasisKind::Underscores => {
+        if keep_asterisk(text.range.end, context) {
+          "*"
+        } else {
+          "_"
+        }
+      }
     },
     TextDecorationKind::Strong => match context.configuration.strong_kind {
       StrongKind::Asterisks => "**",
-      StrongKind::Underscores => "__",
+      StrongKind::Underscores => {
+        if keep_asterisk(text.range.end, context) {
+          "**"
+        } else {
+          "__"
+        }
+      }
     },
     TextDecorationKind::Strikethrough => "~~",
   };

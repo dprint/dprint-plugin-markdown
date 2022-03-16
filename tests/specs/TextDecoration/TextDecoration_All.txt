@@ -15,3 +15,14 @@ test **strong** or **strong** test
 Both **strong and _emphasis_ and _emphasis_**.
 
 Test ~~strikethrough~~ test
+
+!! should leave as-is when asterisk is in middle of word for GitHub ~~
+
+*wor*d
+*word*1
+*word*?
+
+[expect]
+*wor*d
+*word*1
+_word_?
