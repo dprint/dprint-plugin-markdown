@@ -1,25 +1,21 @@
-use std::borrow::Cow;
-
 use dprint_plugin_markdown::configuration::*;
 use dprint_plugin_markdown::*;
 
 #[test]
 fn test_issue22_with_carriage_return_line_feeds() {
   let config = ConfigurationBuilder::new().build();
-  let result = format_text(&"```\r\ntest\r\n\r\ntest\r\n```\r\n", &config, |_, file_text, _| Ok(Cow::Borrowed(file_text))).unwrap();
-  assert_eq!(result, "```\ntest\n\ntest\n```\n");
+  let result = format_text(&"```\r\ntest\r\n\r\ntest\r\n```\r\n", &config, |_, _, _| Ok(None)).unwrap();
+  assert_eq!(result.unwrap(), "```\ntest\n\ntest\n```\n");
 }
 
 #[test]
 fn test_issue26_with_carriage_return_line_feeds() {
   let config = ConfigurationBuilder::new().build();
-  let result = format_text(
-    &"Testing:\r\n<!-- dprint-ignore -->\r\n```json\r\ntesting\r\n```\r\n",
-    &config,
-    |_, file_text, _| Ok(Cow::Borrowed(file_text)),
-  )
+  let result = format_text(&"Testing:\r\n<!-- dprint-ignore -->\r\n```json\r\ntesting\r\n```\r\n", &config, |_, _, _| {
+    Ok(None)
+  })
   .unwrap();
-  assert_eq!(result, "Testing:\n\n<!-- dprint-ignore -->\n```json\ntesting\n```\n");
+  assert_eq!(result.unwrap(), "Testing:\n\n<!-- dprint-ignore -->\n```json\ntesting\n```\n");
 }
 
 #[test]
@@ -27,13 +23,13 @@ fn test_issue35_convert_two_spaces_end_of_line_to_hard_break() {
   // In markdown, two spaces at the end of the line is a hard break.
   // To make this easier to see, we convert it to a hard break.
   let config = ConfigurationBuilder::new().build();
-  let result = format_text(&"testing  \nasdf", &config, |_, file_text, _| Ok(Cow::Borrowed(file_text))).unwrap();
-  assert_eq!(result, "testing\\\nasdf\n");
+  let result = format_text(&"testing  \nasdf", &config, |_, _, _| Ok(None)).unwrap();
+  assert_eq!(result.unwrap(), "testing\\\nasdf\n");
 }
 
 #[test]
 fn test_issue35_ignore_two_spaces_before_hard_break() {
   let config = ConfigurationBuilder::new().build();
-  let result = format_text(&"testing  \\\nasdf", &config, |_, file_text, _| Ok(Cow::Borrowed(file_text))).unwrap();
-  assert_eq!(result, "testing\\\nasdf\n");
+  let result = format_text(&"testing  \\\nasdf", &config, |_, _, _| Ok(None)).unwrap();
+  assert_eq!(result.unwrap(), "testing\\\nasdf\n");
 }

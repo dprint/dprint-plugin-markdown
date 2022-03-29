@@ -1,6 +1,4 @@
-use std::borrow::Cow;
-
-use anyhow::Result;
+use dprint_core::plugins::FormatResult;
 use regex::Regex;
 
 use super::utils::*;
@@ -15,7 +13,7 @@ pub struct Context<'a> {
   pub raw_indent_level: u32,
   is_in_list_count: u32,
   text_wrap_disabled_count: u32,
-  pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> Result<Cow<'b, str>> + 'a>,
+  pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
@@ -25,7 +23,7 @@ impl<'a> Context<'a> {
   pub fn new(
     file_text: &'a str,
     configuration: &'a Configuration,
-    format_code_block_text: impl for<'b> FnMut(&str, &'b str, u32) -> Result<Cow<'b, str>> + 'a,
+    format_code_block_text: impl for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a,
   ) -> Context<'a> {
     Context {
       file_text,
@@ -63,7 +61,7 @@ impl<'a> Context<'a> {
     self.text_wrap_disabled_count > 0
   }
 
-  pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> Result<Cow<'b, str>> {
+  pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
     (self.format_code_block_text)(tag, text, line_width)
   }

@@ -1,7 +1,6 @@
 extern crate dprint_development;
 extern crate dprint_plugin_markdown;
 
-use std::borrow::Cow;
 use std::path::PathBuf;
 
 use dprint_core::configuration::*;
@@ -30,9 +29,9 @@ fn test_specs() {
         format_text(&file_text, &config_result.config, |tag, file_text, line_width| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
-            Ok(Cow::Owned(format!("{}{}\n\n", file_text.to_string(), end)))
+            Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
           } else {
-            Ok(Cow::Borrowed(file_text))
+            Ok(None)
           }
         })
       }
@@ -45,9 +44,9 @@ fn test_specs() {
         return serde_json::to_string(&trace_file(&_file_text, &config_result.config, |tag, file_text, line_width| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
-            Ok(format!("{}{}\n\n", file_text.to_string(), end))
+            Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
           } else {
-            Ok(file_text.to_string())
+            Ok(None)
           }
         }))
         .unwrap();

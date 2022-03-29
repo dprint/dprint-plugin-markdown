@@ -1,14 +1,13 @@
-use std::borrow::Cow;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::Result;
 use dprint_core::configuration::ConfigKeyMap;
 use dprint_core::configuration::GlobalConfiguration;
 use dprint_core::configuration::ResolveConfigurationResult;
 use dprint_core::generate_plugin_code;
-use dprint_core::plugins::PluginHandler;
+use dprint_core::plugins::FormatResult;
 use dprint_core::plugins::PluginInfo;
+use dprint_core::plugins::SyncPluginHandler;
 
 use super::configuration::resolve_config;
 use super::configuration::Configuration;
@@ -21,7 +20,7 @@ impl MarkdownPluginHandler {
   }
 }
 
-impl PluginHandler<Configuration> for MarkdownPluginHandler {
+impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   fn resolve_config(&mut self, config: ConfigKeyMap, global_config: &GlobalConfiguration) -> ResolveConfigurationResult<Configuration> {
     resolve_config(config, global_config)
   }
@@ -29,7 +28,7 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
   // Markdown extensions: markdown, mdown, mkdn, mdwn, mkd, md
   // ref: https://superuser.com/questions/249436/file-extension-for-markdown-files/285878#285878
   // ref: https://github.com/denoland/deno_registry2/issues/206
-  fn get_plugin_info(&mut self) -> PluginInfo {
+  fn plugin_info(&mut self) -> PluginInfo {
     let version = env!("CARGO_PKG_VERSION").to_string();
     PluginInfo {
       name: env!("CARGO_PKG_NAME").to_string(),
@@ -50,25 +49,25 @@ impl PluginHandler<Configuration> for MarkdownPluginHandler {
     }
   }
 
-  fn get_license_text(&mut self) -> String {
+  fn license_text(&mut self) -> String {
     std::str::from_utf8(include_bytes!("../LICENSE")).unwrap().into()
   }
 
-  fn format_text(
+  fn format(
     &mut self,
     _file_path: &Path,
     file_text: &str,
     config: &Configuration,
-    mut format_with_host: impl FnMut(&Path, String, &ConfigKeyMap) -> Result<String>,
-  ) -> Result<String> {
+    mut format_with_host: impl FnMut(&Path, String, &ConfigKeyMap) -> FormatResult,
+  ) -> FormatResult {
     return super::format_text(file_text, config, |tag, file_text, line_width| {
       if let Some(ext) = tag_to_extension(tag) {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = ConfigKeyMap::new();
         additional_config.insert("lineWidth".into(), (line_width as i32).into());
-        format_with_host(&file_path, file_text.to_string(), &additional_config).map(|text| Cow::Owned(text))
+        format_with_host(&file_path, file_text.to_string(), &additional_config)
       } else {
-        Ok(Cow::Borrowed(file_text))
+        Ok(None)
       }
     });
 

@@ -7,6 +7,7 @@ use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
 use std::borrow::Cow;
+use std::rc::Rc;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
   // println!("Kind: {:?}", node.kind());
@@ -61,7 +62,7 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 
   items.push_condition(if_true(
     "endOfFileNewLine",
-    |context| Some(context.writer_info.column_number > 0 || context.writer_info.line_number > 0),
+    Rc::new(|context| Some(context.writer_info.column_number > 0 || context.writer_info.line_number > 0)),
     Signal::NewLine.into(),
   ));
 
@@ -266,7 +267,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
       PrintItem::String(text) => {
         items.push_condition(if_true(
           "angleBracketIfStartOfLine",
-          |context| Some(context.writer_info.is_start_of_line()),
+          condition_resolvers::is_start_of_line(),
           "> ".into(),
         ));
         items.push_item(PrintItem::String(text));
@@ -274,7 +275,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
       PrintItem::Signal(Signal::NewLine) => {
         items.push_condition(if_true(
           "angleBracketIfStartOfLine",
-          |context| Some(context.writer_info.is_start_of_line()),
+          condition_resolvers::is_start_of_line(),
           ">".into(),
         ));
         items.push_signal(Signal::NewLine);
@@ -325,8 +326,8 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     let start_pos = get_code_block_start_pos(code);
     let code = code[start_pos..].trim_end();
     if let Some(tag) = &code_block.tag {
-      if let Ok(text) = context.format_text(tag, code) {
-        return text;
+      if let Ok(Some(text)) = context.format_text(tag, code) {
+        return Cow::Owned(text);
       }
     }
     Cow::Borrowed(code)
@@ -626,7 +627,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       let after_child = Info::new("afterChild");
       items.push_condition(if_true(
         "spaceIfHasChild",
-        move |context| Some(!condition_resolvers::is_at_same_position(context, &after_child)?),
+        Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, &after_child)?)),
         Signal::SpaceIfNotTrailing.into(),
       ));
       items.extend(with_indent_times(generate(child, context), indent_increment));

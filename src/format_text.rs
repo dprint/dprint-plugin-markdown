@@ -1,9 +1,8 @@
-use std::borrow::Cow;
-
 use anyhow::bail;
 use anyhow::Result;
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
+use dprint_core::plugins::FormatResult;
 
 use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
@@ -15,17 +14,13 @@ use super::generation::Context;
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
-pub fn format_text(
-  file_text: &str,
-  config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Cow<'a, str>>,
-) -> Result<String> {
+pub fn format_text(file_text: &str, config: &Configuration, format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult) -> FormatResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
-    ParseFileResult::IgnoreFile => return Ok(file_text.to_string()),
+    ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
   };
 
-  Ok(dprint_core::formatting::format(
+  let result = dprint_core::formatting::format(
     || {
       let mut context = Context::new(markdown_text, config, format_code_block_text);
       #[allow(clippy::let_and_return)]
@@ -34,14 +29,19 @@ pub fn format_text(
       print_items
     },
     config_to_print_options(file_text, config),
-  ))
+  );
+  if result == file_text {
+    Ok(None)
+  } else {
+    Ok(Some(result))
+  }
 }
 
 #[cfg(feature = "tracing")]
 pub fn trace_file(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: Box<dyn Fn(&str, &str, u32) -> Result<String>>,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult,
 ) -> dprint_core::formatting::TracingResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
@@ -49,8 +49,8 @@ pub fn trace_file(
   };
   dprint_core::formatting::trace_printing(
     || {
-      let mut context = Context::new(&markdown_text, config, format_code_block_text);
-      let print_items = parse_node(&source_file.into(), &mut context);
+      let mut context = Context::new(markdown_text, config, format_code_block_text);
+      let print_items = generate(&source_file.into(), &mut context);
       // println!("{}", print_items.get_as_text());
       print_items
     },
