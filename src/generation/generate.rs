@@ -265,19 +265,11 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
   for print_item in gen_nodes(&block_quote.children, context).iter() {
     match print_item {
       PrintItem::String(text) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          "> ".into(),
-        ));
+        items.push_condition(if_true("angleBracketIfStartOfLine", condition_resolvers::is_start_of_line(), "> ".into()));
         items.push_item(PrintItem::String(text));
       }
       PrintItem::Signal(Signal::NewLine) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          ">".into(),
-        ));
+        items.push_condition(if_true("angleBracketIfStartOfLine", condition_resolvers::is_start_of_line(), ">".into()));
         items.push_signal(Signal::NewLine);
       }
       _ => items.push_item(print_item),
@@ -624,14 +616,14 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       let indent_increment = (prefix_text.chars().count() + 1) as u32;
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
-      let after_child = Info::new("afterChild");
+      let after_child = LineAndColumn::new("afterChild");
       items.push_condition(if_true(
         "spaceIfHasChild",
-        Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, &after_child)?)),
+        Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
         Signal::SpaceIfNotTrailing.into(),
       ));
       items.extend(with_indent_times(generate(child, context), indent_increment));
-      items.push_info(after_child);
+      items.push_line_and_column(after_child);
       context.indent_level -= indent_increment;
     }
 
