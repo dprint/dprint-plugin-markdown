@@ -38,7 +38,7 @@ pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration)
     new_line_kind: get_value(
       &mut config,
       "newLineKind",
-      global_config.new_line_kind.unwrap_or(DEFAULT_GLOBAL_CONFIGURATION.new_line_kind),
+      global_config.new_line_kind.unwrap_or(RECOMMENDED_GLOBAL_CONFIGURATION.new_line_kind),
       &mut diagnostics,
     ),
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
