@@ -2,7 +2,7 @@ use dprint_core::plugins::FormatResult;
 use regex::Regex;
 
 use super::utils::*;
-use crate::configuration::Configuration;
+use crate::{configuration::Configuration, format_text};
 
 pub struct Context<'a> {
   pub file_text: &'a str,
@@ -63,7 +63,13 @@ impl<'a> Context<'a> {
 
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
-    (self.format_code_block_text)(tag, text, line_width)
+
+    match tag {
+      "markdown" | "md" => format_text(text, self.configuration, |tag, file_text, line_width | {
+        (self.format_code_block_text)(tag, file_text, line_width)
+      }),
+      _ => (self.format_code_block_text)(tag, text, line_width)
+    }
   }
 
   pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {

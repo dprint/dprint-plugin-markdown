@@ -168,3 +168,50 @@ t````
 └───────────────────┼───────────────────────────────┘
                     ▼
 ```
+
+!! should format markdown in `md` code blocks !!
+
+```md
+# Testing
+
+
+>this is a blockquote
+
+ Never mind
+
+```
+
+
+[expect]
+```md
+# Testing
+
+> this is a blockquote
+
+Never mind
+```
+
+!! should format markdown in `markdown` code blocks !!
+
+```md
+# Testing
+
+
+>this is a blockquote
+
+ Never mind
+
+[  testing  ](  https://dprint.dev  "Dprint homepage"  )
+```
+
+
+[expect]
+```md
+# Testing
+
+> this is a blockquote
+
+Never mind
+
+[testing](https://dprint.dev "Dprint homepage")
+```
