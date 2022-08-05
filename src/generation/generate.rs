@@ -71,6 +71,10 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 
 fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
+  if nodes.len() == 0 {
+    return items;
+  }
+
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
 
@@ -644,8 +648,27 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   // indent the children to beyond the task list marker
   let marker_indent = if item.marker.is_some() { 4 } else { 0 };
   context.raw_indent_level += marker_indent;
-  items.extend(with_indent_times(gen_nodes(&item.children, context), marker_indent));
+  let indent_child_index_end = item
+    .children
+    .iter()
+    .position(|c| {
+      matches!(
+        c,
+        Node::List(_) | Node::CodeBlock(_) | Node::HardBreak(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
+      ) || utils::has_leading_blankline(c.range().start, context.file_text)
+    })
+    .unwrap_or(item.children.len());
+  items.extend(with_indent_times(gen_nodes(&item.children[..indent_child_index_end], context), marker_indent));
   context.raw_indent_level -= marker_indent;
+
+  // insert the remaining children without indent
+  if indent_child_index_end > 0 && indent_child_index_end != item.children.len() {
+    items.push_signal(Signal::NewLine);
+    if utils::has_leading_blankline(item.children[indent_child_index_end].range().start, context.file_text) {
+      items.push_signal(Signal::NewLine);
+    }
+  }
+  items.extend(gen_nodes(&item.children[indent_child_index_end..], context));
 
   if !item.sub_lists.is_empty() {
     items.push_signal(Signal::NewLine);

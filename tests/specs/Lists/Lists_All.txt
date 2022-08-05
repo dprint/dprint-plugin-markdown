@@ -190,3 +190,23 @@ Here is a paragraph
 - List
 
       Code block indented too much.
+
+!! html in list !!
+- Testing this out.
+
+  <details>
+     <summary>❌ Failure Steps</summary>
+
+  1. Test 1
+  2. Test 2
+  </details>
+
+[expect]
+- Testing this out.
+
+  <details>
+     <summary>❌ Failure Steps</summary>
+
+  1. Test 1
+  2. Test 2
+  </details>
