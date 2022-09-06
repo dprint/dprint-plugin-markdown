@@ -294,7 +294,7 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   if code_block.is_fenced {
     items.push_string(backtick_text.clone());
     if let Some(tag) = &code_block.tag {
-      items.push_str(tag);
+      items.push_string(tag.to_string());
     }
     items.push_signal(Signal::NewLine);
   }
@@ -492,9 +492,7 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
 }
 
 fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_str(html.text.trim_end());
-  items
+  html.text.trim_end().to_string().into()
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
@@ -527,7 +525,7 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 
     items.push_str("]");
     items.push_str("(");
-    items.push_str(link.url.trim());
+    items.push_string(link.url.trim().to_string());
     if let Some(title) = &link.title {
       items.push_string(format!(" \"{}\"", title.trim()));
     }
@@ -572,7 +570,7 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
 fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
-  items.push_str(link_ref.link.trim());
+  items.push_string(link_ref.link.trim().to_string());
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
@@ -583,7 +581,7 @@ fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
   items.push_str("(");
-  items.push_str(image.url.trim());
+  items.push_string(image.url.trim().to_string());
   if let Some(title) = &image.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
