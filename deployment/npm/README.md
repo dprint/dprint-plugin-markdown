@@ -8,9 +8,11 @@ Use this with [@dprint/formatter](https://github.com/dprint/js-formatter) or jus
 
 ```ts
 import { createFromBuffer } from "@dprint/formatter";
-import { getBuffer } from "@dprint/markdown";
+import { getPath } from "@dprint/markdown";
+import * as fs from "fs";
 
-const formatter = createFromBuffer(getBuffer());
+const buffer = fs.readFileSync(getPath());
+const formatter = createFromBuffer(buffer);
 
 console.log(formatter.formatText("test.md", "#   Some Title    "));
 ```

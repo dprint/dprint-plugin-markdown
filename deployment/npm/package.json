@@ -1,7 +1,7 @@
 {
   "name": "@dprint/markdown",
   "version": "0.0.0",
-  "description": "Wasm buffer for dprint-plugin-markdown.",
+  "description": "Wasm module for dprint-plugin-markdown.",
   "main": "./index.js",
   "types": "./index.d.ts",
   "repository": {
