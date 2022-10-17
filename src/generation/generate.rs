@@ -8,6 +8,7 @@ use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
 use std::borrow::Cow;
 use std::rc::Rc;
+use unicode_width::UnicodeWidthStr;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
   // println!("Kind: {:?}", node.kind());
@@ -878,8 +879,7 @@ fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
 }
 
 fn measure_single_line_width(items: PrintItems) -> usize {
-  // this doesn't seem ideal, but good enough for now
-  get_items_text(items).chars().count()
+  get_items_text(items).width()
 }
 
 fn get_items_text(items: PrintItems) -> String {
