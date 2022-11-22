@@ -62,3 +62,10 @@ Testing <https://google.com> this.
 
 [expect]
 [![CI](image.svg)](https://github.com)
+
+!! should handle going multi-line to single line within a link !!
+Test [this
+out](/test) test
+
+[expect]
+Test [this out](/test) test
