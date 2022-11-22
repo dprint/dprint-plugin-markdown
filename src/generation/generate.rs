@@ -908,7 +908,19 @@ fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
     TextWrap::Never => " ".into(),
-    TextWrap::Maintain => Signal::NewLine.into(),
+    TextWrap::Maintain => {
+      if context.is_text_wrap_disabled() {
+        if_true_or(
+          "newLineOrSpaceIfNewlinesDisabled",
+          condition_resolvers::is_forcing_no_newlines(),
+          " ".into(),
+          Signal::NewLine.into(),
+        )
+        .into()
+      } else {
+        Signal::NewLine.into()
+      }
+    }
   }
 }
 

@@ -55,7 +55,7 @@ impl<'a> EventIterator<'a> {
 
   fn move_iterator_next(&mut self) -> Option<(Event<'a>, Range)> {
     let next = self.iterator.next();
-    // println!("Raw event: {:?}", next);
+    // eprintln!("Raw event: {:?}", next);
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
