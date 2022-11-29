@@ -35,3 +35,14 @@ test
 | :---: |
 | testd |
 | test  |
+
+!! Should correctly determine column width for cells containing double-width characters like emoji !!
+
+| Name             | Required |
+| ---------------- | :------: |
+| test             |    ❌    |
+
+[expect]
+| Name | Required |
+| ---- | :------: |
+| test |    ❌    |
