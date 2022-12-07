@@ -879,7 +879,7 @@ fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
 }
 
 fn measure_single_line_width(items: PrintItems) -> usize {
-  get_items_text(items).width()
+  UnicodeWidthStr::width(get_items_text(items).as_str())
 }
 
 fn get_items_text(items: PrintItems) -> String {
