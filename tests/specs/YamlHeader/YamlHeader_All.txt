@@ -25,3 +25,23 @@ description: Some description
 title: Some Title
 description: Some description
 ---
+
+!! no panic multi-byte chars !!
+---
+title: 💣
+publishDate: 💣
+slug: 💣
+summary: >-
+  💣
+  💣
+---
+
+[expect]
+---
+title: 💣
+publishDate: 💣
+slug: 💣
+summary: >-
+  💣
+  💣
+---

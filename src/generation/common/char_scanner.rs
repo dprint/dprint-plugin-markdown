@@ -36,11 +36,8 @@ impl<'a> CharScanner<'a> {
   pub fn is_next_text(&self, text: &str) -> bool {
     let pos = self.end();
     let end = pos + text.len();
-    if end > self.text.len() {
-      return false;
-    }
 
-    &self.text[pos..end] == text
+    end <= self.text.len() && self.text.is_char_boundary(pos) && self.text.is_char_boundary(end) && &self.text[pos..end] == text
   }
 
   pub fn move_text(&mut self, text: &str) -> bool {
