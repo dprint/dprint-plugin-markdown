@@ -72,7 +72,7 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 
 fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  if nodes.len() == 0 {
+  if nodes.is_empty() {
     return items;
   }
 

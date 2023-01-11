@@ -69,3 +69,9 @@ out](/test) test
 
 [expect]
 Test [this out](/test) test
+
+!! handle when file only has link reference directive !!
+[Some reference]: https://github.com
+
+[expect]
+[Some reference]: https://github.com
