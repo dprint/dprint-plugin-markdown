@@ -114,7 +114,7 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
 
     // do not parse for link references while inside a table
     if !iterator.is_in_table() {
-      if let Some(references) = parse_references(&last_event_range, current_range.start, &mut iterator)? {
+      if let Some(references) = parse_references(last_event_range.as_ref().map(|r| r.end), current_range.start, &mut iterator)? {
         children.push(references);
       }
     }
@@ -123,7 +123,7 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     last_event_range = Some(current_range);
   }
 
-  if let Some(references) = parse_references(&last_event_range, markdown_text.len(), &mut iterator)? {
+  if let Some(references) = parse_references(last_event_range.as_ref().map(|r| r.end).or(Some(0)), markdown_text.len(), &mut iterator)? {
     children.push(references);
   }
 
@@ -134,10 +134,10 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   })
 }
 
-fn parse_references(last_event_range: &Option<Range>, end: usize, iterator: &mut EventIterator) -> Result<Option<Node>, ParseError> {
-  if let Some(last_event_range) = last_event_range {
-    if last_event_range.end < end {
-      let references = parse_link_reference_definitions(last_event_range.end, &iterator.file_text[last_event_range.end..end])?;
+fn parse_references(last_event_end: Option<usize>, end: usize, iterator: &mut EventIterator) -> Result<Option<Node>, ParseError> {
+  if let Some(last_event_end) = last_event_end {
+    if last_event_end < end {
+      let references = parse_link_reference_definitions(last_event_end, &iterator.file_text[last_event_end..end])?;
       if !references.is_empty() {
         return Ok(Some(
           Paragraph {
@@ -152,7 +152,6 @@ fn parse_references(last_event_range: &Option<Range>, end: usize, iterator: &mut
       }
     }
   }
-
   Ok(None)
 }
 
@@ -603,12 +602,8 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   let range = iterator.get_range_for_start(start);
 
-  let last_range = sub_lists
-    .last()
-    .map(|c| c.range())
-    .or_else(|| children.last().map(|c| c.range()))
-    .map(|r| r.to_owned());
-  if let Some(references) = parse_references(&last_range, range.end, iterator)? {
+  let last_range = sub_lists.last().map(|c| c.range()).or_else(|| children.last().map(|c| c.range()));
+  if let Some(references) = parse_references(last_range.map(|r| r.end), range.end, iterator)? {
     children.push(references);
   }
 
