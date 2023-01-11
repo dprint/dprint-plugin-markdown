@@ -1,0 +1,11 @@
+!! should handle link reference definition having open and closing brackets !!
+Test
+
+[1]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+[2]: https://doc.rust-lang.org/std/vec/struct.Vec.html#deref-methods-[T]
+
+[expect]
+Test
+
+[1]: https://doc.rust-lang.org/std/vec/struct.Vec.html
+[2]: https://doc.rust-lang.org/std/vec/struct.Vec.html#deref-methods-[T]

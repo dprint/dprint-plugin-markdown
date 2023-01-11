@@ -50,18 +50,9 @@ fn parse_link_reference_definition(start_pos: usize, char_scanner: &mut CharScan
 
 fn parse_reference_link(start_pos: usize, char_scanner: &mut CharScanner) -> Result<String, ParseError> {
   let mut reference_link = String::new();
-  while let Some((byte_pos, c)) = char_scanner.next() {
+  while let Some((_, c)) = char_scanner.next() {
     match c {
       '\n' => break,
-      '[' => {
-        return Err(ParseError::new(
-          Range {
-            start: byte_pos,
-            end: byte_pos,
-          },
-          "Unexpected open bracket parsing link reference definition link.",
-        ))
-      }
       _ => reference_link.push(c),
     }
   }
