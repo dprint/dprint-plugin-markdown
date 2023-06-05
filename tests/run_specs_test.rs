@@ -15,7 +15,9 @@ fn test_specs() {
 
   run_specs(
     &PathBuf::from("./tests/specs"),
-    &ParseSpecOptions { default_file_name: "file.md" },
+    &ParseSpecOptions {
+      default_file_name: "file.md",
+    },
     &RunSpecsOptions {
       fix_failures: false,
       format_twice: true,
@@ -41,14 +43,18 @@ fn test_specs() {
       {
         let config_result = resolve_config(parse_config_key_map(_spec_config), &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
-        return serde_json::to_string(&trace_file(&_file_text, &config_result.config, |tag, file_text, line_width| {
-          let end = format!("_formatted_{}", line_width);
-          if tag == "format" && !file_text.ends_with(&end) {
-            Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
-          } else {
-            Ok(None)
-          }
-        }))
+        return serde_json::to_string(&trace_file(
+          &_file_text,
+          &config_result.config,
+          |tag, file_text, line_width| {
+            let end = format!("_formatted_{}", line_width);
+            if tag == "format" && !file_text.ends_with(&end) {
+              Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
+            } else {
+              Ok(None)
+            }
+          },
+        ))
         .unwrap();
       }
 

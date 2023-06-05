@@ -21,7 +21,11 @@ impl MarkdownPluginHandler {
 }
 
 impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
-  fn resolve_config(&mut self, config: ConfigKeyMap, global_config: &GlobalConfiguration) -> ResolveConfigurationResult<Configuration> {
+  fn resolve_config(
+    &mut self,
+    config: ConfigKeyMap,
+    global_config: &GlobalConfiguration,
+  ) -> ResolveConfigurationResult<Configuration> {
     resolve_config(config, global_config)
   }
 
@@ -44,7 +48,10 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
       ],
       file_names: vec![],
       help_url: "https://dprint.dev/plugins/markdown".to_string(),
-      config_schema_url: format!("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/{}/schema.json", version),
+      config_schema_url: format!(
+        "https://plugins.dprint.dev/dprint/dprint-plugin-markdown/{}/schema.json",
+        version
+      ),
       update_url: Some("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/latest.json".to_string()),
     }
   }

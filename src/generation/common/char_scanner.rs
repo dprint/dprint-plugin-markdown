@@ -37,7 +37,10 @@ impl<'a> CharScanner<'a> {
     let pos = self.end();
     let end = pos + text.len();
 
-    end <= self.text.len() && self.text.is_char_boundary(pos) && self.text.is_char_boundary(end) && &self.text[pos..end] == text
+    end <= self.text.len()
+      && self.text.is_char_boundary(pos)
+      && self.text.is_char_boundary(end)
+      && &self.text[pos..end] == text
   }
 
   pub fn move_text(&mut self, text: &str) -> bool {
@@ -113,7 +116,10 @@ impl<'a> CharScanner<'a> {
   pub fn next(&mut self) -> Option<(usize, char)> {
     self.previous = self.current;
     self.current = self.next;
-    self.next = self.char_indices.next().map(|(byte_pos, c)| (byte_pos + self.offset, c));
+    self.next = self
+      .char_indices
+      .next()
+      .map(|(byte_pos, c)| (byte_pos + self.offset, c));
 
     if let Some(current) = self.current {
       self.pos = current.0;
@@ -129,7 +135,11 @@ impl<'a> CharScanner<'a> {
   }
 
   pub fn end(&self) -> usize {
-    self.current.as_ref().map(|(pos, c)| *pos + c.len_utf8()).unwrap_or(self.pos)
+    self
+      .current
+      .as_ref()
+      .map(|(pos, c)| *pos + c.len_utf8())
+      .unwrap_or(self.pos)
   }
 
   pub fn peek(&self) -> Option<(usize, char)> {

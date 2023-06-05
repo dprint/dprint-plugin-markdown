@@ -106,7 +106,10 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   options.insert(Options::ENABLE_TASKLISTS);
 
   let mut children: Vec<Node> = Vec::new();
-  let mut iterator = EventIterator::new(markdown_text, Parser::new_ext(markdown_text, options).into_offset_iter());
+  let mut iterator = EventIterator::new(
+    markdown_text,
+    Parser::new_ext(markdown_text, options).into_offset_iter(),
+  );
   let mut last_event_range: Option<Range> = None;
 
   while let Some(event) = iterator.next() {
@@ -114,7 +117,11 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
 
     // do not parse for link references while inside a table
     if !iterator.is_in_table() {
-      if let Some(references) = parse_references(last_event_range.as_ref().map(|r| r.end), current_range.start, &mut iterator)? {
+      if let Some(references) = parse_references(
+        last_event_range.as_ref().map(|r| r.end),
+        current_range.start,
+        &mut iterator,
+      )? {
         children.push(references);
       }
     }
@@ -123,7 +130,11 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     last_event_range = Some(current_range);
   }
 
-  if let Some(references) = parse_references(last_event_range.as_ref().map(|r| r.end).or(Some(0)), markdown_text.len(), &mut iterator)? {
+  if let Some(references) = parse_references(
+    last_event_range.as_ref().map(|r| r.end).or(Some(0)),
+    markdown_text.len(),
+    &mut iterator,
+  )? {
     children.push(references);
   }
 
@@ -134,7 +145,11 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   })
 }
 
-fn parse_references(last_event_end: Option<usize>, end: usize, iterator: &mut EventIterator) -> Result<Option<Node>, ParseError> {
+fn parse_references(
+  last_event_end: Option<usize>,
+  end: usize,
+  iterator: &mut EventIterator,
+) -> Result<Option<Node>, ParseError> {
   if let Some(last_event_end) = last_event_end {
     if last_event_end < end {
       let references = parse_link_reference_definitions(last_event_end, &iterator.file_text[last_event_end..end])?;
@@ -282,7 +297,12 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
     match event {
       Event::End(Tag::CodeBlock(_)) => break,
       Event::Text(event_text) => code.push_str(event_text.as_ref()),
-      _ => return Err(ParseError::new(iterator.get_last_range(), "Unexpected event found when parsing code block.")),
+      _ => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          "Unexpected event found when parsing code block.",
+        ))
+      }
     }
   }
 
@@ -398,7 +418,12 @@ fn parse_footnote_definition(name: CowStr, iterator: &mut EventIterator) -> Resu
   })
 }
 
-fn parse_link(link_type: LinkType, destination_url: &str, link_title: &str, iterator: &mut EventIterator) -> Result<Node, ParseError> {
+fn parse_link(
+  link_type: LinkType,
+  destination_url: &str,
+  link_title: &str,
+  iterator: &mut EventIterator,
+) -> Result<Node, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
 
@@ -427,7 +452,14 @@ fn parse_link(link_type: LinkType, destination_url: &str, link_title: &str, iter
     ),
     LinkType::Reference | LinkType::ReferenceUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown => {
       let reference = parse_link_reference(&iterator.file_text[start..end]);
-      Ok(ReferenceLink { range, children, reference }.into())
+      Ok(
+        ReferenceLink {
+          range,
+          children,
+          reference,
+        }
+        .into(),
+      )
     }
     LinkType::Shortcut | LinkType::ShortcutUnknown => Ok(ShortcutLink { range, children }.into()),
     LinkType::Email | LinkType::Autolink => Ok(AutoLink { range, children }.into()),
@@ -602,7 +634,10 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   let range = iterator.get_range_for_start(start);
 
-  let last_range = sub_lists.last().map(|c| c.range()).or_else(|| children.last().map(|c| c.range()));
+  let last_range = sub_lists
+    .last()
+    .map(|c| c.range())
+    .or_else(|| children.last().map(|c| c.range()));
   if let Some(references) = parse_references(last_range.map(|r| r.end), range.end, iterator)? {
     children.push(references);
   }

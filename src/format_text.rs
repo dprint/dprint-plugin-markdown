@@ -14,7 +14,11 @@ use super::generation::Context;
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
-pub fn format_text(file_text: &str, config: &Configuration, format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult) -> FormatResult {
+pub fn format_text(
+  file_text: &str,
+  config: &Configuration,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult,
+) -> FormatResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
@@ -83,7 +87,11 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
     }
     Err(error) => bail!(
       "{}",
-      dprint_core::formatting::utils::string_utils::format_diagnostic(Some((error.range.start, error.range.end)), &error.message, file_text)
+      dprint_core::formatting::utils::string_utils::format_diagnostic(
+        Some((error.range.start, error.range.end)),
+        &error.message,
+        file_text
+      )
     ),
   }
 }

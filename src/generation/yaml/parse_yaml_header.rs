@@ -16,9 +16,15 @@ pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
     if scanner.is_next_text("---") {
       scanner.move_text("---");
       if scanner.move_new_line() || scanner.pos() == scanner.end() {
-        let range = std::ops::Range { start: 0, end: scanner.pos() };
+        let range = std::ops::Range {
+          start: 0,
+          end: scanner.pos(),
+        };
         let header_text = String::from(&text[range.start..range.end]);
-        return Some(YamlHeader { range, text: header_text });
+        return Some(YamlHeader {
+          range,
+          text: header_text,
+        });
       }
     }
 

@@ -154,7 +154,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                   node.has_preceeding_space(context.file_text)
                 } else {
                   node.has_preceeding_space(context.file_text)
-                    || !last_node.ends_with_punctuation(context.file_text) && !node.starts_with_punctuation(context.file_text)
+                    || !last_node.ends_with_punctuation(context.file_text)
+                      && !node.starts_with_punctuation(context.file_text)
                 }
               } else if let Node::FootnoteReference(_) = node {
                 false
@@ -199,7 +200,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           // include the leading indent
           let range = node.range();
           let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(ir_helpers::gen_from_raw_string(context.file_text[text_start..range.end].trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(
+            context.file_text[text_start..range.end].trim_end(),
+          ));
 
           last_node = Some(node);
         }
@@ -227,7 +230,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           items.extend(get_conditional_blank_line(&range, context));
           // get the leading indent
           let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(ir_helpers::gen_from_raw_string(context.file_text[text_start..range.end].trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(
+            context.file_text[text_start..range.end].trim_end(),
+          ));
 
           if let Some(end_comment) = end_comment {
             items.extend(get_conditional_blank_line(end_comment.range(), context));
@@ -270,11 +275,19 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
   for print_item in gen_nodes(&block_quote.children, context).iter() {
     match print_item {
       PrintItem::String(text) => {
-        items.push_condition(if_true("angleBracketIfStartOfLine", condition_resolvers::is_start_of_line(), "> ".into()));
+        items.push_condition(if_true(
+          "angleBracketIfStartOfLine",
+          condition_resolvers::is_start_of_line(),
+          "> ".into(),
+        ));
         items.push_item(PrintItem::String(text));
       }
       PrintItem::Signal(Signal::NewLine) => {
-        items.push_condition(if_true("angleBracketIfStartOfLine", condition_resolvers::is_start_of_line(), ">".into()));
+        items.push_condition(if_true(
+          "angleBracketIfStartOfLine",
+          condition_resolvers::is_start_of_line(),
+          ">".into(),
+        ));
         items.push_signal(Signal::NewLine);
       }
       _ => items.push_item(print_item),
@@ -457,7 +470,12 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   /// to this, we need to keep the asterisk when configured for underscores
   /// in order to ensure the text keeps its meaning on GitHub.
   fn keep_asterisk(pos: usize, context: &Context) -> bool {
-    &context.file_text[pos - 1..pos] == "*" && context.file_text[pos..].chars().next().map(|c| c.is_alphanumeric()).unwrap_or(false)
+    &context.file_text[pos - 1..pos] == "*"
+      && context.file_text[pos..]
+        .chars()
+        .next()
+        .map(|c| c.is_alphanumeric())
+        .unwrap_or(false)
   }
 
   let mut items = PrintItems::new();
@@ -611,7 +629,11 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       }
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
-        let display_index = if is_all_ones_list(list, context) { 1 } else { start_index + index as u64 };
+        let display_index = if is_all_ones_list(list, context) {
+          1
+        } else {
+          start_index + index as u64
+        };
         format!("{}{}", display_index, end_char)
       } else {
         String::from(if is_alternate { "*" } else { "-" })
@@ -653,11 +675,19 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     .position(|c| {
       matches!(
         c,
-        Node::List(_) | Node::CodeBlock(_) | Node::HardBreak(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
+        Node::List(_)
+          | Node::CodeBlock(_)
+          | Node::HardBreak(_)
+          | Node::BlockQuote(_)
+          | Node::Heading(_)
+          | Node::Table(_)
       ) || utils::has_leading_blankline(c.range().start, context.file_text)
     })
     .unwrap_or(item.children.len());
-  items.extend(with_indent_times(gen_nodes(&item.children[..indent_child_index_end], context), marker_indent));
+  items.extend(with_indent_times(
+    gen_nodes(&item.children[..indent_child_index_end], context),
+    marker_indent,
+  ));
   context.raw_indent_level -= marker_indent;
 
   // insert the remaining children without indent
@@ -709,7 +739,13 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
   let rows = table
     .rows
     .iter()
-    .map(|row| row.cells.iter().map(|cell| get_cell_items_and_width(cell, context)).collect::<Vec<_>>())
+    .map(|row| {
+      row
+        .cells
+        .iter()
+        .map(|cell| get_cell_items_and_width(cell, context))
+        .collect::<Vec<_>>()
+    })
     .collect::<Vec<_>>();
   let column_widths = get_column_widths(&header, &rows, &table.column_alignment);
   let mut items = PrintItems::new();
@@ -752,7 +788,11 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     ir_helpers::with_no_new_lines(items)
   }
 
-  fn get_row_items(row_cells: Vec<(PrintItems, usize)>, column_widths: &[usize], column_alignments: &[ColumnAlignment]) -> PrintItems {
+  fn get_row_items(
+    row_cells: Vec<(PrintItems, usize)>,
+    column_widths: &[usize],
+    column_alignments: &[ColumnAlignment],
+  ) -> PrintItems {
     let mut items = PrintItems::new();
     for (i, (cell_items, cell_width)) in row_cells.into_iter().enumerate() {
       let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
@@ -796,7 +836,11 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     ir_helpers::with_no_new_lines(items)
   }
 
-  fn get_column_widths(header: &[(PrintItems, usize)], rows: &[Vec<(PrintItems, usize)>], column_alignments: &[ColumnAlignment]) -> Vec<usize> {
+  fn get_column_widths(
+    header: &[(PrintItems, usize)],
+    rows: &[Vec<(PrintItems, usize)>],
+    column_alignments: &[ColumnAlignment],
+  ) -> Vec<usize> {
     let mut column_widths = Vec::new();
     for i in 0.. {
       let mut had_column = false;
@@ -811,7 +855,10 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
       // check column alignment row width
       if let Some(column_alignment) = column_alignments.get(i) {
         // + 1 in order to have at least one dash
-        max_width = std::cmp::max(max_width, get_column_alignment_properties(*column_alignment).count() + 1);
+        max_width = std::cmp::max(
+          max_width,
+          get_column_alignment_properties(*column_alignment).count() + 1,
+        );
         had_column = true;
       }
 

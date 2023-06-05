@@ -25,7 +25,10 @@ use dprint_core::configuration::*;
 ///
 /// // check config_result.diagnostics here and use config_result.config
 /// ```
-pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration) -> ResolveConfigurationResult<Configuration> {
+pub fn resolve_config(
+  config: ConfigKeyMap,
+  global_config: &GlobalConfiguration,
+) -> ResolveConfigurationResult<Configuration> {
   let mut diagnostics = Vec::new();
   let mut config = config;
 
@@ -34,20 +37,47 @@ pub fn resolve_config(config: ConfigKeyMap, global_config: &GlobalConfiguration)
   }
 
   let resolved_config = Configuration {
-    line_width: get_value(&mut config, "lineWidth", global_config.line_width.unwrap_or(80), &mut diagnostics),
+    line_width: get_value(
+      &mut config,
+      "lineWidth",
+      global_config.line_width.unwrap_or(80),
+      &mut diagnostics,
+    ),
     new_line_kind: get_value(
       &mut config,
       "newLineKind",
-      global_config.new_line_kind.unwrap_or(RECOMMENDED_GLOBAL_CONFIGURATION.new_line_kind),
+      global_config
+        .new_line_kind
+        .unwrap_or(RECOMMENDED_GLOBAL_CONFIGURATION.new_line_kind),
       &mut diagnostics,
     ),
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
     emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
     strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
-    ignore_directive: get_value(&mut config, "ignoreDirective", "dprint-ignore".to_string(), &mut diagnostics),
-    ignore_file_directive: get_value(&mut config, "ignoreFileDirective", "dprint-ignore-file".to_string(), &mut diagnostics),
-    ignore_start_directive: get_value(&mut config, "ignoreStartDirective", "dprint-ignore-start".to_string(), &mut diagnostics),
-    ignore_end_directive: get_value(&mut config, "ignoreEndDirective", "dprint-ignore-end".to_string(), &mut diagnostics),
+    ignore_directive: get_value(
+      &mut config,
+      "ignoreDirective",
+      "dprint-ignore".to_string(),
+      &mut diagnostics,
+    ),
+    ignore_file_directive: get_value(
+      &mut config,
+      "ignoreFileDirective",
+      "dprint-ignore-file".to_string(),
+      &mut diagnostics,
+    ),
+    ignore_start_directive: get_value(
+      &mut config,
+      "ignoreStartDirective",
+      "dprint-ignore-start".to_string(),
+      &mut diagnostics,
+    ),
+    ignore_end_directive: get_value(
+      &mut config,
+      "ignoreEndDirective",
+      "dprint-ignore-end".to_string(),
+      &mut diagnostics,
+    ),
   };
 
   for (key, _) in config.iter() {

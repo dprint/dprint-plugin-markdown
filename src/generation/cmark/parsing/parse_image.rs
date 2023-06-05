@@ -12,9 +12,14 @@ pub fn parse_image(offset: usize, text: &str, link_type: LinkType) -> Result<Nod
 
   match link_type {
     LinkType::Inline => parse_inline(start_pos, &mut char_scanner),
-    LinkType::Reference | LinkType::ReferenceUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown => parse_reference(start_pos, &mut char_scanner),
+    LinkType::Reference | LinkType::ReferenceUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown => {
+      parse_reference(start_pos, &mut char_scanner)
+    }
     LinkType::Shortcut | LinkType::ShortcutUnknown | LinkType::Email | LinkType::Autolink => Err(ParseError::new(
-      Range { start: offset, end: offset },
+      Range {
+        start: offset,
+        end: offset,
+      },
       &format!("Link type not implemented {:?}", link_type),
     )),
   }

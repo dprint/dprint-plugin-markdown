@@ -30,7 +30,10 @@ pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec
   Ok(references)
 }
 
-fn parse_link_reference_definition(start_pos: usize, char_scanner: &mut CharScanner) -> Result<LinkReference, ParseError> {
+fn parse_link_reference_definition(
+  start_pos: usize,
+  char_scanner: &mut CharScanner,
+) -> Result<LinkReference, ParseError> {
   let name = parse_text_in_brackets(start_pos, char_scanner)?;
   char_scanner.assert_char(':')?;
   char_scanner.skip_spaces();
@@ -109,7 +112,10 @@ mod tests {
 
   #[test]
   fn it_finds_multiple_link_references() {
-    let result = parse_link_reference_definitions(10, "[Some reference]: https://dprint.dev\n\n[other]: https://github.com");
+    let result = parse_link_reference_definitions(
+      10,
+      "[Some reference]: https://dprint.dev\n\n[other]: https://github.com",
+    );
     assert_eq!(result.is_ok(), true);
     let references = result.ok().unwrap();
     assert_eq!(references.len(), 2);

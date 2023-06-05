@@ -11,11 +11,16 @@ fn test_issue22_with_carriage_return_line_feeds() {
 #[test]
 fn test_issue26_with_carriage_return_line_feeds() {
   let config = ConfigurationBuilder::new().build();
-  let result = format_text(&"Testing:\r\n<!-- dprint-ignore -->\r\n```json\r\ntesting\r\n```\r\n", &config, |_, _, _| {
-    Ok(None)
-  })
+  let result = format_text(
+    &"Testing:\r\n<!-- dprint-ignore -->\r\n```json\r\ntesting\r\n```\r\n",
+    &config,
+    |_, _, _| Ok(None),
+  )
   .unwrap();
-  assert_eq!(result.unwrap(), "Testing:\n\n<!-- dprint-ignore -->\n```json\ntesting\n```\n");
+  assert_eq!(
+    result.unwrap(),
+    "Testing:\n\n<!-- dprint-ignore -->\n```json\ntesting\n```\n"
+  );
 }
 
 #[test]
