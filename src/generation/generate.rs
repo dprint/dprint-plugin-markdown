@@ -336,7 +336,9 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     let start_pos = get_code_block_start_pos(code);
     let code = code[start_pos..].trim_end();
     if let Some(tag) = &code_block.tag {
-      if let Ok(Some(text)) = context.format_text(tag, code) {
+      // allow situations like ```rust,ignore
+      let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
+      if let Ok(Some(text)) = context.format_text(&tag, code) {
         return Cow::Owned(text);
       }
     }

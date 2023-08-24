@@ -215,3 +215,13 @@ Never mind
 
 [testing](https://dprint.dev "Dprint homepage")
 ```
+
+!! should format when codeblock has trailing text on tag !!
+```format,ignore
+other_formatted_77
+```
+
+[expect]
+```format,ignore
+other_formatted_77_formatted_80
+```
