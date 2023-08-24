@@ -221,7 +221,15 @@ Never mind
 other_formatted_77
 ```
 
+```format ignore
+other_formatted_77
+```
+
 [expect]
 ```format,ignore
 other_formatted_77_formatted_80
+```
+
+```format ignore
+other_formatted_77
 ```
