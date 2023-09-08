@@ -1,0 +1,15 @@
+!! should keep no spaces between ignore comments !!
+<diagram class="size-40">
+<!-- dprint-ignore-start -->
+flowchart TD
+example-testing-testing
+<!-- dprint-ignore-end -->
+</diagram>
+
+[expect]
+<diagram class="size-40">
+<!-- dprint-ignore-start -->
+flowchart TD
+example-testing-testing
+<!-- dprint-ignore-end -->
+</diagram>

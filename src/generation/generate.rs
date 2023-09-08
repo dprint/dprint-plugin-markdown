@@ -209,6 +209,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
       } else if context.ignore_start_regex.is_match(&html.text) {
         let mut range: Option<Range> = None;
         let mut end_comment = None;
+        let start = html.range().end;
         for node in node_iterator.by_ref() {
           last_node = Some(node);
 
@@ -226,18 +227,15 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           });
         }
 
-        if let Some(range) = range {
-          items.extend(get_conditional_blank_line(&range, context));
-          // get the leading indent
-          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
-          items.extend(ir_helpers::gen_from_raw_string(
-            context.file_text[text_start..range.end].trim_end(),
-          ));
-
-          if let Some(end_comment) = end_comment {
-            items.extend(get_conditional_blank_line(end_comment.range(), context));
-            items.extend(gen_html(end_comment, context));
-          }
+        let end = end_comment
+          .map(|c| c.range().start)
+          .unwrap_or_else(|| last_node.unwrap().range().end);
+        let ignore_text = &context.file_text[start..end];
+        if let Some(end_comment) = end_comment {
+          items.extend(ir_helpers::gen_from_raw_string(ignore_text));
+          items.extend(gen_html(end_comment, context));
+        } else {
+          items.extend(ir_helpers::gen_from_raw_string(ignore_text.trim_end()));
         }
       }
     }
