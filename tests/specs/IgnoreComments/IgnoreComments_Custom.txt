@@ -26,13 +26,11 @@ testing   this   out
 testing this out
 
 <!-- foo-ignore-start -->
-
 testing   this  out
 
 
 
 testing    more   and    more
-
 <!-- foo-ignore-end -->
 
 testing this out

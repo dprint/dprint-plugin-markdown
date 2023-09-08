@@ -39,13 +39,11 @@ testing   this   out
 testing this out
 
 <!-- dprint-ignore-start -->
-
 testing   this  out
 
 
 
 testing    more   and    more
-
 <!-- dprint-ignore-end -->
 
 testing this out
@@ -61,15 +59,11 @@ testing this out
 
 [expect]
 <!-- dprint-ignore-start -->
-
     testing   this  out
-
 <!-- dprint-ignore-end -->
 
 <!-- dprint-ignore-start -->
-
 				testing   this  out
-
 <!-- dprint-ignore-end -->
 
 !! should handle no end ignore comment !!
@@ -168,3 +162,23 @@ description: Some description
 testing     this     out
 
 testing    this    out
+
+!! should handle ignore comments when nested !!
+1. Testing
+   <!-- dprint-ignore-start -->
+   Testing
+             asdf
+   This out Testing
+   <!-- dprint-ignore-end -->
+
+2. Next
+
+[expect]
+1. Testing
+   <!-- dprint-ignore-start -->
+   Testing
+             asdf
+   This out Testing
+   <!-- dprint-ignore-end -->
+
+2. Next
