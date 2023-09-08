@@ -1,4 +1,4 @@
-!! should not remove link (only) !!
+!! should not remove link !!
 [Deno]
 
 [Deno]: https://deno.com
