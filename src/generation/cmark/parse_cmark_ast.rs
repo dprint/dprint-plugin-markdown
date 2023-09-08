@@ -66,8 +66,8 @@ impl<'a> EventIterator<'a> {
     next
   }
 
-  pub fn is_in_table(&self) -> bool {
-    self.in_table_count > 0
+  pub fn in_table_count(&self) -> i8 {
+    self.in_table_count
   }
 
   pub fn start(&self) -> usize {
@@ -116,7 +116,7 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     let current_range = iterator.get_last_range();
 
     // do not parse for link references while inside a table
-    if !iterator.is_in_table() {
+    if iterator.in_table_count() <= 1 {
       if let Some(references) = parse_references(
         last_event_range.as_ref().map(|r| r.end),
         current_range.start,

@@ -1,0 +1,15 @@
+!! should not remove link (only) !!
+[Deno]
+
+[Deno]: https://deno.com
+
+|   |
+| - |
+
+[expect]
+[Deno]
+
+[Deno]: https://deno.com
+
+|   |
+| - |
