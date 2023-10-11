@@ -11,8 +11,8 @@ use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  // println!("Kind: {:?}", node.kind());
-  // println!("Text: {:?}", node.text(context));
+  // eprintln!("Kind: {:?}", node.kind());
+  // eprintln!("Text: {:?}", node.text(context));
 
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
@@ -675,12 +675,7 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     .position(|c| {
       matches!(
         c,
-        Node::List(_)
-          | Node::CodeBlock(_)
-          | Node::HardBreak(_)
-          | Node::BlockQuote(_)
-          | Node::Heading(_)
-          | Node::Table(_)
+        Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
       ) || utils::has_leading_blankline(c.range().start, context.file_text)
     })
     .unwrap_or(item.children.len());

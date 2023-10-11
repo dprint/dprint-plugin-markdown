@@ -210,3 +210,19 @@ Here is a paragraph
   1. Test 1
   2. Test 2
   </details>
+
+!! List with two spaces at end should be converted to explicit hard break !!
+- foo  
+  bar
+
+[expect]
+- foo\
+  bar
+
+!! List with hard break at end should stay as hard break !!
+- foo\
+  bar
+
+[expect]
+- foo\
+  bar
