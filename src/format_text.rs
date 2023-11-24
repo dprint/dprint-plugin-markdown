@@ -2,7 +2,6 @@ use anyhow::bail;
 use anyhow::Result;
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
-use dprint_core::plugins::FormatResult;
 
 use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
@@ -17,8 +16,8 @@ use super::generation::Context;
 pub fn format_text(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult,
-) -> FormatResult {
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
+) -> Result<Option<String>> {
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,

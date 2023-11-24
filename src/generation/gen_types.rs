@@ -1,9 +1,11 @@
-use dprint_core::plugins::FormatResult;
 use regex::Regex;
 
 use super::utils::*;
 use crate::configuration::Configuration;
 use crate::format_text;
+use anyhow::Result;
+
+type FormatResult = Result<Option<String>>;
 
 pub struct Context<'a> {
   pub file_text: &'a str,

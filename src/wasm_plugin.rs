@@ -5,20 +5,16 @@ use dprint_core::configuration::ConfigKeyMap;
 use dprint_core::configuration::GlobalConfiguration;
 use dprint_core::configuration::ResolveConfigurationResult;
 use dprint_core::generate_plugin_code;
+use dprint_core::plugins::FileMatchingInfo;
 use dprint_core::plugins::FormatResult;
 use dprint_core::plugins::PluginInfo;
 use dprint_core::plugins::SyncPluginHandler;
+use dprint_core::plugins::SyncPluginInfo;
 
 use super::configuration::resolve_config;
 use super::configuration::Configuration;
 
-struct MarkdownPluginHandler {}
-
-impl MarkdownPluginHandler {
-  pub const fn new() -> Self {
-    MarkdownPluginHandler {}
-  }
-}
+struct MarkdownPluginHandler;
 
 impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   fn resolve_config(
@@ -32,27 +28,31 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   // Markdown extensions: markdown, mdown, mkdn, mdwn, mkd, md
   // ref: https://superuser.com/questions/249436/file-extension-for-markdown-files/285878#285878
   // ref: https://github.com/denoland/deno_registry2/issues/206
-  fn plugin_info(&mut self) -> PluginInfo {
+  fn plugin_info(&mut self) -> SyncPluginInfo {
     let version = env!("CARGO_PKG_VERSION").to_string();
-    PluginInfo {
-      name: env!("CARGO_PKG_NAME").to_string(),
-      version: version.clone(),
-      config_key: "markdown".to_string(),
-      file_extensions: vec![
-        "md".to_string(),
-        "mkd".to_string(),
-        "mdwn".to_string(),
-        "mkdn".to_string(),
-        "mdown".to_string(),
-        "markdown".to_string(),
-      ],
-      file_names: vec![],
-      help_url: "https://dprint.dev/plugins/markdown".to_string(),
-      config_schema_url: format!(
-        "https://plugins.dprint.dev/dprint/dprint-plugin-markdown/{}/schema.json",
-        version
-      ),
-      update_url: Some("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/latest.json".to_string()),
+    SyncPluginInfo {
+      info: PluginInfo {
+        name: env!("CARGO_PKG_NAME").to_string(),
+        version: version.clone(),
+        config_key: "markdown".to_string(),
+        help_url: "https://dprint.dev/plugins/markdown".to_string(),
+        config_schema_url: format!(
+          "https://plugins.dprint.dev/dprint/dprint-plugin-markdown/{}/schema.json",
+          version
+        ),
+        update_url: Some("https://plugins.dprint.dev/dprint/dprint-plugin-markdown/latest.json".to_string()),
+      },
+      file_matching: FileMatchingInfo {
+        file_extensions: vec![
+          "md".to_string(),
+          "mkd".to_string(),
+          "mdwn".to_string(),
+          "mkdn".to_string(),
+          "mdown".to_string(),
+          "markdown".to_string(),
+        ],
+        file_names: vec![],
+      },
     }
   }
 
@@ -100,4 +100,4 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   }
 }
 
-generate_plugin_code!(MarkdownPluginHandler, MarkdownPluginHandler::new());
+generate_plugin_code!(MarkdownPluginHandler, MarkdownPluginHandler);

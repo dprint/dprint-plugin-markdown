@@ -12,8 +12,8 @@ use dprint_core::configuration::*;
 /// use dprint_core::configuration::resolve_global_config;
 /// use dprint_plugin_markdown::configuration::resolve_config;
 ///
-/// let config_map = ConfigKeyMap::new(); // get a collection of key value pairs from somewhere
-/// let global_config_result = resolve_global_config(config_map, &Default::default());
+/// let mut config_map = ConfigKeyMap::new(); // get a collection of key value pairs from somewhere
+/// let global_config_result = resolve_global_config(&mut config_map);
 ///
 /// // check global_config_result.diagnostics here...
 ///
