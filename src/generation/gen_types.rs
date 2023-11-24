@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+
+use dprint_core::formatting::PrintItemPath;
+use dprint_core::formatting::PrintItems;
+use dprint_core::formatting::Signal;
 use regex::Regex;
 
 use super::utils::*;
@@ -6,6 +11,13 @@ use crate::format_text;
 use anyhow::Result;
 
 type FormatResult = Result<Option<String>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MemoizedRcPathKind {
+  StartIndent(u32),
+  StartWithSingleIndent(u32),
+  FinishIndent(u32),
+}
 
 pub struct Context<'a> {
   pub file_text: &'a str,
@@ -20,6 +32,7 @@ pub struct Context<'a> {
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
+  memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
 }
 
 impl<'a> Context<'a> {
@@ -39,6 +52,36 @@ impl<'a> Context<'a> {
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
       ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
+      memoized_rc_paths: HashMap::new(),
+    }
+  }
+
+  pub fn get_memoized_rc_path(&mut self, kind: MemoizedRcPathKind) -> Option<PrintItemPath> {
+    if let Some(path) = self.memoized_rc_paths.get(&kind) {
+      *path
+    } else {
+      let mut items = PrintItems::new();
+      match kind {
+        MemoizedRcPathKind::StartIndent(times) => {
+          for _ in 0..times {
+            items.push_signal(Signal::StartIndent);
+          }
+        }
+        MemoizedRcPathKind::StartWithSingleIndent(times) => {
+          items.push_optional_path(self.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(times)));
+          for _ in 0..times {
+            items.push_signal(Signal::SingleIndent);
+          }
+        }
+        MemoizedRcPathKind::FinishIndent(times) => {
+          for _ in 0..times {
+            items.push_signal(Signal::FinishIndent);
+          }
+        }
+      }
+      let path = items.into_rc_path();
+      self.memoized_rc_paths.insert(kind, path);
+      path
     }
   }
 

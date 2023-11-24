@@ -1,0 +1,18 @@
+!! should format lists in block quotes !!
+> - parent item
+>   - child item
+> 1. Test
+> 2. Test2
+>    - Testing
+>      1. Other
+>      2. Other
+
+[expect]
+> - parent item
+>   - child item
+>
+> 1. Test
+> 2. Test2
+>    - Testing
+>      1. Other
+>      2. Other
