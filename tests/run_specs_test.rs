@@ -11,7 +11,7 @@ use dprint_plugin_markdown::*;
 #[test]
 fn test_specs() {
   //debug_here!();
-  let global_config = resolve_global_config(ConfigKeyMap::new(), &Default::default()).config;
+  let global_config = GlobalConfiguration::default();
 
   run_specs(
     &PathBuf::from("./tests/specs"),
@@ -25,7 +25,8 @@ fn test_specs() {
     {
       let global_config = global_config.clone();
       move |_, file_text, spec_config| {
-        let config_result = resolve_config(parse_config_key_map(spec_config), &global_config);
+        let spec_config: ConfigKeyMap = serde_json::from_value(spec_config.clone().into()).unwrap();
+        let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
 
         format_text(&file_text, &config_result.config, |tag, file_text, line_width| {
@@ -41,7 +42,8 @@ fn test_specs() {
     move |_, _file_text, _spec_config| {
       #[cfg(feature = "tracing")]
       {
-        let config_result = resolve_config(parse_config_key_map(_spec_config), &global_config);
+        let spec_config: ConfigKeyMap = serde_json::from_value(spec_config.clone().into()).unwrap();
+        let config_result = resolve_config(_spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
         return serde_json::to_string(&trace_file(
           &_file_text,
