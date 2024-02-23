@@ -25,7 +25,8 @@ tracing = ["dprint-core/tracing"]
 
 [dependencies]
 anyhow = "1.0.64"
-dprint-core = { version = "0.63.3", features = ["formatting"] }
+dprint-core = { version = "0.66.1", features = ["formatting"] }
+dprint-core-macros = "0.1.0"
 pulldown-cmark = { version = "0.9.3", default-features = false }
 regex = "1"
 serde = { version = "1.0.144", features = ["derive"] }
