@@ -63,20 +63,27 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   fn format(
     &mut self,
     _file_path: &Path,
-    file_text: &str,
+    file_bytes: Vec<u8>,
     config: &Configuration,
-    mut format_with_host: impl FnMut(&Path, String, &ConfigKeyMap) -> FormatResult,
+    mut format_with_host: impl FnMut(&Path, Vec<u8>, &ConfigKeyMap) -> FormatResult,
   ) -> FormatResult {
-    return super::format_text(file_text, config, |tag, file_text, line_width| {
+    let file_text = String::from_utf8(file_bytes)?;
+    return super::format_text(&file_text, config, |tag, file_text, line_width| {
       if let Some(ext) = tag_to_extension(tag) {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = ConfigKeyMap::new();
         additional_config.insert("lineWidth".into(), (line_width as i32).into());
-        format_with_host(&file_path, file_text.to_string(), &additional_config)
+        let result = format_with_host(&file_path, file_text.to_string().into_bytes(), &additional_config);
+        match result {
+          Ok(Some(bytes)) => Ok(Some(String::from_utf8(bytes)?)),
+          Ok(None) => Ok(None),
+          Err(err) => Err(err),
+        }
       } else {
         Ok(None)
       }
-    });
+    })
+    .map(|maybe_text| maybe_text.map(|t| t.into_bytes()));
 
     fn tag_to_extension(tag: &str) -> Option<&'static str> {
       match tag.trim().to_lowercase().as_str() {

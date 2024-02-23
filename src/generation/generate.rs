@@ -6,6 +6,7 @@ use dprint_core::formatting::condition_resolvers;
 use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
+use dprint_core_macros::sc;
 use std::borrow::Cow;
 use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
@@ -167,7 +168,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
               if needs_space {
                 if node.starts_with_list_word() {
-                  items.push_str(" ");
+                  items.push_space();
                 } else {
                   items.extend(get_space_or_newline_based_on_config(context));
                 }
@@ -449,7 +450,7 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
       if let Some(current_word) = self.current_word.take() {
         if !self.items.is_empty() {
           if utils::is_list_word(&current_word) {
-            self.items.push_str(" ");
+            self.items.push_space();
           } else if self.was_last_newline {
             self.items.push_signal(Signal::NewLine)
           } else {
@@ -481,31 +482,31 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   let mut items = PrintItems::new();
   let decoration_text = match &text.kind {
     TextDecorationKind::Emphasis => match context.configuration.emphasis_kind {
-      EmphasisKind::Asterisks => "*",
+      EmphasisKind::Asterisks => sc!("*"),
       EmphasisKind::Underscores => {
         if keep_asterisk(text.range.end, context) {
-          "*"
+          sc!("*")
         } else {
-          "_"
+          sc!("_")
         }
       }
     },
     TextDecorationKind::Strong => match context.configuration.strong_kind {
-      StrongKind::Asterisks => "**",
+      StrongKind::Asterisks => sc!("**"),
       StrongKind::Underscores => {
         if keep_asterisk(text.range.end, context) {
-          "**"
+          sc!("**")
         } else {
-          "__"
+          sc!("__")
         }
       }
     },
-    TextDecorationKind::Strikethrough => "~~",
+    TextDecorationKind::Strikethrough => sc!("~~"),
   };
 
-  items.push_str(decoration_text);
+  items.push_sc(decoration_text);
   items.extend(gen_nodes(&text.children, context));
-  items.push_str(decoration_text);
+  items.push_sc(decoration_text);
 
   items
 }
@@ -531,7 +532,7 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     let generated_children = gen_nodes(&link.children, context);
-    items.push_str("[");
+    items.push_sc(sc!("["));
 
     // force the text to be on a single line in some scenarios
     let (generated_children, generated_children_clone) = clone_items(generated_children);
@@ -542,13 +543,13 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
       items.extend(generated_children);
     }
 
-    items.push_str("]");
-    items.push_str("(");
+    items.push_sc(sc!("]"));
+    items.push_sc(sc!("("));
     items.push_string(link.url.trim().to_string());
     if let Some(title) = &link.title {
       items.push_string(format!(" \"{}\"", title.trim()));
     }
-    items.push_str(")");
+    items.push_sc(sc!(")"));
 
     ir_helpers::new_line_group(items)
   })
@@ -557,9 +558,9 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    items.push_str("[");
+    items.push_sc(sc!("["));
     items.extend(gen_nodes(&link.children, context));
-    items.push_str("]");
+    items.push_sc(sc!("]"));
     items.push_string(format!("[{}]", link.reference.trim()));
     ir_helpers::new_line_group(items)
   })
@@ -568,9 +569,9 @@ fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems
 fn gen_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    items.push_str("[");
+    items.push_sc(sc!("["));
     items.extend(gen_nodes(&link.children, context));
-    items.push_str("]");
+    items.push_sc(sc!("]"));
     ir_helpers::new_line_group(items)
   })
 }
@@ -579,9 +580,9 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
   // auto-links can't contain spaces, but do this anyway just in case
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    items.push_str("<");
+    items.push_sc(sc!("<"));
     items.extend(gen_nodes(&link.children, context));
-    items.push_str(">");
+    items.push_sc(sc!(">"));
     ir_helpers::new_line_group(items)
   })
 }
@@ -599,12 +600,12 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
 fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
-  items.push_str("(");
+  items.push_sc(sc!("("));
   items.push_string(image.url.trim().to_string());
   if let Some(title) = &image.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
-  items.push_str(")");
+  items.push_sc(sc!(")"));
   ir_helpers::new_line_group(items)
 }
 
@@ -662,7 +663,7 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   if let Some(marker) = &item.marker {
     items.extend(gen_task_list_marker(marker, context));
     if !item.children.is_empty() {
-      items.push_str(" ");
+      items.push_space();
     }
   }
 
@@ -719,7 +720,7 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
 
 fn gen_hard_break(_: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_str("\\");
+  items.push_sc(sc!("\\"));
   items.push_signal(Signal::NewLine);
   items
 }
@@ -761,23 +762,23 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     for (i, column_width) in column_widths.iter().enumerate() {
       let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
       if i == 0 {
-        items.push_str("| ");
+        items.push_sc(sc!("| "));
       } else {
-        items.push_str(" ");
+        items.push_space();
       }
 
       let column_alignment_props = get_column_alignment_properties(column_alignment);
       let dashes_count = column_width - column_alignment_props.count();
 
       if column_alignment_props.has_left_colon {
-        items.push_str(":");
+        items.push_sc(sc!(":"));
       }
       items.push_string("-".repeat(dashes_count));
       if column_alignment_props.has_right_colon {
-        items.push_str(":");
+        items.push_sc(sc!(":"));
       }
 
-      items.push_str(" |");
+      items.push_sc(sc!(" |"));
     }
 
     ir_helpers::with_no_new_lines(items)
@@ -794,9 +795,9 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
       let column_max_width = *column_widths.get(i).unwrap();
       let difference = column_max_width - cell_width;
       if i == 0 {
-        items.push_str("| ")
+        items.push_sc(sc!("| "))
       } else {
-        items.push_str(" ");
+        items.push_space();
       }
 
       if difference > 0 {
@@ -825,7 +826,7 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         }
       }
 
-      items.push_str(" |");
+      items.push_sc(sc!(" |"));
     }
 
     ir_helpers::with_no_new_lines(items)
