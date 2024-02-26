@@ -101,6 +101,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "scss" => Some("scss"),
         "svelte" => Some("svelte"),
         "vue" => Some("vue"),
+        "astro" => Some("astro"),
         _ => None,
       }
     }
