@@ -94,13 +94,13 @@ impl<'a> CharScanner<'a> {
       }
     }
 
-    return Err(ParseError::new(
+    Err(ParseError::new(
       Range {
         start: self.pos,
         end: self.end(),
       },
       &format!("Did not find expected char of `{}`", searching_char),
-    ));
+    ))
   }
 
   pub fn skip_spaces(&mut self) {

@@ -44,7 +44,7 @@ pub fn format_text(
 pub fn trace_file(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> FormatResult,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
 ) -> dprint_core::formatting::TracingResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),

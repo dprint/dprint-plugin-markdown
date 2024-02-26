@@ -42,8 +42,8 @@ fn test_specs() {
     move |_, _file_text, _spec_config| {
       #[cfg(feature = "tracing")]
       {
-        let spec_config: ConfigKeyMap = serde_json::from_value(spec_config.clone().into()).unwrap();
-        let config_result = resolve_config(_spec_config, &global_config);
+        let spec_config: ConfigKeyMap = serde_json::from_value(_spec_config.clone().into()).unwrap();
+        let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
         return serde_json::to_string(&trace_file(
           &_file_text,
