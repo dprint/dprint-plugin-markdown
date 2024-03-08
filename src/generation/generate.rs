@@ -637,7 +637,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         };
         format!("{}{}", display_index, end_char)
       } else {
-        String::from(if is_alternate { "*" } else { "-" })
+        String::from(context.configuration.primary_list_kind.list_char(is_alternate))
       };
       let indent_increment = (prefix_text.chars().count() + 1) as u32;
       context.indent_level += indent_increment;
