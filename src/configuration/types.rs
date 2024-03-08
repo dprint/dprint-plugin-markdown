@@ -12,6 +12,7 @@ pub struct Configuration {
   pub text_wrap: TextWrap,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,
+  pub primary_list_kind: PrimaryListKind,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
@@ -55,3 +56,38 @@ pub enum StrongKind {
 }
 
 generate_str_to_from![StrongKind, [Asterisks, "asterisks"], [Underscores, "underscores"]];
+
+/// The character to use primarily for lists.
+///
+/// Unnumbered lists will be formatted to use a common list character, i.e., the primary list
+/// character. Additionally, an alternate list character is used to separate lists which are not
+/// separated by other paragraphs. This parameter defines which character should be used as primary
+/// list character, i.e., either '-' (default) or '*'. The alternate list character will be the one
+/// which is _not_ primary.
+#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PrimaryListKind {
+  /// Uses dashes (-) as primary character for lists (default).
+  ///
+  /// In this case, asterisks are used as alternate list chracters.
+  Dashes,
+  /// Uses asterisks (*) as primary character for lists.
+  ///
+  /// In this case, dashes are used as alternate list chracters.
+  Asterisks,
+}
+
+impl PrimaryListKind {
+  /// Determine the character to use for a list, i.e., '-' or '*'.
+  ///
+  /// The result depends on the configuration and whether the primary or alternate character is
+  /// requested. See [`Self`].
+  pub fn list_char(&self, is_alternate: bool) -> char {
+    match (self, is_alternate) {
+      (Self::Dashes, true) | (Self::Asterisks, false) => '*',
+      _ => '-',
+    }
+  }
+}
+
+generate_str_to_from![PrimaryListKind, [Dashes, "dashes"], [Asterisks, "asterisks"]];
