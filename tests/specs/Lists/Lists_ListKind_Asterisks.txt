@@ -1,0 +1,38 @@
+~~ lineWidth: 40, unorderedListKind: asterisks ~~
+!! should format an unordered list with asterisks !!
+- A
+- B
+-   C
+
+[expect]
+* A
+* B
+* C
+
+!! should format an unordered list with plus signs !!
++ A
++ B
++   C
+
+[expect]
+* A
+* B
+* C
+
+!! should handle multiple lists one after the other !!
+* test
+* test
+
+- test
+- test
+
+* test
+
+[expect]
+* test
+* test
+
+- test
+- test
+
+* test

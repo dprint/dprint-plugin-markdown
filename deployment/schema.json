@@ -60,6 +60,18 @@
         "description": "Uses underscores (__) for strong emphasis."
       }]
     },
+    "unorderedListKind": {
+      "description": "The character to use for unordered lists.",
+      "type": "string",
+      "default": "dashes",
+      "oneOf": [{
+        "const": "dashes",
+        "description": "Uses dashes (-) as primary character for lists."
+      }, {
+        "const": "asterisks",
+        "description": "Uses asterisks (*) as primary character for lists."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
