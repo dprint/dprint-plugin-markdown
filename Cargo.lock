@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "dprint-plugin-markdown"
-version = "0.16.4"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "dprint-core",
