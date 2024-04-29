@@ -2,14 +2,14 @@ extern crate dprint_development;
 extern crate dprint_plugin_markdown;
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use dprint_core::configuration::*;
 use dprint_development::*;
 use dprint_plugin_markdown::configuration::*;
 use dprint_plugin_markdown::*;
 
-#[test]
-fn test_specs() {
+fn main() {
   //debug_here!();
   let global_config = GlobalConfiguration::default();
 
@@ -24,7 +24,7 @@ fn test_specs() {
     },
     {
       let global_config = global_config.clone();
-      move |_, file_text, spec_config| {
+      Arc::new(move |_, file_text, spec_config| {
         let spec_config: ConfigKeyMap = serde_json::from_value(spec_config.clone().into()).unwrap();
         let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
@@ -37,9 +37,9 @@ fn test_specs() {
             Ok(None)
           }
         })
-      }
+      })
     },
-    move |_, _file_text, _spec_config| {
+    Arc::new(move |_, _file_text, _spec_config| {
       #[cfg(feature = "tracing")]
       {
         let spec_config: ConfigKeyMap = serde_json::from_value(_spec_config.clone().into()).unwrap();
@@ -62,6 +62,6 @@ fn test_specs() {
 
       #[cfg(not(feature = "tracing"))]
       panic!("\n====\nPlease run with `cargo test --features tracing` to get trace output\n====\n")
-    },
+    }),
   );
 }
