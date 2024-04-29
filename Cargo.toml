@@ -23,6 +23,11 @@ panic = "abort"
 wasm = ["serde_json", "dprint-core/wasm"]
 tracing = ["dprint-core/tracing"]
 
+[[test]]
+name = "specs"
+path = "tests/spec_test.rs"
+harness = false
+
 [dependencies]
 anyhow = "1.0.64"
 dprint-core = { version = "0.66.1", features = ["formatting"] }
@@ -34,5 +39,5 @@ serde_json = { version = "1.0", optional = true }
 unicode-width = "0.1.10"
 
 [dev-dependencies]
-dprint-development = "0.9.5"
+dprint-development = "0.10.0"
 serde_json = { version = "1.0" }
