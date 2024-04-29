@@ -282,7 +282,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           {
             let mut items = PrintItems::new();
             items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_str("> ");
+            items.push_sc(sc!("> "));
             items.push_optional_path(
               context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
             );
@@ -298,7 +298,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           {
             let mut items = PrintItems::new();
             items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_str(">");
+            items.push_sc(sc!(">"));
             items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
             items
           },
@@ -661,7 +661,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         };
         format!("{}{}", display_index, end_char)
       } else {
-        String::from(context.configuration.primary_list_kind.list_char(is_alternate))
+        String::from(context.configuration.unordered_list_kind.list_char(is_alternate))
       };
       let indent_increment = (prefix_text.chars().count() + 1) as u32;
       context.indent_level += indent_increment;

@@ -12,7 +12,7 @@ pub struct Configuration {
   pub text_wrap: TextWrap,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,
-  pub primary_list_kind: PrimaryListKind,
+  pub unordered_list_kind: UnorderedListKind,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
@@ -66,7 +66,7 @@ generate_str_to_from![StrongKind, [Asterisks, "asterisks"], [Underscores, "under
 /// which is _not_ primary.
 #[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum PrimaryListKind {
+pub enum UnorderedListKind {
   /// Uses dashes (-) as primary character for lists (default).
   ///
   /// In this case, asterisks are used as alternate list chracters.
@@ -77,7 +77,7 @@ pub enum PrimaryListKind {
   Asterisks,
 }
 
-impl PrimaryListKind {
+impl UnorderedListKind {
   /// Determine the character to use for a list, i.e., '-' or '*'.
   ///
   /// The result depends on the configuration and whether the primary or alternate character is
@@ -90,4 +90,4 @@ impl PrimaryListKind {
   }
 }
 
-generate_str_to_from![PrimaryListKind, [Dashes, "dashes"], [Asterisks, "asterisks"]];
+generate_str_to_from![UnorderedListKind, [Dashes, "dashes"], [Asterisks, "asterisks"]];

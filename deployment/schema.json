@@ -60,8 +60,8 @@
         "description": "Uses underscores (__) for strong emphasis."
       }]
     },
-    "primaryListKind": {
-      "description": "The character to use primarily for lists.",
+    "unorderedListKind": {
+      "description": "The character to use for unordered lists.",
       "type": "string",
       "default": "dashes",
       "oneOf": [{

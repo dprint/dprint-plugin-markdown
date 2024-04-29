@@ -54,10 +54,10 @@ pub fn resolve_config(
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
     emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
     strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
-    primary_list_kind: get_value(
+    unordered_list_kind: get_value(
       &mut config,
-      "primaryListKind",
-      PrimaryListKind::Dashes,
+      "unorderedListKind",
+      UnorderedListKind::Dashes,
       &mut diagnostics,
     ),
     ignore_directive: get_value(

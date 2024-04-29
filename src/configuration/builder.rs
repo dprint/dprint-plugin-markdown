@@ -73,6 +73,12 @@ impl ConfigurationBuilder {
     self.insert("strongKind", value.to_string().into())
   }
 
+  /// The character to use for lists.
+  /// Default: `UnorderedListKind::Dashes`
+  pub fn unordered_list_kind(&mut self, value: UnorderedListKind) -> &mut Self {
+    self.insert("unorderedListKind", value.to_string().into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -133,13 +139,14 @@ mod tests {
       .text_wrap(TextWrap::Always)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
+      .unordered_list_kind(UnorderedListKind::Asterisks)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 9);
+    assert_eq!(inner_config.len(), 10);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
