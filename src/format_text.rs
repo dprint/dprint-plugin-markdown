@@ -18,12 +18,27 @@ pub fn format_text(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
 ) -> Result<Option<String>> {
+  let result = format_text_inner(file_text, config, format_code_block_text)?;
+
+  match result {
+    Some(result) if result == file_text => Ok(None),
+    Some(result) => Ok(Some(result)),
+    None => Ok(None),
+  }
+}
+
+fn format_text_inner(
+  file_text: &str,
+  config: &Configuration,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
+) -> Result<Option<String>> {
+  let file_text = strip_bom(file_text);
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
   };
 
-  let result = dprint_core::formatting::format(
+  Ok(Some(dprint_core::formatting::format(
     || {
       let mut context = Context::new(markdown_text, config, format_code_block_text);
       #[allow(clippy::let_and_return)]
@@ -32,12 +47,7 @@ pub fn format_text(
       print_items
     },
     config_to_print_options(file_text, config),
-  );
-  if result == file_text {
-    Ok(None)
-  } else {
-    Ok(Some(result))
-  }
+  )))
 }
 
 #[cfg(feature = "tracing")]
@@ -59,6 +69,10 @@ pub fn trace_file(
     },
     config_to_print_options(file_text, config),
   )
+}
+
+fn strip_bom(text: &str) -> &str {
+  text.strip_prefix("\u{FEFF}").unwrap_or(text)
 }
 
 enum ParseFileResult<'a> {
@@ -101,5 +115,20 @@ fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOpti
     max_width: config.line_width,
     use_tabs: false, // ignore tabs, always use spaces
     new_line_text: resolve_new_line_kind(file_text, config.new_line_kind),
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+  use crate::configuration::ConfigurationBuilder;
+
+  #[test]
+  fn strips_bom() {
+    for input_text in ["\u{FEFF}#  Title", "\u{FEFF}# Title\n"] {
+      let config = ConfigurationBuilder::new().build();
+      let result = format_text(input_text, &config, |_, _, _| Ok(None)).unwrap();
+      assert_eq!(result, Some("# Title\n".to_string()));
+    }
   }
 }
