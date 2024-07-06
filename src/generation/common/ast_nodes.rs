@@ -10,10 +10,14 @@ pub trait Ranged {
 pub struct SourceFile {
   pub range: Range,
   pub children: Vec<Node>,
-  pub yaml_header: Option<YamlHeader>,
 }
 
 pub struct YamlHeader {
+  pub range: Range,
+  pub text: String,
+}
+
+pub struct PlusesHeader {
   pub range: Range,
   pub text: String,
 }
@@ -328,5 +332,7 @@ generate_node![
   Table,
   TableHead,
   TableRow,
-  TableCell
+  TableCell,
+  YamlHeader,
+  PlusesHeader
 ];

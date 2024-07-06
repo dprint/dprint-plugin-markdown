@@ -44,21 +44,14 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
     Node::TableCell(node) => gen_table_cell(node, context),
+    Node::YamlHeader { .. } => ir_helpers::gen_from_raw_string(node.text(context)),
+    Node::PlusesHeader { .. } => ir_helpers::gen_from_raw_string(node.text(context)),
     Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
 
 fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-
-  if let Some(yaml_header) = &source_file.yaml_header {
-    items.extend(ir_helpers::gen_from_raw_string(&yaml_header.text));
-
-    if !source_file.children.is_empty() {
-      items.push_signal(Signal::NewLine);
-      items.push_signal(Signal::NewLine);
-    }
-  }
 
   items.extend(gen_nodes(&source_file.children, context));
 

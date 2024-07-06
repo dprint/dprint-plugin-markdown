@@ -104,6 +104,8 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   options.insert(Options::ENABLE_FOOTNOTES);
   options.insert(Options::ENABLE_STRIKETHROUGH);
   options.insert(Options::ENABLE_TASKLISTS);
+  options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+  options.insert(Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS);
 
   let mut children: Vec<Node> = Vec::new();
   let mut iterator = EventIterator::new(
@@ -141,7 +143,6 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   Ok(SourceFile {
     children,
     range: iterator.get_range_for_start(0),
-    yaml_header: None,
   })
 }
 
@@ -205,7 +206,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
     ),
     Event::InlineMath(_) => todo!(),
     Event::DisplayMath(_) => todo!(),
-    Event::InlineHtml(_) => todo!(),
+    Event::InlineHtml(html) => parse_html(html, iterator).map(Into::into),
   }
 }
 
@@ -232,8 +233,8 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
     Tag::Image { link_type, .. } => parse_image(link_type, iterator),
     Tag::List(first_item_number) => parse_list(first_item_number, iterator).map(|x| x.into()),
     Tag::Item => parse_item(iterator).map(|x| x.into()),
-    Tag::HtmlBlock => unimplemented!("html block parsing not implemented"),
-    Tag::MetadataBlock(_) => unimplemented!("metadata block parsing not implemented"),
+    Tag::HtmlBlock => parse_html_block(iterator).map(|x| x.into()),
+    Tag::MetadataBlock(metadata_block_kind) => parse_metadata(metadata_block_kind, iterator),
   }
 }
 
@@ -399,6 +400,31 @@ fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseE
       start,
       end: start + text.len(),
     },
+    text,
+  })
+}
+
+fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
+  let start = iterator.start();
+  let mut text = String::new();
+  iterator.allow_empty_text_events = true;
+
+  while let Some(event) = iterator.next() {
+    match event {
+      Event::End(TagEnd::HtmlBlock) => break,
+      Event::Text(event_text) => text.push_str(event_text.as_ref()),
+      Event::Html(event_text) => text.push_str(event_text.as_ref()),
+      _ => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          format!("Unexpected event found when parsing html block: {event:?}"),
+        ))
+      }
+    }
+  }
+
+  Ok(Html {
+    range: iterator.get_range_for_start(start),
     text,
   })
 }
@@ -658,5 +684,48 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     marker,
     children,
     sub_lists,
+  })
+}
+
+fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Result<Node, ParseError> {
+  let start = iterator.get_last_range().start;
+  let mut text = String::new();
+  while let Some(event) = iterator.next() {
+    match event {
+      Event::End(TagEnd::MetadataBlock(end_kind)) if kind == end_kind => break,
+      Event::End(TagEnd::MetadataBlock(end_kind)) => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          format!("Expected metadata block to end with {kind:?}, found {end_kind:?}."),
+        ))
+      }
+      Event::Text(t) => text.push_str(&t),
+      Event::SoftBreak | Event::HardBreak => continue,
+      // assuming here that pulldown-cmark doesn't tokenize anything beyond text and line breaks
+      // between metadata block markers then everything else should be a parse error here
+      _ => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          "Unexpected event found when parsing code block.",
+        ))
+      }
+    }
+  }
+
+  Ok(match kind {
+    MetadataBlockKind::YamlStyle => Node::YamlHeader(YamlHeader {
+      range: Range {
+        start,
+        end: start + text.len(),
+      },
+      text,
+    }),
+    MetadataBlockKind::PlusesStyle => Node::PlusesHeader(PlusesHeader {
+      range: Range {
+        start,
+        end: start + text.len(),
+      },
+      text,
+    }),
   })
 }

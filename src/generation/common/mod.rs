@@ -12,10 +12,10 @@ pub struct ParseError {
 }
 
 impl ParseError {
-  pub(super) fn new(range: Range, message: &str) -> ParseError {
+  pub(super) fn new(range: Range, message: impl Into<String>) -> ParseError {
     ParseError {
       range,
-      message: String::from(message),
+      message: message.into(),
     }
   }
 }
