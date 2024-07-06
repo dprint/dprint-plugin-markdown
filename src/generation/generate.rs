@@ -724,11 +724,15 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
 }
 
 fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
   if marker.is_checked {
-    "[x]".into()
+    items.push_string("[x]".into());
   } else {
-    "[ ]".into()
+    items.push_string("[ ]".into());
   }
+
+  items.push_space();
+  items
 }
 
 fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
