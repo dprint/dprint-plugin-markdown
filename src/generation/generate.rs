@@ -44,8 +44,8 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
     Node::TableCell(node) => gen_table_cell(node, context),
-    Node::YamlHeader { .. } => ir_helpers::gen_from_raw_string(node.text(context)),
-    Node::PlusesHeader { .. } => ir_helpers::gen_from_raw_string(node.text(context)),
+    Node::YamlHeader(node) => gen_yaml_metadata(node, context),
+    Node::PlusesHeader(node) => gen_pluses_metadata(node, context),
     Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
@@ -405,9 +405,13 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  gen_str(&text.text, context)
+}
+
+fn gen_str(text: &str, context: &mut Context) -> PrintItems {
   let mut text_builder = TextBuilder::new(context);
 
-  for c in text.text.chars() {
+  for c in text.chars() {
     text_builder.add_char(c);
   }
 
@@ -924,6 +928,27 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
 
 fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
   gen_nodes(&table_cell.children, context)
+}
+
+fn gen_pluses_metadata(node: &PlusesHeader, context: &mut Context) -> PrintItems {
+  gen_metadata(&node.text, "+++", context)
+}
+
+fn gen_yaml_metadata(node: &YamlHeader, context: &mut Context) -> PrintItems {
+  gen_metadata(&node.text, "---", context)
+}
+
+fn gen_metadata(text: &str, delimiter: &str, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let test_items = gen_str(text, context);
+
+  items.push_string(delimiter.into());
+  items.push_signal(Signal::NewLine);
+  items.extend(test_items);
+  items.push_signal(Signal::NewLine);
+  items.push_string(delimiter.into());
+
+  items
 }
 
 fn get_items_single_line_width(items: PrintItems) -> (PrintItems, usize) {
