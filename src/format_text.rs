@@ -7,6 +7,7 @@ use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
 use super::generation::generate;
 use super::generation::parse_cmark_ast;
+use super::generation::parse_yaml_header;
 use super::generation::Context;
 
 /// Formats a file.
@@ -80,13 +81,23 @@ enum ParseFileResult<'a> {
 }
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>> {
+  let yaml_header = parse_yaml_header(file_text); // todo: improve... this is kind of hacked into here
+  let markdown_text = match &yaml_header {
+    Some(yaml_header) => &file_text[yaml_header.range.end..],
+    None => file_text,
+  };
+
   // check for the presence of an dprint-ignore-file comment before parsing
-  if file_has_ignore_file_directive(file_text, &config.ignore_file_directive) {
+  if file_has_ignore_file_directive(markdown_text, &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }
 
-  match parse_cmark_ast(file_text) {
-    Ok(source_file) => Ok(ParseFileResult::SourceFile((source_file, file_text))),
+  match parse_cmark_ast(markdown_text) {
+    Ok(source_file) => {
+      let mut source_file = source_file;
+      source_file.yaml_header = yaml_header;
+      Ok(ParseFileResult::SourceFile((source_file, markdown_text)))
+    }
     Err(error) => bail!(
       "{}",
       dprint_core::formatting::utils::string_utils::format_diagnostic(
