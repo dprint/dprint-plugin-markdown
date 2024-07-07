@@ -36,7 +36,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ReferenceImage(node) => gen_reference_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
-    Node::TaskListMarker(node) => gen_task_list_marker(node, context),
+    Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
     Node::HardBreak(_) => gen_hard_break(context),
@@ -260,7 +260,17 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
 }
 
 fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
-  gen_nodes(&paragraph.children, context)
+  let mut items = PrintItems::new();
+
+  if let Some(marker) = &paragraph.marker {
+    items.extend(gen_task_list_marker(marker, context));
+    if !paragraph.children.is_empty() {
+      items.push_space();
+    }
+  }
+
+  items.extend(gen_nodes(&paragraph.children, context));
+  items
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
@@ -684,16 +694,6 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
 fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
-  if let Some(marker) = &item.marker {
-    items.extend(gen_task_list_marker(marker, context));
-    if !item.children.is_empty() {
-      items.push_space();
-    }
-  }
-
-  // indent the children to beyond the task list marker
-  let marker_indent = if item.marker.is_some() { 4 } else { 0 };
-  context.raw_indent_level += marker_indent;
   let indent_child_index_end = item
     .children
     .iter()
@@ -706,9 +706,8 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     .unwrap_or(item.children.len());
   items.extend(with_indent_times(
     gen_nodes(&item.children[..indent_child_index_end], context),
-    marker_indent,
+    context.raw_indent_level, //marker_indent,
   ));
-  context.raw_indent_level -= marker_indent;
 
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != item.children.len() {
@@ -738,7 +737,6 @@ fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems 
     items.push_string("[ ]".into());
   }
 
-  items.push_space();
   items
 }
 

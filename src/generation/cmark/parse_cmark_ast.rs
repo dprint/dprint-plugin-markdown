@@ -162,6 +162,7 @@ fn parse_references(
               end: references.last().unwrap().range.end,
             },
             children: references.into_iter().map(|x| x.into()).collect(),
+            marker: None,
           }
           .into(),
         ));
@@ -267,10 +268,17 @@ fn parse_heading(level: HeadingLevel, iterator: &mut EventIterator) -> Result<He
 fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
+  let mut marker: Option<TaskListMarker> = None;
 
   while let Some(event) = iterator.next() {
     match event {
       Event::End(TagEnd::Paragraph) => break,
+      Event::TaskListMarker(is_checked) if marker.is_none() => {
+        marker = Some(TaskListMarker {
+          range: iterator.get_last_range(),
+          is_checked,
+        });
+      }
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -278,6 +286,7 @@ fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError
   Ok(Paragraph {
     range: iterator.get_range_for_start(start),
     children,
+    marker,
   })
 }
 
@@ -647,17 +656,6 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
   let mut children = Vec::new();
   let mut sub_lists = Vec::new();
 
-  let marker = if let Some((Event::TaskListMarker(is_checked), _)) = iterator.peek() {
-    let marker = TaskListMarker {
-      range: iterator.get_last_range(),
-      is_checked: *is_checked,
-    };
-    iterator.next();
-    Some(marker)
-  } else {
-    None
-  };
-
   while let Some(event) = iterator.next() {
     match event {
       Event::End(TagEnd::Item) => break,
@@ -681,7 +679,6 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   Ok(Item {
     range,
-    marker,
     children,
     sub_lists,
   })
