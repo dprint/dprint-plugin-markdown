@@ -125,7 +125,7 @@ impl<'a> Context<'a> {
 
     let file_bytes = self.file_text.as_bytes();
     let mut count = 0;
-    for byte in &file_bytes[start..end] {
+    for byte in &file_bytes[start-1..end] {
       if byte == &b'\n' {
         count += 1;
       }
