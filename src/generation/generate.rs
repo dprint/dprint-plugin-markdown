@@ -532,8 +532,8 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
-  html.text.trim_end().to_string().into()
+fn gen_html(html: &Html, context: &mut Context) -> PrintItems {
+  gen_str(&html.text, context)
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
