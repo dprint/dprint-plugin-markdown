@@ -92,12 +92,8 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
     return Ok(ParseFileResult::IgnoreFile);
   }
 
-  match parse_cmark_ast(markdown_text) {
-    Ok(source_file) => {
-      let mut source_file = source_file;
-      source_file.yaml_header = yaml_header;
-      Ok(ParseFileResult::SourceFile((source_file, markdown_text)))
-    }
+  match parse_cmark_ast(file_text) {
+    Ok(source_file) => Ok(ParseFileResult::SourceFile((source_file, file_text))),
     Err(error) => bail!(
       "{}",
       dprint_core::formatting::utils::string_utils::format_diagnostic(
