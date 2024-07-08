@@ -25,6 +25,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
     Node::Html(node) => gen_html(node, context),
+    Node::HtmlBlock(node) => gen_html_block(node, context),
     Node::FootnoteReference(node) => gen_footnote_reference(node, context),
     Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
     Node::InlineLink(node) => gen_inline_link(node, context),
@@ -545,8 +546,19 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, context: &mut Context) -> PrintItems {
-  gen_str(&html.text, context)
+fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
+  html.text.trim_end().to_string().into()
+}
+
+fn gen_html_block(block: &HtmlBlock, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+
+  items.extend(with_indent_times(
+    gen_nodes(&block.children, context),
+    context.raw_indent_level,
+  ));
+
+  items
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {

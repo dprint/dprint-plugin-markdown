@@ -61,6 +61,11 @@ pub struct Html {
   pub text: String,
 }
 
+pub struct HtmlBlock {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
 pub struct FootnoteReference {
   pub range: Range,
   pub name: String,
@@ -313,6 +318,7 @@ generate_node![
   Text,
   TextDecoration,
   Html,
+  HtmlBlock,
   FootnoteReference,
   FootnoteDefinition,
   InlineLink,

@@ -413,16 +413,15 @@ fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseE
   })
 }
 
-fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
+fn parse_html_block(iterator: &mut EventIterator) -> Result<HtmlBlock, ParseError> {
   let start = iterator.start();
-  let mut text = String::new();
+  let mut children = Vec::new();
   iterator.allow_empty_text_events = true;
 
   while let Some(event) = iterator.next() {
     match event {
       Event::End(TagEnd::HtmlBlock) => break,
-      Event::Text(event_text) => text.push_str(event_text.as_ref()),
-      Event::Html(event_text) => text.push_str(event_text.as_ref()),
+      Event::Text(_) | Event::Html(_) => children.push(parse_event(event, iterator)?),
       _ => {
         return Err(ParseError::new(
           iterator.get_last_range(),
@@ -432,9 +431,9 @@ fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
     }
   }
 
-  Ok(Html {
+  Ok(HtmlBlock {
     range: iterator.get_range_for_start(start),
-    text,
+    children,
   })
 }
 
