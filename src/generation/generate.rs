@@ -694,6 +694,16 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
 fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
+  if let Some(marker) = &item.marker {
+    items.extend(gen_task_list_marker(marker, context));
+    if !item.children.is_empty() {
+      items.push_space();
+    }
+  }
+
+  // indent the children to beyond the task list marker
+  let marker_indent = if item.marker.is_some() { 4 } else { 0 };
+  context.raw_indent_level += marker_indent;
   let indent_child_index_end = item
     .children
     .iter()
@@ -706,8 +716,9 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     .unwrap_or(item.children.len());
   items.extend(with_indent_times(
     gen_nodes(&item.children[..indent_child_index_end], context),
-    context.raw_indent_level, //marker_indent,
+    marker_indent,
   ));
+  context.raw_indent_level -= marker_indent;
 
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != item.children.len() {
