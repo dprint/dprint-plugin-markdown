@@ -102,6 +102,8 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "svelte" => Some("svelte"),
         "vue" => Some("vue"),
         "astro" => Some("astro"),
+        "yml" | "yaml" => Some("yaml"),
+        "graphql" => Some("graphql"),
         _ => None,
       }
     }
