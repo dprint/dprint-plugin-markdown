@@ -584,8 +584,7 @@ fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -
   })
 }
 
-// todo: lots of dut
-// kplicate code here... something should be done
+// todo: lots of duplicate code here... something should be done
 
 fn parse_table_head(iterator: &mut EventIterator) -> Result<TableHead, ParseError> {
   let start = iterator.start();

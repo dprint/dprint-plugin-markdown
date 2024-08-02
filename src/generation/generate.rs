@@ -72,7 +72,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   }
 
   let mut last_node: Option<&Node> = None;
-  let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_))).peekable();
+  let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
 
   while let Some(node) = node_iterator.next() {
     let mut node = node;
@@ -202,9 +202,6 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           last_node = Some(node);
         }
       } else if context.ignore_start_regex.is_match(&html.text) {
-        if node_iterator.peek().is_some() {
-          items.push_signal(Signal::NewLine);
-        }
         let mut range: Option<Range> = None;
         let mut end_comment = None;
         let start = html.range().end;
