@@ -58,12 +58,6 @@ pub struct TextDecoration {
 
 pub struct Html {
   pub range: Range,
-  pub text: String,
-}
-
-pub struct HtmlBlock {
-  pub range: Range,
-  pub children: Vec<Node>,
 }
 
 pub struct FootnoteReference {
@@ -318,7 +312,6 @@ generate_node![
   Text,
   TextDecoration,
   Html,
-  HtmlBlock,
   FootnoteReference,
   FootnoteDefinition,
   InlineLink,

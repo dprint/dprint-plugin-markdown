@@ -311,6 +311,7 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
   let start = iterator.start();
   let mut code = String::new();
 
+  let original_allow_empty_text_events = iterator.allow_empty_text_events;
   iterator.allow_empty_text_events = true;
 
   while let Some(event) = iterator.next() {
@@ -326,7 +327,7 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
     }
   }
 
-  iterator.allow_empty_text_events = false;
+  iterator.allow_empty_text_events = original_allow_empty_text_events;
 
   let is_fenced = matches!(code_block_kind, CodeBlockKind::Fenced(_));
   let tag = match code_block_kind {
@@ -402,38 +403,36 @@ fn parse_text_decoration(kind: TextDecorationKind, iterator: &mut EventIterator)
 }
 
 fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseError> {
-  let text = String::from(text.as_ref().trim_end());
+  let text = text.as_ref().trim_end();
   let start = iterator.get_last_range().start;
   Ok(Html {
     range: Range {
       start,
       end: start + text.len(),
     },
-    text,
   })
 }
 
-fn parse_html_block(iterator: &mut EventIterator) -> Result<HtmlBlock, ParseError> {
+fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
   let start = iterator.start();
-  let mut children = Vec::new();
+  let original_allow_empty_text_events = iterator.allow_empty_text_events;
   iterator.allow_empty_text_events = true;
 
   while let Some(event) = iterator.next() {
     match event {
       Event::End(TagEnd::HtmlBlock) => break,
-      Event::Text(_) | Event::Html(_) => children.push(parse_event(event, iterator)?),
-      _ => {
-        return Err(ParseError::new(
-          iterator.get_last_range(),
-          format!("Unexpected event found when parsing html block: {event:?}"),
-        ))
-      }
+      _ => {}
     }
   }
 
-  Ok(HtmlBlock {
-    range: iterator.get_range_for_start(start),
-    children,
+  iterator.allow_empty_text_events = original_allow_empty_text_events;
+
+  let range = iterator.get_range_for_start(start);
+  Ok(Html {
+    range: Range {
+      start,
+      end: start + iterator.file_text[range].trim_end().len(),
+    },
   })
 }
 

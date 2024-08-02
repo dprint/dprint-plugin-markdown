@@ -25,7 +25,6 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
     Node::Html(node) => gen_html(node, context),
-    Node::HtmlBlock(node) => gen_html_block(node, context),
     Node::FootnoteReference(node) => gen_footnote_reference(node, context),
     Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
     Node::InlineLink(node) => gen_inline_link(node, context),
@@ -185,7 +184,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
     // check for ignore comment
     if let Node::Html(html) = node {
-      if context.ignore_regex.is_match(&html.text) {
+      let html_text = &context.file_text[html.range.clone()];
+      if context.ignore_regex.is_match(html_text) {
         items.push_signal(Signal::NewLine);
         if let Some(node) = node_iterator.next() {
           if utils::has_leading_blankline(node.range().start, context.file_text) {
@@ -201,7 +201,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
           last_node = Some(node);
         }
-      } else if context.ignore_start_regex.is_match(&html.text) {
+      } else if context.ignore_start_regex.is_match(html_text) {
         let mut range: Option<Range> = None;
         let mut end_comment = None;
         let start = html.range().end;
@@ -209,7 +209,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           last_node = Some(node);
 
           if let Node::Html(html) = node {
-            if context.ignore_end_regex.is_match(&html.text) {
+            let html_text = &context.file_text[html.range.clone()];
+            if context.ignore_end_regex.is_match(html_text) {
               end_comment = Some(html);
               break;
             }
@@ -543,18 +544,14 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
-  html.text.trim_end().to_string().into()
-}
-
-fn gen_html_block(block: &HtmlBlock, context: &mut Context) -> PrintItems {
+fn gen_html(html: &Html, ctx: &mut Context) -> PrintItems {
+  let text = ctx.file_text[html.range.clone()].trim_end();
+  if text.is_empty() {
+    return PrintItems::new();
+  }
   let mut items = PrintItems::new();
-
-  items.extend(with_indent_times(
-    gen_nodes(&block.children, context),
-    context.raw_indent_level,
-  ));
-
+  items.push_sc(sc!("")); // force first line indentation
+  items.extend(ir_helpers::gen_from_raw_string(text));
   items
 }
 
