@@ -36,7 +36,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ReferenceImage(node) => gen_reference_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
-    Node::TaskListMarker(node) => gen_task_list_marker(node, context),
+    Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
     Node::HardBreak(_) => gen_hard_break(context),
@@ -44,21 +44,14 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
     Node::TableCell(node) => gen_table_cell(node, context),
+    Node::YamlHeader(node) => gen_yaml_metadata(node, context),
+    Node::PlusesHeader(node) => gen_pluses_metadata(node, context),
     Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
 
 fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-
-  if let Some(yaml_header) = &source_file.yaml_header {
-    items.extend(ir_helpers::gen_from_raw_string(&yaml_header.text));
-
-    if !source_file.children.is_empty() {
-      items.push_signal(Signal::NewLine);
-      items.push_signal(Signal::NewLine);
-    }
-  }
 
   items.extend(gen_nodes(&source_file.children, context));
 
@@ -191,7 +184,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
     // check for ignore comment
     if let Node::Html(html) = node {
-      if context.ignore_regex.is_match(&html.text) {
+      let html_text = &context.file_text[html.range.clone()];
+      if context.ignore_regex.is_match(html_text) {
         items.push_signal(Signal::NewLine);
         if let Some(node) = node_iterator.next() {
           if utils::has_leading_blankline(node.range().start, context.file_text) {
@@ -207,7 +201,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
           last_node = Some(node);
         }
-      } else if context.ignore_start_regex.is_match(&html.text) {
+      } else if context.ignore_start_regex.is_match(html_text) {
         let mut range: Option<Range> = None;
         let mut end_comment = None;
         let start = html.range().end;
@@ -215,7 +209,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           last_node = Some(node);
 
           if let Node::Html(html) = node {
-            if context.ignore_end_regex.is_match(&html.text) {
+            let html_text = &context.file_text[html.range.clone()];
+            if context.ignore_end_regex.is_match(html_text) {
               end_comment = Some(html);
               break;
             }
@@ -264,7 +259,17 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
 }
 
 fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
-  gen_nodes(&paragraph.children, context)
+  let mut items = PrintItems::new();
+
+  if let Some(marker) = &paragraph.marker {
+    items.extend(gen_task_list_marker(marker, context));
+    if !paragraph.children.is_empty() {
+      items.push_space();
+    }
+  }
+
+  items.extend(gen_nodes(&paragraph.children, context));
+  items
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
@@ -412,9 +417,13 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  gen_str(&text.text, context)
+}
+
+fn gen_str(text: &str, context: &mut Context) -> PrintItems {
   let mut text_builder = TextBuilder::new(context);
 
-  for c in text.text.chars() {
+  for c in text.chars() {
     text_builder.add_char(c);
   }
 
@@ -535,8 +544,15 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, _: &mut Context) -> PrintItems {
-  html.text.trim_end().to_string().into()
+fn gen_html(html: &Html, ctx: &mut Context) -> PrintItems {
+  let text = ctx.file_text[html.range.clone()].trim_end();
+  if text.is_empty() {
+    return PrintItems::new();
+  }
+  let mut items = PrintItems::new();
+  items.push_sc(sc!("")); // force first line indentation
+  items.extend(ir_helpers::gen_from_raw_string(text));
+  items
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
@@ -731,11 +747,14 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
 }
 
 fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
   if marker.is_checked {
-    "[x]".into()
+    items.push_string("[x]".into());
   } else {
-    "[ ]".into()
+    items.push_string("[ ]".into());
   }
+
+  items
 }
 
 fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
@@ -927,6 +946,26 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
 
 fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
   gen_nodes(&table_cell.children, context)
+}
+
+fn gen_pluses_metadata(node: &PlusesHeader, context: &mut Context) -> PrintItems {
+  gen_metadata(&node.text, "+++", context)
+}
+
+fn gen_yaml_metadata(node: &YamlHeader, context: &mut Context) -> PrintItems {
+  gen_metadata(&node.text, "---", context)
+}
+
+fn gen_metadata(text: &str, delimiter: &str, _: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+
+  items.push_string(delimiter.into());
+  items.push_signal(Signal::NewLine);
+  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text.trim_end()));
+  items.push_signal(Signal::NewLine);
+  items.push_string(delimiter.into());
+
+  items
 }
 
 fn get_items_single_line_width(items: PrintItems) -> (PrintItems, usize) {

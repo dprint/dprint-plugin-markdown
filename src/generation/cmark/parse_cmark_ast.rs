@@ -7,7 +7,7 @@ use crate::generation::trim_start_spaces_and_newlines;
 use pulldown_cmark::*;
 
 struct EventIterator<'a> {
-  iterator: OffsetIter<'a, 'a>,
+  iterator: OffsetIter<'a, DefaultBrokenLinkCallback>,
   file_text: &'a str,
   last_range: Range,
   next: Option<(Event<'a>, Range)>,
@@ -16,7 +16,7 @@ struct EventIterator<'a> {
 }
 
 impl<'a> EventIterator<'a> {
-  pub fn new(file_text: &'a str, iterator: OffsetIter<'a, 'a>) -> EventIterator<'a> {
+  pub fn new(file_text: &'a str, iterator: OffsetIter<'a, DefaultBrokenLinkCallback>) -> EventIterator<'a> {
     let mut iterator = iterator;
     let next = iterator.next();
     // println!("Raw event: {:?}", next);
@@ -59,7 +59,7 @@ impl<'a> EventIterator<'a> {
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
-      Some((Event::End(Tag::Table(_)), _)) => self.in_table_count -= 1,
+      Some((Event::End(TagEnd::Table), _)) => self.in_table_count -= 1,
       _ => {}
     }
 
@@ -104,6 +104,8 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   options.insert(Options::ENABLE_FOOTNOTES);
   options.insert(Options::ENABLE_STRIKETHROUGH);
   options.insert(Options::ENABLE_TASKLISTS);
+  options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
+  options.insert(Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS);
 
   let mut children: Vec<Node> = Vec::new();
   let mut iterator = EventIterator::new(
@@ -141,7 +143,6 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   Ok(SourceFile {
     children,
     range: iterator.get_range_for_start(0),
-    yaml_header: None,
   })
 }
 
@@ -161,6 +162,7 @@ fn parse_references(
               end: references.last().unwrap().range.end,
             },
             children: references.into_iter().map(|x| x.into()).collect(),
+            marker: None,
           }
           .into(),
         ));
@@ -203,14 +205,17 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
       }
       .into(),
     ),
+    Event::InlineMath(_) => todo!(),
+    Event::DisplayMath(_) => todo!(),
+    Event::InlineHtml(html) => parse_html(html, iterator).map(Into::into),
   }
 }
 
 fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, ParseError> {
   match start_tag {
-    Tag::Heading(level, _, _) => parse_heading(level, iterator).map(|x| x.into()),
+    Tag::Heading { level, .. } => parse_heading(level, iterator).map(|x| x.into()),
     Tag::Paragraph => parse_paragraph(iterator).map(|x| x.into()),
-    Tag::BlockQuote => parse_block_quote(iterator).map(|x| x.into()),
+    Tag::BlockQuote(_) => parse_block_quote(iterator).map(|x| x.into()),
     Tag::CodeBlock(kind) => parse_code_block(kind, iterator).map(|x| x.into()),
     Tag::FootnoteDefinition(label) => parse_footnote_definition(label, iterator).map(|x| x.into()),
     Tag::Table(column_alignment) => parse_table(column_alignment, iterator).map(|x| x.into()),
@@ -220,10 +225,17 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
     Tag::Emphasis => parse_text_decoration(TextDecorationKind::Emphasis, iterator).map(|x| x.into()),
     Tag::Strong => parse_text_decoration(TextDecorationKind::Strong, iterator).map(|x| x.into()),
     Tag::Strikethrough => parse_text_decoration(TextDecorationKind::Strikethrough, iterator).map(|x| x.into()),
-    Tag::Link(link_type, destination_url, link_title) => parse_link(link_type, &destination_url, &link_title, iterator),
-    Tag::Image(link_type, _, _) => parse_image(link_type, iterator),
+    Tag::Link {
+      link_type,
+      dest_url: destination_url,
+      title: link_title,
+      ..
+    } => parse_link(link_type, &destination_url, &link_title, iterator),
+    Tag::Image { link_type, .. } => parse_image(link_type, iterator),
     Tag::List(first_item_number) => parse_list(first_item_number, iterator).map(|x| x.into()),
     Tag::Item => parse_item(iterator).map(|x| x.into()),
+    Tag::HtmlBlock => parse_html_block(iterator).map(|x| x.into()),
+    Tag::MetadataBlock(metadata_block_kind) => parse_metadata(metadata_block_kind, iterator),
   }
 }
 
@@ -233,7 +245,7 @@ fn parse_heading(level: HeadingLevel, iterator: &mut EventIterator) -> Result<He
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Heading(end_level, _, _)) => {
+      Event::End(TagEnd::Heading(end_level)) => {
         if end_level == level {
           break;
         }
@@ -256,10 +268,17 @@ fn parse_heading(level: HeadingLevel, iterator: &mut EventIterator) -> Result<He
 fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
+  let mut marker: Option<TaskListMarker> = None;
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Paragraph) => break,
+      Event::End(TagEnd::Paragraph) => break,
+      Event::TaskListMarker(is_checked) if marker.is_none() => {
+        marker = Some(TaskListMarker {
+          range: iterator.get_last_range(),
+          is_checked,
+        });
+      }
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -267,6 +286,7 @@ fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError
   Ok(Paragraph {
     range: iterator.get_range_for_start(start),
     children,
+    marker,
   })
 }
 
@@ -276,7 +296,7 @@ fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseEr
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::BlockQuote) => break,
+      Event::End(TagEnd::BlockQuote) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -291,11 +311,12 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
   let start = iterator.start();
   let mut code = String::new();
 
+  let original_allow_empty_text_events = iterator.allow_empty_text_events;
   iterator.allow_empty_text_events = true;
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::CodeBlock(_)) => break,
+      Event::End(TagEnd::CodeBlock) => break,
       Event::Text(event_text) => code.push_str(event_text.as_ref()),
       _ => {
         return Err(ParseError::new(
@@ -306,7 +327,7 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
     }
   }
 
-  iterator.allow_empty_text_events = false;
+  iterator.allow_empty_text_events = original_allow_empty_text_events;
 
   let is_fenced = matches!(code_block_kind, CodeBlockKind::Fenced(_));
   let tag = match code_block_kind {
@@ -367,9 +388,9 @@ fn parse_text_decoration(kind: TextDecorationKind, iterator: &mut EventIterator)
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Emphasis) => break,
-      Event::End(Tag::Strikethrough) => break,
-      Event::End(Tag::Strong) => break,
+      Event::End(TagEnd::Emphasis) => break,
+      Event::End(TagEnd::Strikethrough) => break,
+      Event::End(TagEnd::Strong) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -382,14 +403,36 @@ fn parse_text_decoration(kind: TextDecorationKind, iterator: &mut EventIterator)
 }
 
 fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseError> {
-  let text = String::from(text.as_ref().trim_end());
+  let text = text.as_ref().trim_end();
   let start = iterator.get_last_range().start;
   Ok(Html {
     range: Range {
       start,
       end: start + text.len(),
     },
-    text,
+  })
+}
+
+fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
+  let start = iterator.start();
+  let original_allow_empty_text_events = iterator.allow_empty_text_events;
+  iterator.allow_empty_text_events = true;
+
+  while let Some(event) = iterator.next() {
+    match event {
+      Event::End(TagEnd::HtmlBlock) => break,
+      _ => {}
+    }
+  }
+
+  iterator.allow_empty_text_events = original_allow_empty_text_events;
+
+  let range = iterator.get_range_for_start(start);
+  Ok(Html {
+    range: Range {
+      start,
+      end: start + iterator.file_text[range].trim_end().len(),
+    },
   })
 }
 
@@ -406,7 +449,7 @@ fn parse_footnote_definition(name: CowStr, iterator: &mut EventIterator) -> Resu
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::FootnoteDefinition(_)) => break,
+      Event::End(TagEnd::FootnoteDefinition) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -429,7 +472,7 @@ fn parse_link(
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Link(_, _, _)) => break,
+      Event::End(TagEnd::Link) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -471,7 +514,7 @@ fn parse_image(link_type: LinkType, iterator: &mut EventIterator) -> Result<Node
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Image(_, _, _)) => break,
+      Event::End(TagEnd::Image) => break,
       _ => {} // ignore link children
     }
   }
@@ -485,7 +528,7 @@ fn parse_list(start_index: Option<u64>, iterator: &mut EventIterator) -> Result<
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::List(_)) => break,
+      Event::End(TagEnd::List(_)) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -513,7 +556,7 @@ fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -
   let mut rows = Vec::new();
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Table(_)) => break,
+      Event::End(TagEnd::Table) => break,
       Event::Start(Tag::TableRow) => rows.push(parse_table_row(iterator)?),
       _ => {
         return Err(ParseError::new(
@@ -548,7 +591,7 @@ fn parse_table_head(iterator: &mut EventIterator) -> Result<TableHead, ParseErro
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::TableHead) => break,
+      Event::End(TagEnd::TableHead) => break,
       Event::Start(Tag::TableCell) => cells.push(parse_table_cell(iterator)?),
       _ => {
         return Err(ParseError::new(
@@ -571,7 +614,7 @@ fn parse_table_row(iterator: &mut EventIterator) -> Result<TableRow, ParseError>
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::TableRow) => break,
+      Event::End(TagEnd::TableRow) => break,
       Event::Start(Tag::TableCell) => cells.push(parse_table_cell(iterator)?),
       _ => {
         return Err(ParseError::new(
@@ -594,7 +637,7 @@ fn parse_table_cell(iterator: &mut EventIterator) -> Result<TableCell, ParseErro
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::TableCell) => break,
+      Event::End(TagEnd::TableCell) => break,
       _ => children.push(parse_event(event, iterator)?),
     }
   }
@@ -623,7 +666,7 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   while let Some(event) = iterator.next() {
     match event {
-      Event::End(Tag::Item) => break,
+      Event::End(TagEnd::Item) => break,
       Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
       _ => {
         children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
@@ -647,5 +690,48 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     marker,
     children,
     sub_lists,
+  })
+}
+
+fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Result<Node, ParseError> {
+  let start = iterator.get_last_range().start;
+  let mut text = String::new();
+  while let Some(event) = iterator.next() {
+    match event {
+      Event::End(TagEnd::MetadataBlock(end_kind)) if kind == end_kind => break,
+      Event::End(TagEnd::MetadataBlock(end_kind)) => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          format!("Expected metadata block to end with {kind:?}, found {end_kind:?}."),
+        ))
+      }
+      Event::Text(t) => text.push_str(&t),
+      Event::SoftBreak | Event::HardBreak => continue,
+      // assuming here that pulldown-cmark doesn't tokenize anything beyond text and line breaks
+      // between metadata block markers then everything else should be a parse error here
+      _ => {
+        return Err(ParseError::new(
+          iterator.get_last_range(),
+          "Unexpected event found when parsing code block.",
+        ))
+      }
+    }
+  }
+
+  Ok(match kind {
+    MetadataBlockKind::YamlStyle => Node::YamlHeader(YamlHeader {
+      range: Range {
+        start,
+        end: start + text.len(),
+      },
+      text,
+    }),
+    MetadataBlockKind::PlusesStyle => Node::PlusesHeader(PlusesHeader {
+      range: Range {
+        start,
+        end: start + text.len(),
+      },
+      text,
+    }),
   })
 }

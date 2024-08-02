@@ -32,7 +32,7 @@ harness = false
 anyhow = "1.0.64"
 dprint-core = { version = "0.66.2", features = ["formatting"] }
 dprint-core-macros = "0.1.0"
-pulldown-cmark = { version = "0.9.3", default-features = false }
+pulldown-cmark = { version = "0.11.0", default-features = false }
 regex = "1"
 serde = { version = "1.0.144", features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
