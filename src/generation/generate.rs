@@ -956,13 +956,12 @@ fn gen_yaml_metadata(node: &YamlHeader, context: &mut Context) -> PrintItems {
   gen_metadata(&node.text, "---", context)
 }
 
-fn gen_metadata(text: &str, delimiter: &str, context: &mut Context) -> PrintItems {
+fn gen_metadata(text: &str, delimiter: &str, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  let test_items = gen_str(text, context);
 
   items.push_string(delimiter.into());
   items.push_signal(Signal::NewLine);
-  items.extend(test_items);
+  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text.trim_end()));
   items.push_signal(Signal::NewLine);
   items.push_string(delimiter.into());
 
