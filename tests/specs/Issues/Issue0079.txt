@@ -1,0 +1,13 @@
+!! should not remove blank line of block quote nested in numbered list !!
+1. a
+
+   > b
+   >
+   > c
+
+[expect]
+1. a
+
+   > b
+   >
+   > c

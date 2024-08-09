@@ -88,9 +88,12 @@ impl<'a> Context<'a> {
   }
 
   pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, usize) -> T) -> T {
+    let original_is_in_list_count = self.is_in_list_count;
+    self.is_in_list_count = 0;
     self.is_in_block_quote_count += 1;
     let items = func(self, self.is_in_block_quote_count as usize);
     self.is_in_block_quote_count -= 1;
+    self.is_in_list_count = original_is_in_list_count;
     items
   }
 
