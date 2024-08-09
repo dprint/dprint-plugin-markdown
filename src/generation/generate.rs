@@ -25,6 +25,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
     Node::Html(node) => gen_html(node, context),
+    Node::Math(node) => gen_math(node, context),
     Node::FootnoteReference(node) => gen_footnote_reference(node, context),
     Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
     Node::InlineLink(node) => gen_inline_link(node, context),
@@ -36,6 +37,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ReferenceImage(node) => gen_reference_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
+    Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
@@ -143,14 +145,12 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               items.push_signal(Signal::NewLine);
               items.push_signal(Signal::NewLine);
             } else {
-              let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
-                if let Node::Html(_) = last_node {
-                  node.has_preceeding_space(context.file_text)
-                } else {
-                  node.has_preceeding_space(context.file_text)
-                    || !last_node.ends_with_punctuation(context.file_text)
-                      && !node.starts_with_punctuation(context.file_text)
-                }
+              let needs_space = if let Node::Html(_) = last_node {
+                node.has_preceeding_space(context.file_text)
+              } else if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
+                node.has_preceeding_space(context.file_text)
+                  || !last_node.ends_with_punctuation(context.file_text)
+                    && !node.starts_with_punctuation(context.file_text)
               } else if let Node::FootnoteReference(_) = node {
                 false
               } else if let Node::Html(_) = node {
@@ -273,56 +273,59 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
+  context.mark_in_block_quotes(|context, block_quote_count| {
+    let mut items = PrintItems::new();
 
-  // add a > for any string that is on the start of a line
-  // Note: This is extremely hacky
-  let mut indent_level = 0;
-  for print_item in gen_nodes(&block_quote.children, context).iter() {
-    match print_item {
-      PrintItem::String(text) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          {
-            let mut items = PrintItems::new();
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_sc(sc!("> "));
-            items.push_optional_path(
-              context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
-            );
-            items
-          },
-        ));
-        items.push_item(PrintItem::String(text));
+    // add a > for any string that is on the start of a line
+    // Note: This is extremely hacky
+    let mut indent_level = 0;
+    for print_item in gen_nodes(&block_quote.children, context).iter() {
+      match print_item {
+        PrintItem::String(text) => {
+          items.push_condition(if_true(
+            "angleBracketIfStartOfLine",
+            condition_resolvers::is_start_of_line(),
+            {
+              let mut items = PrintItems::new();
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
+              items.push_string(">".repeat(block_quote_count));
+              items.push_space();
+              items.push_optional_path(
+                context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
+              );
+              items
+            },
+          ));
+          items.push_item(PrintItem::String(text));
+        }
+        PrintItem::Signal(Signal::NewLine) => {
+          items.push_condition(if_true(
+            "angleBracketIfStartOfLine",
+            condition_resolvers::is_start_of_line(),
+            {
+              let mut items = PrintItems::new();
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
+              items.push_string(">".repeat(block_quote_count));
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
+              items
+            },
+          ));
+          items.push_signal(Signal::NewLine);
+        }
+        PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => {
+          indent_level += 1;
+          items.push_item(print_item)
+        }
+        PrintItem::Signal(Signal::FinishIndent) => {
+          indent_level -= 1;
+          items.push_item(print_item)
+        }
+        _ => items.push_item(print_item),
       }
-      PrintItem::Signal(Signal::NewLine) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          {
-            let mut items = PrintItems::new();
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_sc(sc!(">"));
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
-            items
-          },
-        ));
-        items.push_signal(Signal::NewLine);
-      }
-      PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => {
-        indent_level += 1;
-        items.push_item(print_item)
-      }
-      PrintItem::Signal(Signal::FinishIndent) => {
-        indent_level -= 1;
-        items.push_item(print_item)
-      }
-      _ => items.push_item(print_item),
     }
-  }
 
-  items
+    items
+  })
 }
 
 fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
@@ -544,14 +547,22 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, ctx: &mut Context) -> PrintItems {
-  let text = ctx.file_text[html.range.clone()].trim_end();
+fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
+  gen_range(node.range.clone(), ctx)
+}
+
+fn gen_math(node: &Math, ctx: &mut Context) -> PrintItems {
+  gen_range(node.range.clone(), ctx)
+}
+
+fn gen_range(range: Range, ctx: &mut Context) -> PrintItems {
+  let text = ctx.file_text[range].trim_end();
   if text.is_empty() {
     return PrintItems::new();
   }
   let mut items = PrintItems::new();
   items.push_sc(sc!("")); // force first line indentation
-  items.extend(ir_helpers::gen_from_raw_string(text));
+  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text));
   items
 }
 
@@ -1002,24 +1013,30 @@ fn get_items_text(items: PrintItems) -> String {
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
   if context.is_text_wrap_disabled() {
-    return " ".into();
+    return space();
   }
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
-    TextWrap::Never | TextWrap::Maintain => " ".into(),
+    TextWrap::Never | TextWrap::Maintain => space(),
   }
+}
+
+fn space() -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_space();
+  items
 }
 
 fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
-    TextWrap::Never => " ".into(),
+    TextWrap::Never => space(),
     TextWrap::Maintain => {
       if context.is_text_wrap_disabled() {
         if_true_or(
           "newLineOrSpaceIfNewlinesDisabled",
           condition_resolvers::is_forcing_no_newlines(),
-          " ".into(),
+          space(),
           Signal::NewLine.into(),
         )
         .into()

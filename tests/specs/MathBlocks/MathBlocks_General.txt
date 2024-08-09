@@ -1,0 +1,21 @@
+~~ textWrap: always, lineWidth: 40 ~~
+!! should format !!
+This should wrap. Testing testing testing.
+
+$$
+\begin{align}
+  y = mx + b \\
+  xy = 3x^2 - 7
+\end{align}
+$$
+
+[expect]
+This should wrap. Testing testing
+testing.
+
+$$
+\begin{align}
+  y = mx + b \\
+  xy = 3x^2 - 7
+\end{align}
+$$

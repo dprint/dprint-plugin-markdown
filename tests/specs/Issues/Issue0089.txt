@@ -1,0 +1,71 @@
+!! should not break !!
+> Internally, with the builder this is something like
+>
+> ```rust
+> Element {
+>   tag: "main",
+>   attrs: vec![("class", "text-center")],
+>   children: vec![
+>     Element {
+>     tag: "div",
+>     attrs: vec![("class", "flex-col")],
+>       children: vec![
+>         Element {
+>           tag: "button",
+>       attrs: vec![],
+>       children: vec!["Click me"]
+>         },
+>         Element {
+>           tag: "p",
+>       attrs: vec![("class", "italic")],
+>       children: vec!["Text"]
+>         }
+>       ]
+>     }
+>   ]
+> }
+> ```
+>
+> This is a _bunch_ of small allocations and separate strings,
+> and in early 0.1 versions we used a `SmallVec` for children and
+> attributes and actually caused some stack overflows.
+>
+> But if you look at the view itself you can see that none of this
+> will _ever_ change. So we can actually optimize it at compile
+> time to a single `&'static str`:
+
+[expect]
+> Internally, with the builder this is something like
+>
+> ```rust
+> Element {
+>   tag: "main",
+>   attrs: vec![("class", "text-center")],
+>   children: vec![
+>     Element {
+>     tag: "div",
+>     attrs: vec![("class", "flex-col")],
+>       children: vec![
+>         Element {
+>           tag: "button",
+>       attrs: vec![],
+>       children: vec!["Click me"]
+>         },
+>         Element {
+>           tag: "p",
+>       attrs: vec![("class", "italic")],
+>       children: vec!["Text"]
+>         }
+>       ]
+>     }
+>   ]
+> }
+> ```
+>
+> This is a _bunch_ of small allocations and separate strings,
+> and in early 0.1 versions we used a `SmallVec` for children and
+> attributes and actually caused some stack overflows.
+>
+> But if you look at the view itself you can see that none of this
+> will _ever_ change. So we can actually optimize it at compile
+> time to a single `&'static str`:

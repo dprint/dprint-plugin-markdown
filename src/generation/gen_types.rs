@@ -27,6 +27,7 @@ pub struct Context<'a> {
   /** The current indentation level within the file being formatted. */
   pub raw_indent_level: u32,
   is_in_list_count: u32,
+  is_in_block_quote_count: u32,
   text_wrap_disabled_count: u32,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
@@ -47,6 +48,7 @@ impl<'a> Context<'a> {
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
+      is_in_block_quote_count: 0,
       text_wrap_disabled_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
@@ -83,6 +85,16 @@ impl<'a> Context<'a> {
       self.memoized_rc_paths.insert(kind, path);
       path
     }
+  }
+
+  pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, usize) -> T) -> T {
+    let original_is_in_list_count = self.is_in_list_count;
+    self.is_in_list_count = 0;
+    self.is_in_block_quote_count += 1;
+    let items = func(self, self.is_in_block_quote_count as usize);
+    self.is_in_block_quote_count -= 1;
+    self.is_in_list_count = original_is_in_list_count;
+    items
   }
 
   pub fn mark_in_list<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {

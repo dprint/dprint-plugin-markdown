@@ -1,0 +1,11 @@
+!! should keep cite on one line !!
+hello world
+
+- <cite>[test](test)</cite>
+- <cite>test</cite>
+
+[expect]
+hello world
+
+- <cite>[test](test)</cite>
+- <cite>test</cite>

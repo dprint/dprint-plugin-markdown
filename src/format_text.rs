@@ -43,7 +43,7 @@ fn format_text_inner(
       let mut context = Context::new(markdown_text, config, format_code_block_text);
       #[allow(clippy::let_and_return)]
       let print_items = generate(&source_file.into(), &mut context);
-      // println!("{}", print_items.get_as_text());
+      // eprintln!("{}", print_items.get_as_text());
       print_items
     },
     config_to_print_options(file_text, config),
@@ -64,7 +64,7 @@ pub fn trace_file(
     || {
       let mut context = Context::new(markdown_text, config, format_code_block_text);
       let print_items = generate(&source_file.into(), &mut context);
-      // println!("{}", print_items.get_as_text());
+      // eprintln!("{}", print_items.get_as_text());
       print_items
     },
     config_to_print_options(file_text, config),
