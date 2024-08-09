@@ -19,7 +19,7 @@ impl<'a> EventIterator<'a> {
   pub fn new(file_text: &'a str, iterator: OffsetIter<'a, DefaultBrokenLinkCallback>) -> EventIterator<'a> {
     let mut iterator = iterator;
     let next = iterator.next();
-    // eprintln!("Raw event: {:?}", next);
+    eprintln!("Raw event: {:?}", next);
     EventIterator {
       file_text,
       iterator,
@@ -55,7 +55,7 @@ impl<'a> EventIterator<'a> {
 
   fn move_iterator_next(&mut self) -> Option<(Event<'a>, Range)> {
     let next = self.iterator.next();
-    // eprintln!("Raw event: {:?}", next);
+    eprintln!("Raw event: {:?}", next);
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
