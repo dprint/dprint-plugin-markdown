@@ -12,8 +12,8 @@ use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  //  eprintln!("Kind: {:?}", node.kind());
-  //  eprintln!("Text: {:?}", node.text(context));
+  // eprintln!("Kind: {:?}", node.kind());
+  // eprintln!("Text: {:?}", node.text(context));
 
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
@@ -143,14 +143,12 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               items.push_signal(Signal::NewLine);
               items.push_signal(Signal::NewLine);
             } else {
-              let needs_space = if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
-                if let Node::Html(_) = last_node {
-                  node.has_preceeding_space(context.file_text)
-                } else {
-                  node.has_preceeding_space(context.file_text)
-                    || !last_node.ends_with_punctuation(context.file_text)
-                      && !node.starts_with_punctuation(context.file_text)
-                }
+              let needs_space = if let Node::Html(_) = last_node {
+                node.has_preceeding_space(context.file_text)
+              } else if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
+                node.has_preceeding_space(context.file_text)
+                  || !last_node.ends_with_punctuation(context.file_text)
+                    && !node.starts_with_punctuation(context.file_text)
               } else if let Node::FootnoteReference(_) = node {
                 false
               } else if let Node::Html(_) = node {
@@ -1005,24 +1003,30 @@ fn get_items_text(items: PrintItems) -> String {
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
   if context.is_text_wrap_disabled() {
-    return " ".into();
+    return space();
   }
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
-    TextWrap::Never | TextWrap::Maintain => " ".into(),
+    TextWrap::Never | TextWrap::Maintain => space(),
   }
+}
+
+fn space() -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_space();
+  items
 }
 
 fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
-    TextWrap::Never => " ".into(),
+    TextWrap::Never => space(),
     TextWrap::Maintain => {
       if context.is_text_wrap_disabled() {
         if_true_or(
           "newLineOrSpaceIfNewlinesDisabled",
           condition_resolvers::is_forcing_no_newlines(),
-          " ".into(),
+          space(),
           Signal::NewLine.into(),
         )
         .into()
