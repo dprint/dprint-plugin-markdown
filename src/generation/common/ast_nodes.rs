@@ -10,10 +10,14 @@ pub trait Ranged {
 pub struct SourceFile {
   pub range: Range,
   pub children: Vec<Node>,
-  pub yaml_header: Option<YamlHeader>,
 }
 
 pub struct YamlHeader {
+  pub range: Range,
+  pub text: String,
+}
+
+pub struct PlusesHeader {
   pub range: Range,
   pub text: String,
 }
@@ -27,6 +31,7 @@ pub struct Heading {
 pub struct Paragraph {
   pub range: Range,
   pub children: Vec<Node>,
+  pub marker: Option<TaskListMarker>,
 }
 
 pub struct BlockQuote {
@@ -53,7 +58,6 @@ pub struct TextDecoration {
 
 pub struct Html {
   pub range: Range,
-  pub text: String,
 }
 
 pub struct FootnoteReference {
@@ -328,5 +332,7 @@ generate_node![
   Table,
   TableHead,
   TableRow,
-  TableCell
+  TableCell,
+  YamlHeader,
+  PlusesHeader
 ];

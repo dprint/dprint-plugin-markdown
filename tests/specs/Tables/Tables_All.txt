@@ -26,9 +26,9 @@ a|b|c|d
 
 !! should correctly centre all the columns in this table !!
 |Tes|
-:---:
-testd
-test
+|:---:|
+|testd|
+|test|
 
 [expect]
 |  Tes  |
