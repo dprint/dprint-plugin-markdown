@@ -19,7 +19,7 @@ impl<'a> EventIterator<'a> {
   pub fn new(file_text: &'a str, iterator: OffsetIter<'a, DefaultBrokenLinkCallback>) -> EventIterator<'a> {
     let mut iterator = iterator;
     let next = iterator.next();
-    // println!("Raw event: {:?}", next);
+    // eprintln!("Raw event: {:?}", next);
     EventIterator {
       file_text,
       iterator,

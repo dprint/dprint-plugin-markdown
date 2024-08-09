@@ -12,8 +12,8 @@ use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  // eprintln!("Kind: {:?}", node.kind());
-  // eprintln!("Text: {:?}", node.text(context));
+  //  eprintln!("Kind: {:?}", node.kind());
+  //  eprintln!("Text: {:?}", node.text(context));
 
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
@@ -273,56 +273,59 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
+  context.mark_in_block_quotes(|context, block_quote_count| {
+    let mut items = PrintItems::new();
 
-  // add a > for any string that is on the start of a line
-  // Note: This is extremely hacky
-  let mut indent_level = 0;
-  for print_item in gen_nodes(&block_quote.children, context).iter() {
-    match print_item {
-      PrintItem::String(text) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          {
-            let mut items = PrintItems::new();
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_sc(sc!("> "));
-            items.push_optional_path(
-              context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
-            );
-            items
-          },
-        ));
-        items.push_item(PrintItem::String(text));
+    // add a > for any string that is on the start of a line
+    // Note: This is extremely hacky
+    let mut indent_level = 0;
+    for print_item in gen_nodes(&block_quote.children, context).iter() {
+      match print_item {
+        PrintItem::String(text) => {
+          items.push_condition(if_true(
+            "angleBracketIfStartOfLine",
+            condition_resolvers::is_start_of_line(),
+            {
+              let mut items = PrintItems::new();
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
+              items.push_string(">".repeat(block_quote_count));
+              items.push_space();
+              items.push_optional_path(
+                context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
+              );
+              items
+            },
+          ));
+          items.push_item(PrintItem::String(text));
+        }
+        PrintItem::Signal(Signal::NewLine) => {
+          items.push_condition(if_true(
+            "angleBracketIfStartOfLine",
+            condition_resolvers::is_start_of_line(),
+            {
+              let mut items = PrintItems::new();
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
+              items.push_string(">".repeat(block_quote_count));
+              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
+              items
+            },
+          ));
+          items.push_signal(Signal::NewLine);
+        }
+        PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => {
+          indent_level += 1;
+          items.push_item(print_item)
+        }
+        PrintItem::Signal(Signal::FinishIndent) => {
+          indent_level -= 1;
+          items.push_item(print_item)
+        }
+        _ => items.push_item(print_item),
       }
-      PrintItem::Signal(Signal::NewLine) => {
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          {
-            let mut items = PrintItems::new();
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-            items.push_sc(sc!(">"));
-            items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
-            items
-          },
-        ));
-        items.push_signal(Signal::NewLine);
-      }
-      PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => {
-        indent_level += 1;
-        items.push_item(print_item)
-      }
-      PrintItem::Signal(Signal::FinishIndent) => {
-        indent_level -= 1;
-        items.push_item(print_item)
-      }
-      _ => items.push_item(print_item),
     }
-  }
 
-  items
+    items
+  })
 }
 
 fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {

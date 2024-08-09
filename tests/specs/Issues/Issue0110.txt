@@ -1,0 +1,23 @@
+!! should format nested block quote !!
+> A quote at the top level.
+
+>> With a nested quote inside it.
+
+[expect]
+> A quote at the top level.
+
+>> With a nested quote inside it.
+
+!! should handle nested right beside other nested !!
+> Test
+>> Test
+>> Test
+>>> Testing
+
+[expect]
+> Test
+>
+>> Test
+>> Test
+>>
+>>> Testing
