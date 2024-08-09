@@ -8,6 +8,7 @@ use pulldown_cmark::*;
 
 struct EventIterator<'a> {
   iterator: OffsetIter<'a, DefaultBrokenLinkCallback>,
+  iterator: OffsetIter<'a, DefaultBrokenLinkCallback>,
   file_text: &'a str,
   last_range: Range,
   next: Option<(Event<'a>, Range)>,

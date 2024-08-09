@@ -38,6 +38,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
+    Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
     Node::HardBreak(_) => gen_hard_break(context),
