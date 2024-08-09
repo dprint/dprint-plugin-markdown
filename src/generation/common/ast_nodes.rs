@@ -60,6 +60,10 @@ pub struct Html {
   pub range: Range,
 }
 
+pub struct Math {
+  pub range: Range,
+}
+
 pub struct FootnoteReference {
   pub range: Range,
   pub name: String,
@@ -334,5 +338,6 @@ generate_node![
   TableRow,
   TableCell,
   YamlHeader,
-  PlusesHeader
+  PlusesHeader,
+  Math
 ];

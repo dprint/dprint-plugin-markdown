@@ -25,6 +25,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
     Node::Html(node) => gen_html(node, context),
+    Node::Math(node) => gen_math(node, context),
     Node::FootnoteReference(node) => gen_footnote_reference(node, context),
     Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
     Node::InlineLink(node) => gen_inline_link(node, context),
@@ -545,14 +546,22 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
   items
 }
 
-fn gen_html(html: &Html, ctx: &mut Context) -> PrintItems {
-  let text = ctx.file_text[html.range.clone()].trim_end();
+fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
+  gen_range(node.range.clone(), ctx)
+}
+
+fn gen_math(node: &Math, ctx: &mut Context) -> PrintItems {
+  gen_range(node.range.clone(), ctx)
+}
+
+fn gen_range(range: Range, ctx: &mut Context) -> PrintItems {
+  let text = ctx.file_text[range].trim_end();
   if text.is_empty() {
     return PrintItems::new();
   }
   let mut items = PrintItems::new();
   items.push_sc(sc!("")); // force first line indentation
-  items.extend(ir_helpers::gen_from_raw_string(text));
+  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text));
   items
 }
 

@@ -106,6 +106,7 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
   options.insert(Options::ENABLE_TASKLISTS);
   options.insert(Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
   options.insert(Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS);
+  options.insert(Options::ENABLE_MATH);
 
   let mut children: Vec<Node> = Vec::new();
   let mut iterator = EventIterator::new(
@@ -179,6 +180,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
     Event::Code(code) => parse_code(code, iterator).map(|x| x.into()),
     Event::Text(_) => parse_text(iterator).map(|x| x.into()),
     Event::Html(html) => parse_html(html, iterator).map(|x| x.into()),
+    Event::InlineHtml(html) => parse_html(html, iterator).map(Into::into),
     Event::FootnoteReference(reference) => parse_footnote_reference(reference, iterator).map(|x| x.into()),
     Event::SoftBreak => Ok(
       SoftBreak {
@@ -205,9 +207,8 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
       }
       .into(),
     ),
-    Event::InlineMath(_) => todo!(),
-    Event::DisplayMath(_) => todo!(),
-    Event::InlineHtml(html) => parse_html(html, iterator).map(Into::into),
+    Event::InlineMath(text) => parse_math(text, iterator).map(|n| n.into()),
+    Event::DisplayMath(text) => parse_math(text, iterator).map(|n| n.into()),
   }
 }
 
@@ -410,6 +411,12 @@ fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseE
       start,
       end: start + text.len(),
     },
+  })
+}
+
+fn parse_math(_text: CowStr, iterator: &mut EventIterator) -> Result<Math, ParseError> {
+  Ok(Math {
+    range: iterator.get_last_range(),
   })
 }
 
