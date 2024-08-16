@@ -108,6 +108,10 @@ impl<'a> Context<'a> {
     self.is_in_list_count > 0
   }
 
+  pub fn is_in_block_quote(&self) -> bool {
+    self.is_in_block_quote_count > 0
+  }
+
   pub fn with_no_text_wrap<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
     self.text_wrap_disabled_count += 1;
     let items = func(self);
