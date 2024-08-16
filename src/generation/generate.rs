@@ -1,7 +1,3 @@
-use super::common::*;
-use super::gen_types::*;
-use super::utils;
-use crate::configuration::*;
 use dprint_core::formatting::condition_resolvers;
 use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
@@ -10,6 +6,11 @@ use dprint_core_macros::sc;
 use std::borrow::Cow;
 use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
+
+use super::common::*;
+use super::gen_types::*;
+use super::utils;
+use crate::configuration::*;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
   // eprintln!("Kind: {:?}", node.kind());
@@ -37,7 +38,6 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ReferenceImage(node) => gen_reference_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
-    Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
@@ -75,9 +75,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
 
-  while let Some(node) = node_iterator.next() {
-    let mut node = node;
-
+  while let Some(mut node) = node_iterator.next() {
     // handle alternate lists
     if let Some(Node::List(last_list)) = &last_node {
       if let Node::List(list) = &node {
@@ -136,7 +134,21 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
             let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
 
             if new_line_count == 1 {
-              if matches!(node, Node::Html(_)) {
+              // Callout example:
+              // > [!NOTE]
+              // > Some note.
+              let is_callout = if context.is_in_block_quote() && matches!(node, Node::Text(_)) {
+                if let Node::Text(text) = last_node {
+                  is_callout_text(&text.text)
+                } else {
+                  false
+                }
+              } else {
+                false
+              };
+              if is_callout && !context.is_text_wrap_disabled() {
+                items.push_signal(Signal::NewLine); // force a newline
+              } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
               } else {
                 items.extend(get_newline_wrapping_based_on_config(context));
@@ -163,6 +175,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 if node.starts_with_list_word() {
                   items.push_space();
                 } else {
+                  if matches!(last_node, Node::Text(_)) && matches!(node, Node::Text(_)) {}
                   items.extend(get_space_or_newline_based_on_config(context));
                 }
               }
@@ -421,6 +434,11 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   gen_str(&text.text, context)
+}
+
+fn is_callout_text(text: &str) -> bool {
+  // ex. [!NOTE]
+  text.starts_with("[!") && text.ends_with("]") && text[2..text.len() - 1].chars().all(|c| c.is_ascii_uppercase())
 }
 
 fn gen_str(text: &str, context: &mut Context) -> PrintItems {
