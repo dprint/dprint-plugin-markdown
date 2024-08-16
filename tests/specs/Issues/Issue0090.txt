@@ -1,0 +1,9 @@
+!! footnote with exclamation point before !!
+Hello, world![^footnote] This is some text.
+
+[^footnote]: This is the footnote.
+
+[expect]
+Hello, world![^footnote] This is some text.
+
+[^footnote]: This is the footnote.
