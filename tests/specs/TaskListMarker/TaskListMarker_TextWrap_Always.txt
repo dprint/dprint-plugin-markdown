@@ -11,3 +11,19 @@
         testing testing
 - [ ] some more text that will also wrap
       beyond the line width
+
+!! should format across multiple lines !!
+### Some text
+
+- [ ] Some text goes here. Testing testing testing testing testing testing testing.
+      Here is some text on the next line
+  1. Tesitng this out
+
+[expect]
+### Some text
+
+- [ ] Some text goes here. Testing
+      testing testing testing testing
+      testing testing. Here is some text
+      on the next line
+  1. Tesitng this out
