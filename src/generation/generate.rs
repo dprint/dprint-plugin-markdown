@@ -281,7 +281,11 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     }
   }
 
-  items.extend(gen_nodes(&paragraph.children, context));
+  items.extend(gen_task_list_marker_children(
+    &paragraph.children,
+    paragraph.marker.as_ref(),
+    context,
+  ));
   items
 }
 
@@ -736,33 +740,11 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     }
   }
 
-  // indent the children to beyond the task list marker
-  let marker_indent = if item.marker.is_some() { 4 } else { 0 };
-  context.raw_indent_level += marker_indent;
-  let indent_child_index_end = item
-    .children
-    .iter()
-    .position(|c| {
-      matches!(
-        c,
-        Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
-      ) || utils::has_leading_blankline(c.range().start, context.file_text)
-    })
-    .unwrap_or(item.children.len());
-  items.extend(with_indent_times(
-    gen_nodes(&item.children[..indent_child_index_end], context),
-    marker_indent,
+  items.extend(gen_task_list_marker_children(
+    &item.children,
+    item.marker.as_ref(),
+    context,
   ));
-  context.raw_indent_level -= marker_indent;
-
-  // insert the remaining children without indent
-  if indent_child_index_end > 0 && indent_child_index_end != item.children.len() {
-    items.push_signal(Signal::NewLine);
-    if utils::has_leading_blankline(item.children[indent_child_index_end].range().start, context.file_text) {
-      items.push_signal(Signal::NewLine);
-    }
-  }
-  items.extend(gen_nodes(&item.children[indent_child_index_end..], context));
 
   if !item.sub_lists.is_empty() {
     items.push_signal(Signal::NewLine);
@@ -772,6 +754,41 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     items.extend(gen_nodes(&item.sub_lists, context));
   }
 
+  items
+}
+
+fn gen_task_list_marker_children(
+  children: &[Node],
+  marker: Option<&TaskListMarker>,
+  context: &mut Context,
+) -> PrintItems {
+  let mut items = PrintItems::new();
+  // indent the children to beyond the task list marker
+  let marker_indent = if marker.is_some() { 4 } else { 0 };
+  context.raw_indent_level += marker_indent;
+  let indent_child_index_end = children
+    .iter()
+    .position(|c| {
+      matches!(
+        c,
+        Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
+      ) || utils::has_leading_blankline(c.range().start, context.file_text)
+    })
+    .unwrap_or(children.len());
+  items.extend(with_indent_times(
+    gen_nodes(&children[..indent_child_index_end], context),
+    marker_indent,
+  ));
+  context.raw_indent_level -= marker_indent;
+
+  // insert the remaining children without indent
+  if indent_child_index_end > 0 && indent_child_index_end != children.len() {
+    items.push_signal(Signal::NewLine);
+    if utils::has_leading_blankline(children[indent_child_index_end].range().start, context.file_text) {
+      items.push_signal(Signal::NewLine);
+    }
+  }
+  items.extend(gen_nodes(&children[indent_child_index_end..], context));
   items
 }
 

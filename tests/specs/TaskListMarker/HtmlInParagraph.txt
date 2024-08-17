@@ -1,0 +1,18 @@
+~~ deno: true ~~
+!! should indent the task list marker's second line !!
+## Test
+
+- [ ] Go to the "cargo_publish" workflow in the CLI repo's actions:
+      https://github.com/denoland/deno/actions/workflows/cargo_publish.yml
+  1. Test
+
+  <details></details>
+
+[expect]
+## Test
+
+- [ ] Go to the "cargo_publish" workflow in the CLI repo's actions:
+      https://github.com/denoland/deno/actions/workflows/cargo_publish.yml
+  1. Test
+
+  <details></details>
