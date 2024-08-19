@@ -1,0 +1,15 @@
+!! should format !!
+| f\|oo  |
+| ------ |
+| b `\|` az |
+| b **\|** im |
+| test \| test |
+| `command \| filter` |
+
+[expect]
+| f\|oo               |
+| ------------------- |
+| b `\|` az           |
+| b **\|** im         |
+| test \| test        |
+| `command \| filter` |

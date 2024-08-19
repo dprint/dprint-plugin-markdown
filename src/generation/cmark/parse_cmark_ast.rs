@@ -177,7 +177,7 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
   match event {
     Event::Start(tag) => parse_start(tag, iterator),
     Event::End(_) => Ok(iterator.get_not_implemented()), // do nothing
-    Event::Code(code) => parse_code(code, iterator).map(|x| x.into()),
+    Event::Code(_) => parse_code(iterator).map(|x| x.into()),
     Event::Text(_) => parse_text(iterator).map(|x| x.into()),
     Event::Html(html) => parse_html(html, iterator).map(|x| x.into()),
     Event::InlineHtml(html) => parse_html(html, iterator).map(Into::into),
@@ -318,7 +318,11 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
   while let Some(event) = iterator.next() {
     match event {
       Event::End(TagEnd::CodeBlock) => break,
-      Event::Text(event_text) => code.push_str(event_text.as_ref()),
+      Event::Text(_) => {
+        let last_range = iterator.get_last_range();
+        let raw_text = &iterator.file_text[last_range];
+        code.push_str(raw_text)
+      }
       _ => {
         return Err(ParseError::new(
           iterator.get_last_range(),
@@ -351,10 +355,14 @@ fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator
   })
 }
 
-fn parse_code(code: CowStr, iterator: &mut EventIterator) -> Result<Code, ParseError> {
+fn parse_code(iterator: &mut EventIterator) -> Result<Code, ParseError> {
+  let mut raw_text = &iterator.file_text[iterator.get_last_range()];
+  while raw_text.starts_with('`') && raw_text.ends_with('`') {
+    raw_text = &raw_text[1..raw_text.len() - 1];
+  }
   Ok(Code {
     range: iterator.get_last_range(),
-    code: String::from(code.as_ref()),
+    code: raw_text.to_string(),
   })
 }
 
