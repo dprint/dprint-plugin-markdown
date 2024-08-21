@@ -3,6 +3,7 @@ use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
 use dprint_core_macros::sc;
+use pulldown_cmark::MetadataBlockKind;
 use std::borrow::Cow;
 use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
@@ -46,8 +47,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
     Node::TableCell(node) => gen_table_cell(node, context),
-    Node::YamlHeader(node) => gen_yaml_metadata(node, context),
-    Node::PlusesHeader(node) => gen_pluses_metadata(node, context),
+    Node::MetadataBlock(node) => gen_metadata_block(node, context),
     Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
@@ -115,6 +115,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::HorizontalRule(_)
           | Node::List(_)
           | Node::Table(_)
+          | Node::MetadataBlock(_)
           | Node::BlockQuote(_) => {
             items.extend(get_conditional_blank_line(node.range(), context));
           }
@@ -187,7 +188,15 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               items.push_signal(Signal::NewLine);
             }
           }
-          _ => {}
+          Node::NotImplemented(_)
+          | Node::SourceFile(_)
+          | Node::Item(_)
+          | Node::TaskListMarker(_)
+          | Node::HardBreak(_)
+          | Node::TableHead(_)
+          | Node::TableRow(_)
+          | Node::TableCell(_)
+          | Node::Math(_) => {}
         }
       }
     }
@@ -994,22 +1003,19 @@ fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
   gen_nodes(&table_cell.children, context)
 }
 
-fn gen_pluses_metadata(node: &PlusesHeader, context: &mut Context) -> PrintItems {
-  gen_metadata(&node.text, "+++", context)
-}
-
-fn gen_yaml_metadata(node: &YamlHeader, context: &mut Context) -> PrintItems {
-  gen_metadata(&node.text, "---", context)
-}
-
-fn gen_metadata(text: &str, delimiter: &str, _: &mut Context) -> PrintItems {
+fn gen_metadata_block(node: &MetadataBlock, _context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
-  items.push_string(delimiter.into());
+  let delimiter = match node.kind {
+    MetadataBlockKind::YamlStyle => sc!("---"),
+    MetadataBlockKind::PlusesStyle => sc!("+++"),
+  };
+
+  items.push_sc(&delimiter);
   items.push_signal(Signal::NewLine);
-  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text.trim_end()));
+  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(node.text.trim_end()));
   items.push_signal(Signal::NewLine);
-  items.push_string(delimiter.into());
+  items.push_sc(&delimiter);
 
   items
 }

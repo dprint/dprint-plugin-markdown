@@ -1,15 +1,15 @@
 use crate::generation::common::CharScanner;
-use crate::generation::common::YamlHeader;
 
-pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
+pub fn strip_yaml_header(text: &str) -> &str {
+  // todo(dsherret): use pulldown_cmark to parse this and support "+++" as well
   let mut scanner = CharScanner::new(0, text);
 
   if !scanner.move_text("---") {
-    return None;
+    return text;
   }
 
   if !scanner.move_new_line() {
-    return None;
+    return text;
   }
 
   while scanner.has_next() {
@@ -20,35 +20,29 @@ pub fn parse_yaml_header(text: &str) -> Option<YamlHeader> {
           start: 0,
           end: scanner.pos(),
         };
-        let header_text = String::from(&text[range.start..range.end]);
-        return Some(YamlHeader {
-          range,
-          text: header_text,
-        });
+        return &text[range.end..];
       }
     }
 
     scanner.move_next_line();
   }
 
-  None
+  text
 }
 
 #[cfg(test)]
 mod test {
   use super::*;
   #[test]
-  fn it_should_parse_yaml_header() {
-    let result = parse_yaml_header(
+  fn it_should_strip_yaml_header() {
+    let result = strip_yaml_header(
       r#"---
 a: b
 ---
 
 Test"#,
-    )
-    .unwrap();
+    );
 
-    assert_eq!(result.range.start, 0);
-    assert_eq!(result.range.end, 12);
+    assert_eq!(result, "\n\nTest");
   }
 }

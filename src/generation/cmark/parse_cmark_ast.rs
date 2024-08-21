@@ -236,7 +236,7 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
     Tag::List(first_item_number) => parse_list(first_item_number, iterator).map(|x| x.into()),
     Tag::Item => parse_item(iterator).map(|x| x.into()),
     Tag::HtmlBlock => parse_html_block(iterator).map(|x| x.into()),
-    Tag::MetadataBlock(metadata_block_kind) => parse_metadata(metadata_block_kind, iterator),
+    Tag::MetadataBlock(metadata_block_kind) => parse_metadata(metadata_block_kind, iterator).map(|x| x.into()),
   }
 }
 
@@ -708,7 +708,7 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
   })
 }
 
-fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Result<Node, ParseError> {
+fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Result<MetadataBlock, ParseError> {
   let start = iterator.get_last_range().start;
   let mut text = String::new();
   while let Some(event) = iterator.next() {
@@ -733,20 +733,12 @@ fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Resu
     }
   }
 
-  Ok(match kind {
-    MetadataBlockKind::YamlStyle => Node::YamlHeader(YamlHeader {
-      range: Range {
-        start,
-        end: start + text.len(),
-      },
-      text,
-    }),
-    MetadataBlockKind::PlusesStyle => Node::PlusesHeader(PlusesHeader {
-      range: Range {
-        start,
-        end: start + text.len(),
-      },
-      text,
-    }),
+  Ok(MetadataBlock {
+    range: Range {
+      start,
+      end: start + text.len(),
+    },
+    kind,
+    text,
   })
 }

@@ -1,3 +1,5 @@
+use pulldown_cmark::MetadataBlockKind;
+
 use crate::generation::gen_types::Context;
 
 pub type Range = std::ops::Range<usize>;
@@ -12,13 +14,9 @@ pub struct SourceFile {
   pub children: Vec<Node>,
 }
 
-pub struct YamlHeader {
+pub struct MetadataBlock {
   pub range: Range,
-  pub text: String,
-}
-
-pub struct PlusesHeader {
-  pub range: Range,
+  pub kind: MetadataBlockKind,
   pub text: String,
 }
 
@@ -337,7 +335,6 @@ generate_node![
   TableHead,
   TableRow,
   TableCell,
-  YamlHeader,
-  PlusesHeader,
+  MetadataBlock,
   Math
 ];

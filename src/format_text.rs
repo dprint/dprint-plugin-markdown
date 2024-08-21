@@ -7,7 +7,7 @@ use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
 use super::generation::generate;
 use super::generation::parse_cmark_ast;
-use super::generation::parse_yaml_header;
+use super::generation::strip_yaml_header;
 use super::generation::Context;
 
 /// Formats a file.
@@ -81,14 +81,8 @@ enum ParseFileResult<'a> {
 }
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>> {
-  let yaml_header = parse_yaml_header(file_text); // todo: improve... this is kind of hacked into here
-  let markdown_text = match &yaml_header {
-    Some(yaml_header) => &file_text[yaml_header.range.end..],
-    None => file_text,
-  };
-
   // check for the presence of an dprint-ignore-file comment before parsing
-  if file_has_ignore_file_directive(markdown_text, &config.ignore_file_directive) {
+  if file_has_ignore_file_directive(strip_yaml_header(file_text), &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }
 
