@@ -1,20 +1,7 @@
 ~~ deno: true ~~
 !! should format !!
 ---
-title: "What we got wrong about HTTP imports"
-author: Ryan Dahl
-publish_date: 2024-07-29T12:00:00.000Z
-og:image: /blog/http-imports/og.webp
-snippet: Designing a module system around HTTP imports was ambitious. Here are some issues we encountered and how we solved for them.
-cover_html: |
-  <div class="mx-auto w-full">
-    <img
-      src="/blog/http-imports/cover.png"
-      alt="Why Deno's HTTP imports struggle at scale"
-      class="mx-auto w-full sm:mt-0"
-    />
-  </div>
-tag: Engineering
+title: Testing
 ---
 
 <blockquote class="md-pullquote" style="border: 0">
@@ -23,20 +10,7 @@ Everything should be made as simple as possible, but not simpler.
 
 [expect]
 ---
-title: "What we got wrong about HTTP imports"
-author: Ryan Dahl
-publish_date: 2024-07-29T12:00:00.000Z
-og:image: /blog/http-imports/og.webp
-snippet: Designing a module system around HTTP imports was ambitious. Here are some issues we encountered and how we solved for them.
-cover_html: |
-  <div class="mx-auto w-full">
-    <img
-      src="/blog/http-imports/cover.png"
-      alt="Why Deno's HTTP imports struggle at scale"
-      class="mx-auto w-full sm:mt-0"
-    />
-  </div>
-tag: Engineering
+title: Testing
 ---
 
 <blockquote class="md-pullquote" style="border: 0">
