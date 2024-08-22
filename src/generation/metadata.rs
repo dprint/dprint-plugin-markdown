@@ -1,7 +1,7 @@
 use crate::generation::common::CharScanner;
 
 pub fn strip_metadata_header(text: &str) -> &str {
-  // todo(dsherret): use pulldown_cmark to parse this and support "+++" as well
+  // todo(dsherret): use pulldown_cmark to parse this
   let mut scanner = CharScanner::new(0, text);
 
   let delimiter = if scanner.is_next_text("---") {
