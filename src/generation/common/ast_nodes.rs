@@ -58,7 +58,11 @@ pub struct Html {
   pub range: Range,
 }
 
-pub struct Math {
+pub struct DisplayMath {
+  pub range: Range,
+}
+
+pub struct InlineMath {
   pub range: Range,
 }
 
@@ -336,5 +340,6 @@ generate_node![
   TableRow,
   TableCell,
   MetadataBlock,
-  Math
+  DisplayMath,
+  InlineMath
 ];

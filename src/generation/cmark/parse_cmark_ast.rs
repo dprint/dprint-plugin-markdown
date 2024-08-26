@@ -207,8 +207,8 @@ fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, Parse
       }
       .into(),
     ),
-    Event::InlineMath(text) => parse_math(text, iterator).map(|n| n.into()),
-    Event::DisplayMath(text) => parse_math(text, iterator).map(|n| n.into()),
+    Event::InlineMath(text) => parse_inline_math(text, iterator).map(|n| n.into()),
+    Event::DisplayMath(text) => parse_display_math(text, iterator).map(|n| n.into()),
   }
 }
 
@@ -422,8 +422,14 @@ fn parse_html(text: CowStr, iterator: &mut EventIterator) -> Result<Html, ParseE
   })
 }
 
-fn parse_math(_text: CowStr, iterator: &mut EventIterator) -> Result<Math, ParseError> {
-  Ok(Math {
+fn parse_display_math(_text: CowStr, iterator: &mut EventIterator) -> Result<DisplayMath, ParseError> {
+  Ok(DisplayMath {
+    range: iterator.get_last_range(),
+  })
+}
+
+fn parse_inline_math(_text: CowStr, iterator: &mut EventIterator) -> Result<InlineMath, ParseError> {
+  Ok(InlineMath {
     range: iterator.get_last_range(),
   })
 }

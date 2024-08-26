@@ -27,7 +27,8 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
     Node::Html(node) => gen_html(node, context),
-    Node::Math(node) => gen_math(node, context),
+    Node::DisplayMath(node) => gen_display_math(node, context),
+    Node::InlineMath(node) => gen_inline_math(node, context),
     Node::FootnoteReference(node) => gen_footnote_reference(node, context),
     Node::FootnoteDefinition(node) => gen_footnote_definition(node, context),
     Node::InlineLink(node) => gen_inline_link(node, context),
@@ -116,7 +117,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::List(_)
           | Node::Table(_)
           | Node::MetadataBlock(_)
-          | Node::BlockQuote(_) => {
+          | Node::BlockQuote(_)
+          | Node::DisplayMath(_) => {
             items.extend(get_conditional_blank_line(node.range(), context));
           }
           Node::Code(_)
@@ -130,7 +132,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::Text(_)
           | Node::Html(_)
           | Node::InlineImage(_)
-          | Node::ReferenceImage(_) => {
+          | Node::ReferenceImage(_)
+          | Node::InlineMath(_) => {
             let between_range = (last_node.range().end, node.range().start);
             let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
 
@@ -195,8 +198,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::HardBreak(_)
           | Node::TableHead(_)
           | Node::TableRow(_)
-          | Node::TableCell(_)
-          | Node::Math(_) => {}
+          | Node::TableCell(_) => {}
         }
       }
     }
@@ -582,7 +584,11 @@ fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
   gen_range(node.range.clone(), ctx)
 }
 
-fn gen_math(node: &Math, ctx: &mut Context) -> PrintItems {
+fn gen_display_math(node: &DisplayMath, ctx: &mut Context) -> PrintItems {
+  gen_range(node.range.clone(), ctx)
+}
+
+fn gen_inline_math(node: &InlineMath, ctx: &mut Context) -> PrintItems {
   gen_range(node.range.clone(), ctx)
 }
 
