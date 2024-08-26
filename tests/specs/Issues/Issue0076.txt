@@ -1,0 +1,21 @@
+!! should format !!
+Some paragraph with a footnote[^1].
+
+[^1]: Footnotes, as well as endnotes, are strings of text placed at the bottom
+of a page in a book or document or at the end of a chapter, volume, or the whole
+text.
+
+    The footnote can provide an author's comments on the main text or
+[citations](https://en.wikipedia.org/wiki/Citation) of a reference work in
+support of the text.
+
+[expect]
+Some paragraph with a footnote[^1].
+
+[^1]: Footnotes, as well as endnotes, are strings of text placed at the bottom
+    of a page in a book or document or at the end of a chapter, volume, or the whole
+    text.
+
+    The footnote can provide an author's comments on the main text or
+    [citations](https://en.wikipedia.org/wiki/Citation) of a reference work in
+    support of the text.

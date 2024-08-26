@@ -606,7 +606,7 @@ fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Contex
 fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]: ", footnote_definition.name.trim()));
-  items.extend(gen_nodes(&footnote_definition.children, context));
+  items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
   items
 }
 
