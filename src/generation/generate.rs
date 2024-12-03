@@ -433,7 +433,7 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   }
 }
 
-fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
+fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   let text = code.code.trim();
   let mut backtick_text = "`";
   let mut separator = "";
@@ -444,7 +444,8 @@ fn gen_code(code: &Code, _: &mut Context) -> PrintItems {
     }
   }
 
-  format!("{0}{1}{2}{1}{0}", backtick_text, separator, text).into()
+  let full_string = format!("{0}{1}{2}{1}{0}", backtick_text, separator, text);
+  gen_str(&full_string, context)
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
