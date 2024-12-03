@@ -18,3 +18,10 @@ Testing
 
 [expect]
 Testing `this` out.
+
+!! should wrap inline code across lines !!
+Testing `this
+out`.
+
+[expect]
+Testing `this out`.
