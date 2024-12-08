@@ -49,6 +49,10 @@ impl ConfigurationBuilder {
     self.insert("lineWidth", (value as i32).into())
   }
 
+  pub fn indent_width(&mut self, value: u32) -> &mut Self {
+    self.insert("indentWidth", (value as i32).into())
+  }
+
   /// The kind of newline to use.
   /// Default: `NewLineKind::LineFeed`
   pub fn new_line_kind(&mut self, value: NewLineKind) -> &mut Self {
