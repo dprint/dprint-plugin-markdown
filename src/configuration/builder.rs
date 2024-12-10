@@ -140,6 +140,7 @@ mod tests {
     config
       .new_line_kind(NewLineKind::CarriageReturnLineFeed)
       .line_width(90)
+      .indent_width(2)
       .text_wrap(TextWrap::Always)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
@@ -165,6 +166,7 @@ mod tests {
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 90);
+    assert_eq!(config.indent_width, 2);
     assert_eq!(config.new_line_kind == NewLineKind::CarriageReturnLineFeed, true);
   }
 
@@ -174,6 +176,7 @@ mod tests {
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
+    assert_eq!(config.indent_width, 2);
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
   }
 }
