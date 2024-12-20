@@ -25,3 +25,17 @@ out`.
 
 [expect]
 Testing `this out`.
+
+!! should rewrap inline code across lines in blockquote !!
+> Testing `this
+> out`.
+
+[expect]
+> Testing `this out`.
+
+!! should rewrap inline code across lines which are too long in blockquote !!
+> This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+
+[expect]
+> This is some long text, which will have a bit of inline code across the `80
+> character limit` and then more after that.
