@@ -141,7 +141,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // Callout example:
               // > [!NOTE]
               // > Some note.
-              let is_callout = if context.is_in_block_quote() && matches!(node, Node::Text(_)) {
+              let is_callout = if context.is_in_block_quote() {
                 if let Node::Text(text) = last_node {
                   is_callout_text(&text.text)
                 } else {

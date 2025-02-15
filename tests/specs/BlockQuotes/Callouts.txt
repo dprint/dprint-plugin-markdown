@@ -22,3 +22,11 @@
 > [!NOTE]
 >
 > Some sort of note
+
+!! should format when followed by italic text !!
+> [!NOTE]
+> _Some_ sort of note
+
+[expect]
+> [!NOTE]
+> _Some_ sort of note
