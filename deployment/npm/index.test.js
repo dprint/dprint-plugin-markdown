@@ -5,6 +5,9 @@ const getPath = require("./index").getPath;
 
 const buffer = require("fs").readFileSync(getPath());
 const formatter = createFromBuffer(buffer);
-const result = formatter.formatText("file.md", "#   Hello");
+const result = formatter.formatText({
+  filePath: "file.md",
+  fileText: "#   Hello",
+});
 
 assert.strictEqual(result, "# Hello\n");
