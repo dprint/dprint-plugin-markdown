@@ -43,6 +43,12 @@ pub fn resolve_config(
       global_config.line_width.unwrap_or(80),
       &mut diagnostics,
     ),
+    indent_width: get_value(
+      &mut config,
+      "indentWidth",
+      global_config.indent_width.unwrap_or(2).into(),
+      &mut diagnostics,
+    ),
     new_line_kind: get_value(
       &mut config,
       "newLineKind",
