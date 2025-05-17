@@ -49,6 +49,10 @@ impl ConfigurationBuilder {
     self.insert("lineWidth", (value as i32).into())
   }
 
+  pub fn indent_width(&mut self, value: u32) -> &mut Self {
+    self.insert("indentWidth", (value as i32).into())
+  }
+
   /// The kind of newline to use.
   /// Default: `NewLineKind::LineFeed`
   pub fn new_line_kind(&mut self, value: NewLineKind) -> &mut Self {
@@ -136,6 +140,7 @@ mod tests {
     config
       .new_line_kind(NewLineKind::CarriageReturnLineFeed)
       .line_width(90)
+      .indent_width(2)
       .text_wrap(TextWrap::Always)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
@@ -146,7 +151,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 10);
+    assert_eq!(inner_config.len(), 11);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -161,6 +166,7 @@ mod tests {
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 90);
+    assert_eq!(config.indent_width, 2);
     assert_eq!(config.new_line_kind == NewLineKind::CarriageReturnLineFeed, true);
   }
 
@@ -170,6 +176,7 @@ mod tests {
     let mut config_builder = ConfigurationBuilder::new();
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
+    assert_eq!(config.indent_width, 2);
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
   }
 }
