@@ -279,7 +279,7 @@ impl Node {
     }
   }
 
-  pub fn has_preceeding_space(&self, file_text: &str) -> bool {
+  pub fn has_preceding_space(&self, file_text: &str) -> bool {
     let range = self.range();
     if range.start == 0 {
       false

@@ -69,11 +69,11 @@ generate_str_to_from![StrongKind, [Asterisks, "asterisks"], [Underscores, "under
 pub enum UnorderedListKind {
   /// Uses dashes (-) as primary character for lists (default).
   ///
-  /// In this case, asterisks are used as alternate list chracters.
+  /// In this case, asterisks are used as alternate list characters.
   Dashes,
   /// Uses asterisks (*) as primary character for lists.
   ///
-  /// In this case, dashes are used as alternate list chracters.
+  /// In this case, dashes are used as alternate list characters.
   Asterisks,
 }
 
