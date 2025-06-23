@@ -1009,7 +1009,7 @@ fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
   gen_nodes(&table_cell.children, context)
 }
 
-fn gen_metadata_block(node: &MetadataBlock, _context: &mut Context) -> PrintItems {
+fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   let delimiter = match node.kind {
@@ -1019,7 +1019,20 @@ fn gen_metadata_block(node: &MetadataBlock, _context: &mut Context) -> PrintItem
 
   items.push_sc(&delimiter);
   items.push_signal(Signal::NewLine);
-  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(node.text.trim_end()));
+  match node.kind {
+    MetadataBlockKind::YamlStyle => {
+      let text = context
+        .format_text("yaml", &node.text)
+        .ok()
+        .flatten()
+        .map(Cow::from)
+        .unwrap_or_else(|| Cow::from(&node.text));
+      items.extend(ir_helpers::gen_from_string_trim_line_ends(text.trim_end()));
+    }
+    MetadataBlockKind::PlusesStyle => {
+      items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(node.text.trim_end()));
+    }
+  }
   items.push_signal(Signal::NewLine);
   items.push_sc(&delimiter);
 
