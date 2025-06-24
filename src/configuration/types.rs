@@ -8,6 +8,7 @@ use serde::Serialize;
 #[serde(rename_all = "camelCase")]
 pub struct Configuration {
   pub line_width: u32,
+  pub indent_width: u32,
   pub new_line_kind: NewLineKind,
   pub text_wrap: TextWrap,
   pub emphasis_kind: EmphasisKind,
