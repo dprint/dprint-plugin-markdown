@@ -120,6 +120,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "yml" | "yaml" => Some("yaml"),
         "graphql" => Some("graphql"),
         "python" | "py" => Some("py"),
+        "dockerfile" => Some("dockerfile"),
         _ => None,
       }
     }
