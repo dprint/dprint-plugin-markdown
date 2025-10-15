@@ -162,15 +162,15 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               items.push_signal(Signal::NewLine);
             } else {
               let needs_space = if let Node::Html(_) = last_node {
-                node.has_preceeding_space(context.file_text)
+                node.has_preceding_space(context.file_text)
               } else if matches!(last_node, Node::Text(_)) || matches!(node, Node::Text(_)) {
-                node.has_preceeding_space(context.file_text)
+                node.has_preceding_space(context.file_text)
                   || !last_node.ends_with_punctuation(context.file_text)
                     && !node.starts_with_punctuation(context.file_text)
               } else if let Node::FootnoteReference(_) = node {
                 false
               } else if let Node::Html(_) = node {
-                node.has_preceeding_space(context.file_text)
+                node.has_preceding_space(context.file_text)
               } else {
                 true
               };

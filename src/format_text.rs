@@ -81,7 +81,7 @@ enum ParseFileResult<'a> {
 }
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>> {
-  // check for the presence of an dprint-ignore-file comment before parsing
+  // check for the presence of a dprint-ignore-file comment before parsing
   if file_has_ignore_file_directive(strip_metadata_header(file_text), &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }

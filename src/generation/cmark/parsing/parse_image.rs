@@ -4,7 +4,7 @@ use super::parse_text_in_parens;
 use crate::generation::common::*;
 use pulldown_cmark::LinkType;
 
-/// Crudely parses out an image assuming the text is a image.
+/// Crudely parses out an image assuming the text is an image.
 /// This is done because images have their references inlined by cmark.
 pub fn parse_image(offset: usize, text: &str, link_type: LinkType) -> Result<Node, ParseError> {
   let mut char_scanner = CharScanner::new(offset, text);
