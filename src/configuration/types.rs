@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dprint_core::configuration::*;
 use dprint_core::generate_str_to_from;
 use serde::Deserialize;
@@ -17,6 +19,10 @@ pub struct Configuration {
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
   pub ignore_end_directive: String,
+  /// Custom tag to file extension mappings for formatting code blocks.
+  /// For example: { "cue": "cue", "cuelang": "cue" }
+  #[serde(default)]
+  pub tags: HashMap<String, String>,
 }
 
 /// Text wrapping possibilities.

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::builder::ConfigurationBuilder;
 use super::types::*;
 use super::Configuration;
@@ -35,6 +37,8 @@ pub fn resolve_config(
   if get_value(&mut config, "deno", false, &mut diagnostics) {
     fill_deno_config(&mut config);
   }
+
+  let tags = get_tags(&mut config, &mut diagnostics);
 
   let resolved_config = Configuration {
     line_width: get_value(
@@ -84,6 +88,7 @@ pub fn resolve_config(
       "dprint-ignore-end".to_string(),
       &mut diagnostics,
     ),
+    tags,
   };
 
   for (key, _) in config.iter() {
@@ -97,6 +102,38 @@ pub fn resolve_config(
     config: resolved_config,
     diagnostics,
   }
+}
+
+fn get_tags(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> HashMap<String, String> {
+  let mut tags = HashMap::new();
+
+  if let Some(value) = config.shift_remove("tags") {
+    match value {
+      ConfigKeyValue::Object(obj) => {
+        for (key, val) in obj.iter() {
+          match val {
+            ConfigKeyValue::String(s) => {
+              tags.insert(key.to_lowercase(), s.clone());
+            }
+            _ => {
+              diagnostics.push(ConfigurationDiagnostic {
+                property_name: format!("tags.{}", key),
+                message: format!("Expected string value for tag '{}', but got a different type", key),
+              });
+            }
+          }
+        }
+      }
+      _ => {
+        diagnostics.push(ConfigurationDiagnostic {
+          property_name: "tags".to_string(),
+          message: "Expected an object for 'tags' configuration".to_string(),
+        });
+      }
+    }
+  }
+
+  tags
 }
 
 fn fill_deno_config(config: &mut ConfigKeyMap) {
