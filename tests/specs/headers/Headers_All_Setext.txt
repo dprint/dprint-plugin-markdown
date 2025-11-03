@@ -1,0 +1,45 @@
+~~ lineWidth: 40, headingKind: setext ~~
+!! should format the headers !!
+# H1
+
+## H2
+
+### H3
+
+#### H4
+
+First Header
+============
+
+Second Header
+-------------
+
+[expect]
+H1
+========================================
+
+H2
+----------------------------------------
+
+### H3
+
+#### H4
+
+First Header
+========================================
+
+Second Header
+----------------------------------------
+
+!! Headers are allowed to flow over multiple lines.
+This Header
+spans
+multiple lines
+========================================
+
+
+[expect]
+This Header
+spans
+multiple lines
+========================================
