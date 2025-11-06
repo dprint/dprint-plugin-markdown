@@ -29,10 +29,10 @@ fn main() {
         let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
 
-        format_text(&file_text, &config_result.config, |tag, file_text, line_width| {
+        format_text(file_text, &config_result.config, |tag, file_text, line_width| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
-            Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
+            Ok(Some(format!("{}{}\n\n", file_text, end)))
           } else {
             Ok(None)
           }
@@ -45,19 +45,19 @@ fn main() {
         let spec_config: ConfigKeyMap = serde_json::from_value(_spec_config.clone().into()).unwrap();
         let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
-        return serde_json::to_string(&trace_file(
-          &_file_text,
+        serde_json::to_string(&trace_file(
+          _file_text,
           &config_result.config,
           |tag, file_text, line_width| {
             let end = format!("_formatted_{}", line_width);
             if tag == "format" && !file_text.ends_with(&end) {
-              Ok(Some(format!("{}{}\n\n", file_text.to_string(), end)))
+              Ok(Some(format!("{}{}\n\n", file_text, end)))
             } else {
               Ok(None)
             }
           },
         ))
-        .unwrap();
+        .unwrap()
       }
 
       #[cfg(not(feature = "tracing"))]

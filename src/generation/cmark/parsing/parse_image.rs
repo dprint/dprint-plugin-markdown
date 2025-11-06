@@ -20,7 +20,7 @@ pub fn parse_image(offset: usize, text: &str, link_type: LinkType) -> Result<Nod
         start: offset,
         end: offset,
       },
-      &format!("Link type not implemented {:?}", link_type),
+      format!("Link type not implemented {:?}", link_type),
     )),
   }
 }

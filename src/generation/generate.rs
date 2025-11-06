@@ -1017,7 +1017,7 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
     MetadataBlockKind::PlusesStyle => sc!("+++"),
   };
 
-  items.push_sc(&delimiter);
+  items.push_sc(delimiter);
   items.push_signal(Signal::NewLine);
   match node.kind {
     MetadataBlockKind::YamlStyle => {
@@ -1034,7 +1034,7 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
     }
   }
   items.push_signal(Signal::NewLine);
-  items.push_sc(&delimiter);
+  items.push_sc(delimiter);
 
   items
 }
@@ -1064,7 +1064,7 @@ fn get_items_text(items: PrintItems) -> String {
     ir_helpers::with_no_new_lines(items),
     PrintOptions {
       indent_width: 0,
-      max_width: std::u32::MAX,
+      max_width: u32::MAX,
       use_tabs: false,
       new_line_text: "",
     },

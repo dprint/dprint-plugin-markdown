@@ -89,7 +89,7 @@ impl<'a> CharScanner<'a> {
             start: byte_pos,
             end: byte_pos + c.len_utf8(),
           },
-          &format!("Unexpected token `{}` when expected `{}`.", c, searching_char),
+          format!("Unexpected token `{}` when expected `{}`.", c, searching_char),
         ));
       }
     }
@@ -99,7 +99,7 @@ impl<'a> CharScanner<'a> {
         start: self.pos,
         end: self.end(),
       },
-      &format!("Did not find expected char of `{}`", searching_char),
+      format!("Did not find expected char of `{}`", searching_char),
     ))
   }
 
