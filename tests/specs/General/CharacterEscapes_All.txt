@@ -3,7 +3,11 @@
 
 And (\`) backticks and dollar signs (\$).
 
+Non-breaking spaces like this : : should not break.
+
 [expect]
 - **--allow-net=\<allow-net\>** Testing.
 
 And (\`) backticks and dollar signs (\$).
+
+Non-breaking spaces like this : : should not break.
