@@ -1,4 +1,4 @@
-~~ textWrap: always ~~
+~~ textWrap: always, lineWidth: 40 ~~
 !! should format inline blocks !!
 Testing ` this `  out.
 
@@ -18,3 +18,10 @@ Testing
 
 [expect]
 Testing `this` out.
+
+!! Wrapping within inline code blocks !!
+`long code blocks should have their text wrapped.`
+
+[expect]
+`long code blocks should have their text
+wrapped.`

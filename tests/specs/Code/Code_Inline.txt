@@ -41,3 +41,11 @@ Testing
 `` `test` ``
 `` `test` test ``
 `` test `test` ``
+
+!! inline code newlines !!
+`Inline code can
+include newlines.`
+
+[expect]
+`Inline code can
+include newlines.`
