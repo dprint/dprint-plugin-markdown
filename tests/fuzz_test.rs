@@ -37,7 +37,6 @@ fn test_vertical_tab() {
 }
 
 #[test]
-#[should_panic]
 fn test_nul_tab() {
   assert!(is_idempotent("\0\t\0"));
 }

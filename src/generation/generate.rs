@@ -488,7 +488,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     }
 
     pub fn add_char(&mut self, character: char) {
-      if character == '\n' || character == ' ' {
+      if utils::is_commonmark_whitespace(character) {
         if self.context.configuration.text_wrap == TextWrap::Maintain && character == '\n' {
           self.newline();
         } else {

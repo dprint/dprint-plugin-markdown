@@ -110,6 +110,16 @@ fn is_space_tab_or_newline(c: char) -> bool {
   matches!(c, ' ' | '\t' | '\r' | '\n')
 }
 
+/// Returns true if the character is a whitespace character according
+/// to the CommonMark spec.
+///
+/// See <https://spec.commonmark.org/0.30/#whitespace-character>
+///
+/// Note: This is stricter than Rust's `char::is_whitespace`.
+pub fn is_commonmark_whitespace(c: char) -> bool {
+  matches!(c, ' ' | '\t' | '\r' | '\n' | '\u{0b}' | '\u{0c}')
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
