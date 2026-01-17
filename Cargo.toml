@@ -40,4 +40,6 @@ unicode-width = "0.1.10"
 
 [dev-dependencies]
 dprint-development = "0.10.1"
+quickcheck = "1.0.3"
+quickcheck_macros = "1.1.0"
 serde_json = { version = "1.0" }
