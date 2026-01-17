@@ -1,0 +1,46 @@
+!! Empty blockquote
+>
+
+[expect]
+>
+
+!! Empty blockquote with newline
+>
+>
+
+[expect]
+>
+>
+
+!! Empty blockquote with trailing whitespace
+> 
+> 
+
+[expect]
+>
+>
+
+!! Nested empty blockquote
+>>
+>>
+
+[expect]
+>>
+>>
+
+!! Nested empty blockquote with space between quotes
+> >
+> >
+
+[expect]
+>>
+>>
+
+!! Empty blockquote after paragraph
+Paragraph
+>
+
+[expect]
+Paragraph
+
+>

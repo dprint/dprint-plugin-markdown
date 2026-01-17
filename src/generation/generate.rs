@@ -304,10 +304,29 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
   context.mark_in_block_quotes(|context, block_quote_count| {
     let mut items = PrintItems::new();
 
+    let children_items = gen_nodes(&block_quote.children, context);
+    if children_items.is_empty() {
+      let newline_count = context.get_new_lines_in_range(block_quote.range.start, block_quote.range.end);
+      for i in 0..std::cmp::max(1, newline_count) {
+        if i > 0 {
+          items.push_signal(Signal::NewLine);
+        }
+        // We use a condition here primarily to prevent a parent
+        // `gen_block_quote` loop from wrapping this string with
+        // another layer of ">".
+        items.push_condition(if_true(
+          "angleBracketIfStartOfLine",
+          condition_resolvers::is_start_of_line(),
+          ir_helpers::gen_from_string(&">".repeat(block_quote_count)),
+        ));
+      }
+      return items;
+    }
+
     // add a > for any string that is on the start of a line
     // Note: This is extremely hacky
     let mut indent_level = 0;
-    for print_item in gen_nodes(&block_quote.children, context).iter() {
+    for print_item in children_items.iter() {
       match print_item {
         PrintItem::String(text) => {
           items.push_condition(if_true(
@@ -488,7 +507,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     }
 
     pub fn add_char(&mut self, character: char) {
-      if character == '\n' || character == ' ' {
+      if utils::is_commonmark_whitespace(character) {
         if self.context.configuration.text_wrap == TextWrap::Maintain && character == '\n' {
           self.newline();
         } else {
