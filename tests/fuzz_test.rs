@@ -42,7 +42,6 @@ fn test_nul_tab() {
 }
 
 #[test]
-#[should_panic]
 fn test_paragraph_blockquote() {
   assert!(is_idempotent("Lorem ipsum.\n>"));
 }
