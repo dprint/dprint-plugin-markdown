@@ -75,7 +75,7 @@ pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
   0
 }
 
-pub fn unindent(text: &str) -> Cow<str> {
+pub fn unindent(text: &str) -> Cow<'_, str> {
   let lines = text.split('\n').collect::<Vec<_>>();
   let mut lines_with_indent = Vec::with_capacity(lines.len());
   for line in lines.into_iter() {

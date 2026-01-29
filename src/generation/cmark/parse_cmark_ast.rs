@@ -86,7 +86,7 @@ impl<'a> EventIterator<'a> {
   }
 
   #[allow(dead_code)]
-  pub fn peek(&self) -> &Option<(Event, Range)> {
+  pub fn peek(&self) -> &Option<(Event<'_>, Range)> {
     &self.next
   }
 
@@ -533,9 +533,9 @@ fn parse_image(link_type: LinkType, iterator: &mut EventIterator) -> Result<Node
   let start = iterator.start();
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::Image) => break,
-      _ => {} // ignore link children
+    // ignore link children
+    if let Event::End(TagEnd::Image) = event {
+      break;
     }
   }
 
