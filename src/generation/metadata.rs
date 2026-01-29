@@ -19,8 +19,8 @@ pub fn strip_metadata_header(text: &str) -> &str {
   }
 
   while scanner.has_next() {
-    if scanner.is_next_text(&delimiter) {
-      scanner.move_text(&delimiter);
+    if scanner.is_next_text(delimiter) {
+      scanner.move_text(delimiter);
       if scanner.move_new_line() || scanner.pos() == scanner.end() {
         let range = std::ops::Range {
           start: 0,

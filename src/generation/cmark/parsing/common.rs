@@ -24,20 +24,20 @@ fn parse_text_in_container(
           start: byte_pos,
           end: byte_pos + c.len_utf8(),
         },
-        &format!("Unexpected open container char `{}`.", open_char),
+        format!("Unexpected open container char `{}`.", open_char),
       ));
     } else {
       text.push(c);
     }
   }
 
-  return Err(ParseError::new(
+  Err(ParseError::new(
     Range {
       start: start_pos,
       end: char_scanner.pos(),
     },
-    &format!("Did not find container close char `{}`.", close_char),
-  ));
+    format!("Did not find container close char `{}`.", close_char),
+  ))
 }
 
 pub fn parse_link_url_and_title(text: &str) -> (String, Option<String>) {
