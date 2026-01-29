@@ -5,7 +5,8 @@ use regex::Regex;
 /// Checks if the provided word is a word that could be a list.
 /// Assumes the provided string is one word and doesn't have whitespace.
 pub fn is_list_word(word: &str) -> bool {
-  debug_assert!(!word.chars().any(|c| c.is_whitespace()));
+  const NON_BREAKING_SPACE: char = '\u{a0}';
+  debug_assert!(!word.chars().any(|c| c.is_whitespace() && c != NON_BREAKING_SPACE));
 
   if word == "*" || word == "-" || word == "+" {
     true
