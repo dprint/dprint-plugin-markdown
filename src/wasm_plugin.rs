@@ -109,6 +109,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "rust" | "rs" => Some("rs"),
         "csharp" | "cs" => Some("cs"),
         "visualbasic" | "vb" => Some("vb"),
+        "html" => Some("html"),
         "css" => Some("css"),
         "less" => Some("less"),
         "toml" => Some("toml"),
