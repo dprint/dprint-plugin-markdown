@@ -93,7 +93,7 @@ impl UnorderedListKind {
 
 generate_str_to_from![UnorderedListKind, [Dashes, "dashes"], [Asterisks, "asterisks"]];
 
-/// The style of heading to use for level 1 and level headings:
+/// The style of heading to use for level 1 and level 2 headings:
 /// [setext](https://spec.commonmark.org/0.31.2/#setext-headings) or
 /// [ATX](https://spec.commonmark.org/0.31.2/#atx-headings). Level 3 and
 /// higher headings always use ATX headings, since Markdown only supports
