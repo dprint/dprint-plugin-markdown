@@ -276,8 +276,33 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
-  items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-  items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+  if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
+    // setext headings only apply to level 1 and level 2.
+    //
+    // First, output the heading text.
+    let heading_children = gen_nodes(&heading.children, context);
+    items.extend(heading_children);
+    items.push_item(PrintItem::Signal(Signal::NewLine));
+
+    // Next, create an underline. To produce a visually appealing underline,
+    // split the heading text (which may contain more than one line) into
+    // lines, then determine the length of the longest line. Note that this
+    // length should be determined **after** formatting, since lines may be
+    // wrapped during the formatting process.
+    //
+    // Incorrect -- need some way to get the text of the heading after's its
+    // been formatted/line wrapped. How to insert some sort of post-processing
+    // node?
+    //let heading_text = heading_children.get_as_text();
+    // For now, use a constant width.
+    let heading_text = "x".repeat(context.configuration.line_width as usize);
+    // For now, use constant-width dummy text.
+    items.push_string((if heading.level == 1 { "=" } else { "-" }).repeat(heading_text.len()));
+  } else {
+    // atx headings apply to all levels.
+    items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
+    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+  }
 
   items
 }

@@ -1,4 +1,4 @@
-~~ lineWidth: 40 ~~
+~~ lineWidth: 40, textWrap: always ~~
 !! should format the headers !!
 # H1
 
@@ -37,8 +37,13 @@ Second Header
 !! should keep a header on a single line even when it goes over the line width !!
 # Testing this out by going over the line width
 
+Verifying that text is wrapping in other places.
+
 [expect]
 # Testing this out by going over the line width
+
+Verifying that text is wrapping in other
+places.
 
 !! should remove consecutive spaces in the header text !!
 # Here   is      a           test
