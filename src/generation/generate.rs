@@ -179,7 +179,6 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 if node.starts_with_list_word() {
                   items.push_space();
                 } else {
-                  if matches!(last_node, Node::Text(_)) && matches!(node, Node::Text(_)) {}
                   items.extend(get_space_or_newline_based_on_config(context));
                 }
               }
@@ -1096,11 +1095,7 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
       new_line_text: "\n",
     },
   );
-  rendered
-    .lines()
-    .map(|line| UnicodeWidthStr::width(line))
-    .max()
-    .unwrap_or(0)
+  rendered.lines().map(UnicodeWidthStr::width).max().unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
