@@ -16,22 +16,35 @@ Second Header
 
 [expect]
 H1
-========================================
+==
 
 H2
-----------------------------------------
+--
 
 ### H3
 
 #### H4
 
 First Header
-========================================
+============
 
 Second Header
+-------------
+
+!! should handle level 2 multi-line heading !!
+This Header
+spans
+multiple lines
 ----------------------------------------
 
-!! Headers are allowed to flow over multiple lines.
+
+[expect]
+This Header
+spans
+multiple lines
+--------------
+
+!! should handle level 1 multi-line heading !!
 This Header
 spans
 multiple lines
@@ -42,4 +55,4 @@ multiple lines
 This Header
 spans
 multiple lines
-========================================
+==============

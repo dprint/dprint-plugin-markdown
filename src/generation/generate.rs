@@ -278,26 +278,16 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
 
   if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
     // setext headings only apply to level 1 and level 2.
-    //
-    // First, output the heading text.
     let heading_children = gen_nodes(&heading.children, context);
+    let (heading_children, cloned_children) = clone_items(heading_children);
     items.extend(heading_children);
     items.push_item(PrintItem::Signal(Signal::NewLine));
 
-    // Next, create an underline. To produce a visually appealing underline,
-    // split the heading text (which may contain more than one line) into
-    // lines, then determine the length of the longest line. Note that this
-    // length should be determined **after** formatting, since lines may be
-    // wrapped during the formatting process.
-    //
-    // Incorrect -- need some way to get the text of the heading after's its
-    // been formatted/line wrapped. How to insert some sort of post-processing
-    // node?
-    //let heading_text = heading_children.get_as_text();
-    // For now, use a constant width.
-    let heading_text = "x".repeat(context.configuration.line_width as usize);
-    // For now, use constant-width dummy text.
-    items.push_string((if heading.level == 1 { "=" } else { "-" }).repeat(heading_text.len()));
+    // render the heading text with the actual line width so wrapping is
+    // applied, then measure the longest line for the underline width.
+    let underline_width = measure_longest_line_width(cloned_children, context.configuration.line_width);
+    let underline_char = if heading.level == 1 { "=" } else { "-" };
+    items.push_string(underline_char.repeat(underline_width));
   } else {
     // atx headings apply to all levels.
     items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
@@ -1094,6 +1084,23 @@ fn get_items_text(items: PrintItems) -> String {
       new_line_text: "",
     },
   )
+}
+
+fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
+  let rendered = print(
+    items,
+    PrintOptions {
+      indent_width: 0,
+      max_width,
+      use_tabs: false,
+      new_line_text: "\n",
+    },
+  );
+  rendered
+    .lines()
+    .map(|line| UnicodeWidthStr::width(line))
+    .max()
+    .unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
