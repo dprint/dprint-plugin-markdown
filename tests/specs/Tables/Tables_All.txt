@@ -46,3 +46,31 @@ a|b|c|d
 | Name | Required |
 | ---- | :------: |
 | test |    ❌    |
+
+!! Should allow inline markup inside tables. These come from https://github.github.com/gfm/.
+| Type | Example
+| - | - |
+| Backslash escapes | \*not emphasized* |
+| Entity and numeric character references | &amp; |
+| Code spans | `code` |
+| Emphasis and strong emphasis | *emphasis* **strong** |
+| Strikethrough | ~~test~~ |
+| Links | [link](/uri "title") |
+| Images | ![foo](/url "title") |
+| Autolinks | <http://foo.bar.baz> |
+| Autolinks (extension) | www.commonmark.org |
+| Raw HTML | <a><bab><c2c> |
+
+[expect]
+| Type                                    | Example               |
+| --------------------------------------- | --------------------- |
+| Backslash escapes                       | \*not emphasized*     |
+| Entity and numeric character references | &amp;                 |
+| Code spans                              | `code`                |
+| Emphasis and strong emphasis            | _emphasis_ **strong** |
+| Strikethrough                           | ~~test~~              |
+| Links                                   | [link](/uri "title")  |
+| Images                                  | ![foo](/url "title")  |
+| Autolinks                               | <http://foo.bar.baz>  |
+| Autolinks (extension)                   | www.commonmark.org    |
+| Raw HTML                                | <a><bab><c2c>         |
