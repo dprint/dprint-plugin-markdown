@@ -38,3 +38,10 @@ fn test_issue35_ignore_two_spaces_before_hard_break() {
   let result = format_text("testing  \\\nasdf", &config, |_, _, _| Ok(None)).unwrap();
   assert_eq!(result.unwrap(), "testing\\\nasdf\n");
 }
+
+#[test]
+fn test_non_breaking_spaces_with_whitespace() {
+  let config = ConfigurationBuilder::new().build();
+  let result = format_text("<foo>\u{a0} <foo>", &config, |_, _, _| Ok(None)).unwrap();
+  assert_eq!(result.unwrap(), "<foo>\u{a0} <foo>\n");
+}

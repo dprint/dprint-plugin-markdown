@@ -39,7 +39,10 @@ impl<'a> EventIterator<'a> {
       if !self.allow_empty_text_events {
         // skip over any empty text or html events
         while let Some((Event::Text(_), range)) | Some((Event::Html(_), range)) = &self.next {
-          if self.file_text[range.start..range.end].trim().is_empty() {
+          if self
+            .trim_document_whitespace(&self.file_text[range.start..range.end])
+            .is_empty()
+          {
             self.next = self.move_iterator_next();
           } else {
             break;
@@ -50,6 +53,28 @@ impl<'a> EventIterator<'a> {
       Some(event)
     } else {
       None
+    }
+  }
+
+  // This trims only document white space characters as defined in the [Mozilla Developer Network docs](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#what_is_whitespace).
+  fn trim_document_whitespace<'b>(&self, s: &'b str) -> &'b str {
+    let bytes = s.as_bytes();
+
+    let start = bytes
+      .iter()
+      .position(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
+      .unwrap_or(bytes.len());
+
+    let end = bytes
+      .iter()
+      .rposition(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
+      .map(|i| i + 1)
+      .unwrap_or(0);
+
+    if start <= end {
+      &s[start..end]
+    } else {
+      ""
     }
   }
 
