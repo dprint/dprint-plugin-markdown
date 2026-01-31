@@ -233,3 +233,13 @@ other_formatted_77_formatted_80
 ```format ignore
 other_formatted_77_formatted_80
 ```
+
+!! Preserve leading spaces !!
+```
+ one
+```
+
+[expect]
+```
+ one
+```

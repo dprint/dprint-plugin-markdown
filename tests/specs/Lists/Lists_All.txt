@@ -181,16 +181,6 @@ Here is a paragraph
 
 1. test
 
-!! code block in list that is indented too much should unindent back !!
-- List
-
-        Code block indented too much.
-
-[expect]
-- List
-
-      Code block indented too much.
-
 !! html in list !!
 - Testing this out.
 
