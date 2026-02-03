@@ -179,7 +179,6 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 if node.starts_with_list_word() {
                   items.push_space();
                 } else {
-                  if matches!(last_node, Node::Text(_)) && matches!(node, Node::Text(_)) {}
                   items.extend(get_space_or_newline_based_on_config(context));
                 }
               }
@@ -276,8 +275,23 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
-  items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-  items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+  if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
+    // setext headings only apply to level 1 and level 2.
+    let heading_children = gen_nodes(&heading.children, context);
+    let (heading_children, cloned_children) = clone_items(heading_children);
+    items.extend(heading_children);
+    items.push_item(PrintItem::Signal(Signal::NewLine));
+
+    // render the heading text with the actual line width so wrapping is
+    // applied, then measure the longest line for the underline width.
+    let underline_width = measure_longest_line_width(cloned_children, context.configuration.line_width);
+    let underline_char = if heading.level == 1 { "=" } else { "-" };
+    items.push_string(underline_char.repeat(underline_width));
+  } else {
+    // atx headings apply to all levels.
+    items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
+    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+  }
 
   items
 }
@@ -1017,7 +1031,7 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
     MetadataBlockKind::PlusesStyle => sc!("+++"),
   };
 
-  items.push_sc(&delimiter);
+  items.push_sc(delimiter);
   items.push_signal(Signal::NewLine);
   match node.kind {
     MetadataBlockKind::YamlStyle => {
@@ -1034,7 +1048,7 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
     }
   }
   items.push_signal(Signal::NewLine);
-  items.push_sc(&delimiter);
+  items.push_sc(delimiter);
 
   items
 }
@@ -1064,11 +1078,24 @@ fn get_items_text(items: PrintItems) -> String {
     ir_helpers::with_no_new_lines(items),
     PrintOptions {
       indent_width: 0,
-      max_width: std::u32::MAX,
+      max_width: u32::MAX,
       use_tabs: false,
       new_line_text: "",
     },
   )
+}
+
+fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
+  let rendered = print(
+    items,
+    PrintOptions {
+      indent_width: 0,
+      max_width,
+      use_tabs: false,
+      new_line_text: "\n",
+    },
+  );
+  rendered.lines().map(UnicodeWidthStr::width).max().unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {

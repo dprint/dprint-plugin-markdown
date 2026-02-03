@@ -22,7 +22,7 @@ pub fn parse_link_reference_definitions(offset: usize, text: &str) -> Result<Vec
           start: byte_pos,
           end: byte_pos + c.len_utf8(),
         },
-        &format!("Unexpected token `{}` while parsing link reference definition.", c),
+        format!("Unexpected token `{}` while parsing link reference definition.", c),
       ));
     }
   }

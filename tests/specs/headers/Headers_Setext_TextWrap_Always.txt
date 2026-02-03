@@ -1,0 +1,22 @@
+~~ lineWidth: 40, headingKind: setext, textWrap: always ~~
+!! should wrap long level 1 heading and size underline to longest line !!
+# This heading is long enough that it should wrap onto multiple lines
+
+[expect]
+This heading is long enough that it
+should wrap onto multiple lines
+===================================
+
+!! should wrap long level 2 heading and size underline to longest line !!
+## This heading is long enough that it should wrap onto multiple lines
+
+[expect]
+This heading is long enough that it
+should wrap onto multiple lines
+-----------------------------------
+
+!! should not wrap level 3 and higher headings !!
+### This heading is long enough that it should wrap onto multiple lines
+
+[expect]
+### This heading is long enough that it should wrap onto multiple lines

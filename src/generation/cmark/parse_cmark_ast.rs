@@ -86,7 +86,7 @@ impl<'a> EventIterator<'a> {
   }
 
   #[allow(dead_code)]
-  pub fn peek(&self) -> &Option<(Event, Range)> {
+  pub fn peek(&self) -> &Option<(Event<'_>, Range)> {
     &self.next
   }
 
@@ -252,7 +252,7 @@ fn parse_heading(level: HeadingLevel, iterator: &mut EventIterator) -> Result<He
         }
         return Err(ParseError::new(
           iterator.get_last_range(),
-          &format!("Found end tag with level {}, but expected {}", end_level, level),
+          format!("Found end tag with level {}, but expected {}", end_level, level),
         ));
       }
       _ => children.push(parse_event(event, iterator)?),
@@ -440,9 +440,8 @@ fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
   iterator.allow_empty_text_events = true;
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::HtmlBlock) => break,
-      _ => {}
+    if let Event::End(TagEnd::HtmlBlock) = event {
+      break;
     }
   }
 
@@ -534,9 +533,9 @@ fn parse_image(link_type: LinkType, iterator: &mut EventIterator) -> Result<Node
   let start = iterator.start();
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::Image) => break,
-      _ => {} // ignore link children
+    // ignore link children
+    if let Event::End(TagEnd::Image) = event {
+      break;
     }
   }
 
@@ -570,7 +569,7 @@ fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -
   } else {
     return Err(ParseError::new(
       iterator.get_last_range(),
-      &format!("Expected a table head event, but found: {:?}", head_event),
+      format!("Expected a table head event, but found: {:?}", head_event),
     ));
   };
 
@@ -582,7 +581,7 @@ fn parse_table(column_alignment: Vec<Alignment>, iterator: &mut EventIterator) -
       _ => {
         return Err(ParseError::new(
           iterator.get_last_range(),
-          &format!("Unexpected event kind in table: {:?}", event),
+          format!("Unexpected event kind in table: {:?}", event),
         ))
       }
     }
@@ -617,7 +616,7 @@ fn parse_table_head(iterator: &mut EventIterator) -> Result<TableHead, ParseErro
       _ => {
         return Err(ParseError::new(
           iterator.get_last_range(),
-          &format!("Unexpected event kind in table head: {:?}", event),
+          format!("Unexpected event kind in table head: {:?}", event),
         ))
       }
     }
@@ -640,7 +639,7 @@ fn parse_table_row(iterator: &mut EventIterator) -> Result<TableRow, ParseError>
       _ => {
         return Err(ParseError::new(
           iterator.get_last_range(),
-          &format!("Unexpected event kind in table row: {:?}", event),
+          format!("Unexpected event kind in table row: {:?}", event),
         ))
       }
     }

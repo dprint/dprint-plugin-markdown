@@ -72,6 +72,18 @@
         "description": "Uses asterisks (*) as primary character for lists."
       }]
     },
+    "headingKind": {
+      "description": "The style of heading to use for level 1 and level 2 headings. Level 3 and higher always use ATX headings.",
+      "type": "string",
+      "default": "atx",
+      "oneOf": [{
+        "const": "atx",
+        "description": "Uses # or ## before the heading text (ATX headings)."
+      }, {
+        "const": "setext",
+        "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -106,6 +118,12 @@
     },
     "strongKind": {
       "$ref": "#/definitions/strongKind"
+    },
+    "unorderedListKind": {
+      "$ref": "#/definitions/unorderedListKind"
+    },
+    "headingKind": {
+      "$ref": "#/definitions/headingKind"
     },
     "deno": {
       "$ref": "#/definitions/deno"
