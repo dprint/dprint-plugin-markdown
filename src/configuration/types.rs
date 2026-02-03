@@ -21,7 +21,7 @@ pub struct Configuration {
   pub ignore_start_directive: String,
   pub ignore_end_directive: String,
   /// Custom tag to file extension mappings for formatting code blocks.
-  /// For example: { "markdown": "md" }
+  /// For example: { "custom-tag": "md" }
   #[serde(default)]
   pub tags: HashMap<String, String>,
 }
