@@ -118,7 +118,10 @@ fn get_tags(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagno
               if s.contains('.') {
                 diagnostics.push(ConfigurationDiagnostic {
                   property_name: format!("tags.{}", key),
-                  message: format!("Expected a file extension without a period for tag '{}', but got '{}'", key, s),
+                  message: format!(
+                    "Expected a file extension without a period for tag '{}', but got '{}'",
+                    key, s
+                  ),
                 });
               }
               tags.insert(key.to_lowercase(), s);
