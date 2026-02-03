@@ -179,4 +179,57 @@ mod tests {
     assert_eq!(config.line_width, 80); // this is different
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
   }
+
+  #[test]
+  fn tags_valid_object() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), "md".into());
+    tags_obj.insert("JSX".into(), "tsx".into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.tags.get("markdown").unwrap(), "md");
+    // keys should be lowercased
+    assert_eq!(result.config.tags.get("jsx").unwrap(), "tsx");
+    assert!(result.config.tags.get("JSX").is_none());
+  }
+
+  #[test]
+  fn tags_extension_with_period() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), ".md".into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags.markdown");
+    assert!(result.diagnostics[0].message.contains("without a period"));
+  }
+
+  #[test]
+  fn tags_non_string_value() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), true.into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags.markdown");
+    assert!(result.diagnostics[0].message.contains("Expected string value"));
+  }
+
+  #[test]
+  fn tags_not_an_object() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("tags".into(), "not_an_object".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags");
+    assert!(result.diagnostics[0].message.contains("Expected an object"));
+  }
 }

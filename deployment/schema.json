@@ -147,6 +147,14 @@
       "description": "The text to use for an ignore end directive (ex. `<!-- dprint-ignore-end -->`).",
       "default": "dprint-ignore-end",
       "type": "string"
+    },
+    "tags": {
+      "description": "Custom tag to file extension mappings for formatting code blocks. For example: { \"markdown\": \"md\" }",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "The file extension to use when formatting code blocks with this tag."
+      }
     }
   }
 }
