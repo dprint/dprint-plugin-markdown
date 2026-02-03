@@ -99,17 +99,17 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     })
     .map(|maybe_text| maybe_text.map(|t| t.into_bytes()));
 
-    fn tag_to_extension<'a>(tag: &str, config: &'a Configuration) -> Option<String> {
+    fn tag_to_extension<'a>(tag: &str, config: &'a Configuration) -> Option<&'a str> {
       let tag_lower = tag.trim().to_lowercase();
 
       // First check custom tags from configuration
       if let Some(ext) = config.tags.get(&tag_lower) {
-        return Some(ext.clone());
+        return Some(ext);
       }
 
       // Fall back to built-in mappings
-      let ext = match tag_lower.as_str() {
-        ""typescript" | "ts" => Some("ts"),
+      match tag_lower.as_str() {
+        "typescript" | "ts" => Some("ts"),
         "tsx" => Some("tsx"),
         "javascript" | "js" => Some("js"),
         "jsx" => Some("jsx"),
@@ -133,8 +133,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "dockerfile" => Some("dockerfile"),
         "cue" => Some("cue"),
         _ => None,
-      };
-      Some(ext.to_string())
+      }
     }
   }
 }
