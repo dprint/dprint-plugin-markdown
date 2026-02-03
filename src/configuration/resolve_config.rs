@@ -92,10 +92,10 @@ pub fn resolve_config(
     tags,
   };
 
-  for (key, _) in config.iter() {
+  for (key, _) in config.into_iter() {
     diagnostics.push(ConfigurationDiagnostic {
-      property_name: String::from(key),
       message: format!("Unknown property in configuration: {}", key),
+      property_name: key,
     });
   }
 
@@ -111,10 +111,11 @@ fn get_tags(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagno
   if let Some(value) = config.shift_remove("tags") {
     match value {
       ConfigKeyValue::Object(obj) => {
-        for (key, val) in obj.iter() {
+        tags.reserve(obj.len());
+        for (key, val) in obj.into_iter() {
           match val {
             ConfigKeyValue::String(s) => {
-              tags.insert(key.to_lowercase(), s.clone());
+              tags.insert(key.to_lowercase(), s);
             }
             _ => {
               diagnostics.push(ConfigurationDiagnostic {
