@@ -85,6 +85,12 @@ impl ConfigurationBuilder {
     self.insert("headingKind", value.to_string().into())
   }
 
+  /// The style of list indentation to use.
+  /// Default: `ListIndentKind::CommonMark`
+  pub fn list_indent_kind(&mut self, value: ListIndentKind) -> &mut Self {
+    self.insert("listIndentKind", value.to_string().into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -147,13 +153,14 @@ mod tests {
       .strong_kind(StrongKind::Underscores)
       .unordered_list_kind(UnorderedListKind::Asterisks)
       .heading_kind(HeadingKind::Atx)
+      .list_indent_kind(ListIndentKind::PythonMarkdown)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 11);
+    assert_eq!(inner_config.len(), 12);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

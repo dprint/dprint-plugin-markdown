@@ -84,6 +84,18 @@
         "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
       }]
     },
+    "listIndentKind": {
+      "description": "The style of indentation to use for list items. CommonMark aligns to the content column after the marker. PythonMarkdown uses a fixed 4-space indent, required by tools like mkdocs-material.",
+      "type": "string",
+      "default": "commonMark",
+      "oneOf": [{
+        "const": "commonMark",
+        "description": "Indents continuation lines to align with the content after the list marker (e.g. 3 spaces for '1. ', 4 for '10. ')."
+      }, {
+        "const": "pythonMarkdown",
+        "description": "Always indents by 4 spaces, regardless of marker width."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -124,6 +136,9 @@
     },
     "headingKind": {
       "$ref": "#/definitions/headingKind"
+    },
+    "listIndentKind": {
+      "$ref": "#/definitions/listIndentKind"
     },
     "deno": {
       "$ref": "#/definitions/deno"

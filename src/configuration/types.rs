@@ -16,6 +16,7 @@ pub struct Configuration {
   pub strong_kind: StrongKind,
   pub unordered_list_kind: UnorderedListKind,
   pub heading_kind: HeadingKind,
+  pub list_indent_kind: ListIndentKind,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
@@ -115,3 +116,20 @@ pub enum HeadingKind {
 }
 
 generate_str_to_from![HeadingKind, [Setext, "setext"], [Atx, "atx"]];
+
+/// The style of indentation to use for list items.
+///
+/// CommonMark aligns continuation lines to the content column after the marker
+/// (e.g. 3 spaces for `1. `, 4 spaces for `10. `). PythonMarkdown uses a fixed
+/// 4-space indent regardless of marker width, which is required by tools like
+/// mkdocs-material.
+#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ListIndentKind {
+  /// Indents continuation lines to align with the content after the list marker (default).
+  CommonMark,
+  /// Always indents by 4 spaces, regardless of marker width.
+  PythonMarkdown,
+}
+
+generate_str_to_from![ListIndentKind, [CommonMark, "commonMark"], [PythonMarkdown, "pythonMarkdown"]];
