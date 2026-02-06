@@ -741,7 +741,10 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       } else {
         String::from(context.configuration.unordered_list_kind.list_char(is_alternate))
       };
-      let indent_increment = (prefix_text.chars().count() + 1) as u32;
+      let indent_increment = match context.configuration.list_indent_kind {
+        crate::configuration::ListIndentKind::CommonMark => (prefix_text.chars().count() + 1) as u32,
+        crate::configuration::ListIndentKind::PythonMarkdown => std::cmp::max(prefix_text.chars().count() as u32 + 1, 4),
+      };
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
       let after_child = LineAndColumn::new("afterChild");
