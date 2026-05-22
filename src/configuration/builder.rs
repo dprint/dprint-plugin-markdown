@@ -91,6 +91,12 @@ impl ConfigurationBuilder {
     self.insert("unindentCodeBlocks", value.into())
   }
 
+  /// The style of list indentation to use.
+  /// Default: `ListIndentKind::CommonMark`
+  pub fn list_indent_kind(&mut self, value: ListIndentKind) -> &mut Self {
+    self.insert("listIndentKind", value.to_string().into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -154,13 +160,14 @@ mod tests {
       .unordered_list_kind(UnorderedListKind::Asterisks)
       .heading_kind(HeadingKind::Atx)
       .unindent_code_blocks(false)
+      .list_indent_kind(ListIndentKind::PythonMarkdown)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 12);
+    assert_eq!(inner_config.len(), 13);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -185,5 +192,58 @@ mod tests {
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
+  }
+
+  #[test]
+  fn tags_valid_object() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), "md".into());
+    tags_obj.insert("JSX".into(), "tsx".into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.tags.get("markdown").unwrap(), "md");
+    // keys should be lowercased
+    assert_eq!(result.config.tags.get("jsx").unwrap(), "tsx");
+    assert!(result.config.tags.get("JSX").is_none());
+  }
+
+  #[test]
+  fn tags_extension_with_period() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), ".md".into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags.markdown");
+    assert!(result.diagnostics[0].message.contains("without a period"));
+  }
+
+  #[test]
+  fn tags_non_string_value() {
+    let mut config = ConfigKeyMap::new();
+    let mut tags_obj = ConfigKeyMap::new();
+    tags_obj.insert("markdown".into(), true.into());
+    config.insert("tags".into(), ConfigKeyValue::Object(tags_obj));
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags.markdown");
+    assert!(result.diagnostics[0].message.contains("Expected string value"));
+  }
+
+  #[test]
+  fn tags_not_an_object() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("tags".into(), "not_an_object".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "tags");
+    assert!(result.diagnostics[0].message.contains("Expected an object"));
   }
 }

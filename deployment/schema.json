@@ -96,6 +96,18 @@
         "description": "Preserves the original indentation of code block contents."
       }]
     },
+    "listIndentKind": {
+      "description": "The style of indentation to use for list items. CommonMark aligns to the content column after the marker. PythonMarkdown uses a fixed 4-space indent, required by tools like mkdocs-material.",
+      "type": "string",
+      "default": "commonMark",
+      "oneOf": [{
+        "const": "commonMark",
+        "description": "Indents continuation lines to align with the content after the list marker (e.g. 3 spaces for '1. ', 4 for '10. ')."
+      }, {
+        "const": "pythonMarkdown",
+        "description": "Always indents by 4 spaces, regardless of marker width."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -140,6 +152,9 @@
     "unindentCodeBlocks": {
       "$ref": "#/definitions/unindentCodeBlocks"
     },
+    "listIndentKind": {
+      "$ref": "#/definitions/listIndentKind"
+    },
     "deno": {
       "$ref": "#/definitions/deno"
     },
@@ -162,6 +177,14 @@
       "description": "The text to use for an ignore end directive (ex. `<!-- dprint-ignore-end -->`).",
       "default": "dprint-ignore-end",
       "type": "string"
+    },
+    "tags": {
+      "description": "Custom tag to file extension mappings for formatting code blocks. For example: { \"markdown\": \"md\" }",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "description": "The file extension to use when formatting code blocks with this tag."
+      }
     }
   }
 }

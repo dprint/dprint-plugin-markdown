@@ -2,6 +2,7 @@ use super::parsing::parse_image as parse_image_from_text;
 use super::parsing::parse_link_reference;
 use super::parsing::parse_link_reference_definitions;
 use crate::generation::common::*;
+use crate::generation::trim_document_whitespace;
 use crate::generation::trim_spaces_and_newlines;
 use crate::generation::trim_start_spaces_and_newlines;
 use pulldown_cmark::*;
@@ -39,7 +40,7 @@ impl<'a> EventIterator<'a> {
       if !self.allow_empty_text_events {
         // skip over any empty text or html events
         while let Some((Event::Text(_), range)) | Some((Event::Html(_), range)) = &self.next {
-          if self.file_text[range.start..range.end].trim().is_empty() {
+          if trim_document_whitespace(&self.file_text[range.start..range.end]).is_empty() {
             self.next = self.move_iterator_next();
           } else {
             break;

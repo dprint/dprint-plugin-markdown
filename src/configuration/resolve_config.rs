@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::builder::ConfigurationBuilder;
 use super::types::*;
 use super::Configuration;
@@ -36,6 +38,8 @@ pub fn resolve_config(
     fill_deno_config(&mut config);
   }
 
+  let tags = get_tags(&mut config, &mut diagnostics);
+
   let resolved_config = Configuration {
     line_width: get_value(
       &mut config,
@@ -62,6 +66,7 @@ pub fn resolve_config(
     ),
     heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
     unindent_code_blocks: get_value(&mut config, "unindentCodeBlocks", true, &mut diagnostics),
+    list_indent_kind: get_value(&mut config, "listIndentKind", ListIndentKind::CommonMark, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",
@@ -86,12 +91,13 @@ pub fn resolve_config(
       "dprint-ignore-end".to_string(),
       &mut diagnostics,
     ),
+    tags,
   };
 
-  for (key, _) in config.iter() {
+  for (key, _) in config.into_iter() {
     diagnostics.push(ConfigurationDiagnostic {
-      property_name: String::from(key),
       message: format!("Unknown property in configuration: {}", key),
+      property_name: key,
     });
   }
 
@@ -99,6 +105,48 @@ pub fn resolve_config(
     config: resolved_config,
     diagnostics,
   }
+}
+
+fn get_tags(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> HashMap<String, String> {
+  let mut tags = HashMap::new();
+
+  if let Some(value) = config.shift_remove("tags") {
+    match value {
+      ConfigKeyValue::Object(obj) => {
+        tags.reserve(obj.len());
+        for (key, val) in obj.into_iter() {
+          match val {
+            ConfigKeyValue::String(s) => {
+              if s.contains('.') {
+                diagnostics.push(ConfigurationDiagnostic {
+                  property_name: format!("tags.{}", key),
+                  message: format!(
+                    "Expected a file extension without a period for tag '{}', but got '{}'",
+                    key, s
+                  ),
+                });
+              }
+              tags.insert(key.to_lowercase(), s);
+            }
+            _ => {
+              diagnostics.push(ConfigurationDiagnostic {
+                property_name: format!("tags.{}", key),
+                message: format!("Expected string value for tag '{}', but got a different type", key),
+              });
+            }
+          }
+        }
+      }
+      _ => {
+        diagnostics.push(ConfigurationDiagnostic {
+          property_name: "tags".to_string(),
+          message: "Expected an object for 'tags' configuration".to_string(),
+        });
+      }
+    }
+  }
+
+  tags
 }
 
 fn fill_deno_config(config: &mut ConfigKeyMap) {

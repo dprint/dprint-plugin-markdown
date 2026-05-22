@@ -75,8 +75,9 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     mut format_with_host: impl FnMut(SyncHostFormatRequest) -> FormatResult,
   ) -> FormatResult {
     let file_text = String::from_utf8(request.file_bytes)?;
+    let config = request.config.clone();
     return super::format_text(&file_text, request.config, |tag, file_text, line_width| {
-      if let Some(ext) = tag_to_extension(tag) {
+      if let Some(ext) = tag_to_extension(tag, &config) {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = ConfigKeyMap::new();
         additional_config.insert("lineWidth".into(), (line_width as i32).into());
@@ -98,8 +99,16 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     })
     .map(|maybe_text| maybe_text.map(|t| t.into_bytes()));
 
-    fn tag_to_extension(tag: &str) -> Option<&'static str> {
-      match tag.trim().to_lowercase().as_str() {
+    fn tag_to_extension<'a>(tag: &str, config: &'a Configuration) -> Option<&'a str> {
+      let tag_lower = tag.trim().to_lowercase();
+
+      // First check custom tags from configuration
+      if let Some(ext) = config.tags.get(&tag_lower) {
+        return Some(ext);
+      }
+
+      // Fall back to built-in mappings
+      match tag_lower.as_str() {
         "typescript" | "ts" => Some("ts"),
         "tsx" => Some("tsx"),
         "javascript" | "js" => Some("js"),

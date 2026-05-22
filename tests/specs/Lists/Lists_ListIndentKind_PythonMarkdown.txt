@@ -1,0 +1,36 @@
+~~ listIndentKind: pythonMarkdown ~~
+!! should indent nested ordered list by 4 spaces !!
+1. first
+   1. nested first
+   2. nested second
+2. second
+
+[expect]
+1. first
+    1. nested first
+    2. nested second
+2. second
+
+!! should indent nested unordered list by 4 spaces !!
+- first
+  - nested first
+  - nested second
+- second
+
+[expect]
+- first
+    - nested first
+    - nested second
+- second
+
+!! should indent double-digit ordered list consistently !!
+9. Testing
+   6. Test
+10. Other
+    7. Testing
+
+[expect]
+9. Testing
+    6. Test
+10. Other
+    7. Testing

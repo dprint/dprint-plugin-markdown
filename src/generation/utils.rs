@@ -90,12 +90,45 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
     Cow::Owned(
       lines_with_indent
         .into_iter()
-        .map(|(l, indent)| if indent >= min_indent { &l[min_indent..] } else { l })
+        .map(|(l, indent)| {
+          if indent >= min_indent {
+            let mut chars = l.chars();
+            for _ in 0..min_indent {
+              chars.next();
+            }
+            chars.as_str()
+          } else {
+            l
+          }
+        })
         .collect::<Vec<_>>()
         .join("\n"),
     )
   } else {
     Cow::Borrowed(text)
+  }
+}
+
+///  This trims only document white space characters as defined
+/// in the [Mozilla Developer Network docs](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#what_is_whitespace).
+pub fn trim_document_whitespace<'b>(s: &'b str) -> &'b str {
+  let bytes = s.as_bytes();
+
+  let start = bytes
+    .iter()
+    .position(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
+    .unwrap_or(bytes.len());
+
+  let end = bytes
+    .iter()
+    .rposition(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
+    .map(|i| i + 1)
+    .unwrap_or(0);
+
+  if start <= end {
+    &s[start..end]
+  } else {
+    ""
   }
 }
 
@@ -134,5 +167,6 @@ mod test {
     assert_eq!(unindent("  1\n 2"), " 1\n2");
     assert_eq!(unindent(" 1\n  2"), "1\n 2");
     assert_eq!(unindent("1\n2"), "1\n2");
+    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "1\n\u{3000}2");
   }
 }
