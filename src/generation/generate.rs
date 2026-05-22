@@ -374,6 +374,11 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
   let code_text = code_text.trim_end();
+  let code_text = if context.configuration.unindent_code_blocks {
+    utils::unindent(code_text)
+  } else {
+    Cow::Borrowed(code_text)
+  };
   let backtick_text = "`".repeat(get_backtick_count(&code_text));
   let indent_level = if code_block.is_fenced { 0 } else { 4 };
 

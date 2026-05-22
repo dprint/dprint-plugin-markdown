@@ -84,6 +84,18 @@
         "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
       }]
     },
+    "unindentCodeBlocks": {
+      "description": "Whether to unindent the contents of code blocks.",
+      "type": "boolean",
+      "default": true,
+      "oneOf": [{
+        "const": true,
+        "description": "Removes common leading whitespace from code block contents."
+      }, {
+        "const": false,
+        "description": "Preserves the original indentation of code block contents."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -124,6 +136,9 @@
     },
     "headingKind": {
       "$ref": "#/definitions/headingKind"
+    },
+    "unindentCodeBlocks": {
+      "$ref": "#/definitions/unindentCodeBlocks"
     },
     "deno": {
       "$ref": "#/definitions/deno"

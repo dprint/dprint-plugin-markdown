@@ -61,6 +61,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
+    unindent_code_blocks: get_value(&mut config, "unindentCodeBlocks", true, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",

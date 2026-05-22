@@ -1,0 +1,10 @@
+~~ unindentCodeBlocks: false ~~
+!! Preserve leading spaces !!
+```
+ one
+```
+
+[expect]
+```
+ one
+```
