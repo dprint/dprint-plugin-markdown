@@ -90,7 +90,17 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
     Cow::Owned(
       lines_with_indent
         .into_iter()
-        .map(|(l, indent)| if indent >= min_indent { &l[min_indent..] } else { l })
+        .map(|(l, indent)| {
+          if indent >= min_indent {
+            let mut chars = l.chars();
+            for _ in 0..min_indent {
+              chars.next();
+            }
+            chars.as_str()
+          } else {
+            l
+          }
+        })
         .collect::<Vec<_>>()
         .join("\n"),
     )
@@ -157,5 +167,6 @@ mod test {
     assert_eq!(unindent("  1\n 2"), " 1\n2");
     assert_eq!(unindent(" 1\n  2"), "1\n 2");
     assert_eq!(unindent("1\n2"), "1\n2");
+    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "1\n\u{3000}2");
   }
 }
