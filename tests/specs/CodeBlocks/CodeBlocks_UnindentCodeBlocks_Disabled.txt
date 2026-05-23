@@ -1,10 +1,10 @@
 ~~ unindentCodeBlocks: false ~~
 !! Preserve leading spaces !!
 ```
- one
+    one
 ```
 
 [expect]
 ```
- one
+    one
 ```
