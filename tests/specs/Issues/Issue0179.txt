@@ -1,0 +1,23 @@
+!! should remove unnecessary pointy brackets !!
+[link](<>)
+[link](<foo%20bar((()))baz>)
+
+[expect]
+[link]()
+[link](foo%20bar((()))baz)
+
+!! should preserve pointy brackets if destination contains spaces !!
+[link](<foo bar>)
+
+[expect]
+[link](<foo bar>)
+
+!! destination containing escaped unbalanced parentheses should be formatted in the same style with spaces !!
+[link](foo\(bar)
+[link](foo\)\(bar)
+[link](<foo)(bar>)
+
+[expect]
+[link](<foo(bar>)
+[link](<foo)(bar>)
+[link](<foo)(bar>)

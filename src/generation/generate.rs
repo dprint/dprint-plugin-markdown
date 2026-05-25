@@ -674,14 +674,39 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
-    items.push_string(link.url.trim().to_string());
+    let url = link.url.trim().to_string();
+    let pointy_brackets_are_needed = inline_link_destination_needs_pointy_brackets(&url);
+    if pointy_brackets_are_needed {
+      items.push_sc(sc!("<"));
+    }
+    items.push_string(url);
     if let Some(title) = &link.title {
       items.push_string(format!(" \"{}\"", title.trim()));
+    }
+    if pointy_brackets_are_needed {
+      items.push_sc(sc!(">"));
     }
     items.push_sc(sc!(")"));
 
     ir_helpers::new_line_group(items)
   })
+}
+
+/// Returns `true` if destination contains a space or unbalanced parentheses.
+fn inline_link_destination_needs_pointy_brackets(destination: &str) -> bool {
+  let mut parentheses_depth = 0;
+  for c in destination.chars() {
+    match c {
+      ' ' => return true,
+      '(' => parentheses_depth += 1,
+      ')' => parentheses_depth -= 1,
+      _ => (),
+    }
+    if parentheses_depth < 0 {
+      return true;
+    }
+  }
+  parentheses_depth != 0
 }
 
 fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
