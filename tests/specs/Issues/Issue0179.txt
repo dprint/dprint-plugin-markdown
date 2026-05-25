@@ -21,3 +21,19 @@
 [link](<foo(bar>)
 [link](<foo)(bar>)
 [link](<foo)(bar>)
+
+!! the same style should apply to link reference definitions !!
+[1]: <foo%20bar((()))baz>
+[2]: <>
+[3]: <foo bar>
+[4]: foo\(bar
+[5]: foo\)\(bar
+[6]: <foo)(bar>
+
+[expect]
+[1]: foo%20bar((()))baz
+[2]: <>
+[3]: <foo bar>
+[4]: <foo(bar>
+[5]: <foo)(bar>
+[6]: <foo)(bar>

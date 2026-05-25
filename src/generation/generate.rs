@@ -744,11 +744,32 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
 fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
-  items.push_string(link_ref.link.trim().to_string());
+
+  let mut url = link_ref.link.trim();
+  if url.starts_with("<") && url.ends_with(">") {
+    url = &url[1..(url.len() - 1)]
+  }
+  let url = url.replace(r#"\("#, "(").replace(r#"\)"#, ")");
+  let pointy_brackets_are_needed = link_reference_destination_needs_pointy_brackets(&url);
+  if pointy_brackets_are_needed {
+    items.push_sc(sc!("<"));
+  }
+  items.push_string(url);
+  if pointy_brackets_are_needed {
+    items.push_sc(sc!(">"));
+  }
+
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
   ir_helpers::new_line_group(items)
+}
+
+fn link_reference_destination_needs_pointy_brackets(destination: &str) -> bool {
+  if destination.is_empty() {
+    return true;
+  }
+  inline_link_destination_needs_pointy_brackets(destination)
 }
 
 fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
