@@ -264,7 +264,13 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
   fn get_conditional_blank_line(range: &Range, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    if !context.is_in_list() || utils::has_leading_blankline(range.start, context.file_text) {
+    if !context.is_in_list()
+      || utils::has_leading_blankline_considering_block_quote(
+        range.start,
+        context.file_text,
+        context.is_in_block_quote(),
+      )
+    {
       items.push_signal(Signal::NewLine);
     }
     items.push_signal(Signal::NewLine);

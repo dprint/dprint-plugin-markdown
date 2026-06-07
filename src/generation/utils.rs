@@ -38,6 +38,19 @@ pub fn is_list_word(word: &str) -> bool {
 }
 
 pub fn has_leading_blankline(index: usize, text: &str) -> bool {
+  has_leading_blankline_inner(index, text, false)
+}
+
+/// Same as [`has_leading_blankline`], but when `in_block_quote` is `true` the
+/// block quote markers (`>`) that prefix an otherwise blank line are skipped
+/// over while scanning backwards. Without this a blank line inside a block
+/// quote (which is written as `>`) would not be recognized as blank because of
+/// the leading `>` character.
+pub fn has_leading_blankline_considering_block_quote(index: usize, text: &str, in_block_quote: bool) -> bool {
+  has_leading_blankline_inner(index, text, in_block_quote)
+}
+
+fn has_leading_blankline_inner(index: usize, text: &str, in_block_quote: bool) -> bool {
   let mut newline_count = 0;
   for c in text[0..index].chars().rev() {
     if c == '\n' {
@@ -45,6 +58,10 @@ pub fn has_leading_blankline(index: usize, text: &str) -> bool {
       if newline_count >= 2 {
         return true;
       }
+    } else if in_block_quote && c == '>' {
+      // a blank line inside a block quote is written as `>`, so skip the block
+      // quote markers while looking for consecutive newlines
+      continue;
     } else if !c.is_whitespace() {
       break;
     }
