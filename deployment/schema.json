@@ -108,6 +108,18 @@
         "description": "Always indents by 4 spaces, regardless of marker width."
       }]
     },
+    "allowFencedBlankLines": {
+      "description": "Whether to allow blank lines within fenced code blocks.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Preserves blank lines within fenced code blocks."
+      }, {
+        "const": false,
+        "description": "Removes blank lines within fenced code blocks."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -154,6 +166,9 @@
     },
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"
+    },
+    "allowFencedBlankLines": {
+      "$ref": "#/definitions/allowFencedBlankLines"
     },
     "deno": {
       "$ref": "#/definitions/deno"
