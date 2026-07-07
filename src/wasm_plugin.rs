@@ -6,6 +6,7 @@ use dprint_core::generate_plugin_code;
 use dprint_core::plugins::CheckConfigUpdatesMessage;
 use dprint_core::plugins::ConfigChange;
 use dprint_core::plugins::FileMatchingInfo;
+use dprint_core::plugins::FormatError as CoreFormatError;
 use dprint_core::plugins::FormatRange;
 use dprint_core::plugins::FormatResult;
 use dprint_core::plugins::PluginInfo;
@@ -46,7 +47,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     }
   }
 
-  fn check_config_updates(&self, _message: CheckConfigUpdatesMessage) -> Result<Vec<ConfigChange>, anyhow::Error> {
+  fn check_config_updates(&self, _message: CheckConfigUpdatesMessage) -> Result<Vec<ConfigChange>, CoreFormatError> {
     Ok(Vec::new())
   }
 
@@ -91,13 +92,14 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         match result {
           Ok(Some(bytes)) => Ok(Some(String::from_utf8(bytes)?)),
           Ok(None) => Ok(None),
-          Err(err) => Err(err),
+          Err(err) => Err(super::FormatError::CodeBlock(err.into())),
         }
       } else {
         Ok(None)
       }
     })
-    .map(|maybe_text| maybe_text.map(|t| t.into_bytes()));
+    .map(|maybe_text| maybe_text.map(|t| t.into_bytes()))
+    .map_err(CoreFormatError::new);
 
     fn tag_to_extension<'a>(tag: &str, config: &'a Configuration) -> Option<&'a str> {
       let tag_lower = tag.trim().to_lowercase();
