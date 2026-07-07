@@ -1,5 +1,3 @@
-use anyhow::bail;
-use anyhow::Result;
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
 
@@ -10,14 +8,31 @@ use super::generation::parse_cmark_ast;
 use super::generation::strip_metadata_header;
 use super::generation::Context;
 
+/// Error that can occur while formatting markdown text.
+#[derive(Debug, thiserror::Error)]
+pub enum FormatError {
+  /// The text could not be parsed as markdown.
+  #[error("{0}")]
+  Parse(String),
+  /// An error occurred while formatting the text of a code block.
+  #[error("{0}")]
+  CodeBlock(Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+impl From<std::string::FromUtf8Error> for FormatError {
+  fn from(err: std::string::FromUtf8Error) -> Self {
+    FormatError::CodeBlock(err.into())
+  }
+}
+
 /// Formats a file.
 ///
 /// Returns the file text or an error when it failed to parse.
 pub fn format_text(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
-) -> Result<Option<String>> {
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
+) -> Result<Option<String>, FormatError> {
   let result = format_text_inner(file_text, config, format_code_block_text)?;
 
   match result {
@@ -30,8 +45,8 @@ pub fn format_text(
 fn format_text_inner(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
-) -> Result<Option<String>> {
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
+) -> Result<Option<String>, FormatError> {
   let file_text = strip_bom(file_text);
   let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
@@ -54,7 +69,7 @@ fn format_text_inner(
 pub fn trace_file(
   file_text: &str,
   config: &Configuration,
-  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>>,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> dprint_core::formatting::TracingResult {
   let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
@@ -80,7 +95,7 @@ enum ParseFileResult<'a> {
   SourceFile((crate::generation::common::SourceFile, &'a str)),
 }
 
-fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>> {
+fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
   // check for the presence of a dprint-ignore-file comment before parsing
   if file_has_ignore_file_directive(strip_metadata_header(file_text), &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
@@ -88,14 +103,13 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
 
   match parse_cmark_ast(file_text) {
     Ok(source_file) => Ok(ParseFileResult::SourceFile((source_file, file_text))),
-    Err(error) => bail!(
-      "{}",
+    Err(error) => Err(FormatError::Parse(
       dprint_core::formatting::utils::string_utils::format_diagnostic(
         Some((error.range.start, error.range.end)),
         &error.message,
-        file_text
-      )
-    ),
+        file_text,
+      ),
+    )),
   }
 }
 

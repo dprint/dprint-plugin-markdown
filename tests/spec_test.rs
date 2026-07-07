@@ -37,6 +37,7 @@ fn main() {
             Ok(None)
           }
         })
+        .map_err(Into::into)
       })
     },
     Arc::new(move |_, _file_text, _spec_config| {
