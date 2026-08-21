@@ -18,6 +18,12 @@ fn parse_text_in_container(
   while let Some((byte_pos, c)) = char_scanner.next() {
     if c == close_char {
       return Ok(text);
+    } else if c == '\\' {
+      text.push(c);
+      // push next char without close/open check, since it's escaped
+      if let Some((_, next_c)) = char_scanner.next() {
+        text.push(next_c);
+      }
     } else if c == open_char {
       return Err(ParseError::new(
         Range {

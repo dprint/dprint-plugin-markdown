@@ -1,0 +1,5 @@
+!! should ignore escaped brackets !!
+![brackets inside brackets \[ \] ]()
+
+[expect]
+![brackets inside brackets \[ \]]()
