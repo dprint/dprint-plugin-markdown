@@ -8,9 +8,9 @@ use regex::Regex;
 use super::utils::*;
 use crate::configuration::Configuration;
 use crate::format_text;
-use anyhow::Result;
+use crate::format_text::FormatError;
 
-type FormatResult = Result<Option<String>>;
+type FormatResult = Result<Option<String>, FormatError>;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
