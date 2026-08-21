@@ -29,7 +29,7 @@ path = "tests/spec_test.rs"
 harness = false
 
 [dependencies]
-dprint-core = { version = "0.69.0", features = ["formatting"] }
+dprint-core = { version = "0.69.1", features = ["formatting"] }
 dprint-core-macros = "0.1.0"
 pulldown-cmark = { version = "0.11.2", default-features = false }
 regex = "1"
