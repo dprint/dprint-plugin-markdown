@@ -14,8 +14,6 @@ Then in your project's directory with a dprint.json file, run:
 
 ```shellsession
 dprint add markdown
-# or install from npm
-dprint add npm:@dprint/markdown
 ```
 
 See https://dprint.dev/plugins/markdown/ for more information.
