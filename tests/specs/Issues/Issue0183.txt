@@ -21,3 +21,31 @@ baz baz
 - &gt; > foo
 - > \> foo
 - \> > foo
+
+!! should keep block quote marker when the block quote starts with a link !!
+- > [a](b)
+
+[expect]
+- > [a](b)
+
+!! should keep block quote marker when the block quote starts with a table !!
+- > | a | b |
+  > | - | - |
+  > | 1 | 2 |
+
+[expect]
+- > | a | b |
+  > | - | - |
+  > | 1 | 2 |
+
+!! should keep an empty block quote in a list item !!
+- >
+
+[expect]
+- >
+
+!! should keep an empty block quote on its own !!
+>
+
+[expect]
+>
