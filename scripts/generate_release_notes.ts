@@ -23,7 +23,7 @@ Then in your project's dprint configuration file:
        // markdown config goes here
      },
      "plugins": [
-       "https://plugins.dprint.dev/markdown-${version}.wasm"
+       "npm:@dprint/markdown@${version}"
      ]
    }
    \`\`\`
