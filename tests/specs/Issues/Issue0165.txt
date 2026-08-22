@@ -1,0 +1,29 @@
+!! should keep a block quote in a nested list item !!
+- list item
+  - > sub-list item quote
+
+[expect]
+- list item
+  - > sub-list item quote
+
+!! should keep a lazy continuation line of a block quote in a nested list item !!
+- list item
+  - > sub-list item quote
+    second line
+
+[expect]
+- list item
+  - > sub-list item quote
+    > second line
+
+!! should keep a block quote followed by a paragraph in a nested list item !!
+- list item
+  - > sub-list item quote
+
+    more text
+
+[expect]
+- list item
+  - > sub-list item quote
+
+    more text
