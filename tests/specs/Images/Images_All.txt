@@ -28,3 +28,57 @@ testing
 [Other reference]: https://dprint.dev/image.png "Testing"
 
 testing
+
+!! should remove unnecessary pointy brackets from a destination !!
+![img](<foo>)
+![img](<>)
+
+[expect]
+![img](foo)
+![img]()
+
+!! should keep pointy brackets a destination needs !!
+![img](<foo bar>)
+![img](<foo bar> "title")
+
+[expect]
+![img](<foo bar>)
+![img](<foo bar> "title")
+
+!! should enclose a destination in pointy brackets when it needs them !!
+![img](foo\(bar)
+![img](a>b\(c)
+
+[expect]
+![img](<foo(bar>)
+![img](<a\>b(c>)
+
+!! should handle parentheses in a destination !!
+![img](a(b)c)
+![img](<a(b>)
+![img](<a)b>)
+![img](a(b)c "title")
+
+[expect]
+![img](a(b)c)
+![img](<a(b>)
+![img](<a)b>)
+![img](a(b)c "title")
+
+!! should not treat a pointy bracket after the destination start as enclosing it !!
+![t](\a<b)c>)
+![t](a<b)
+
+[expect]
+![t](\a<b)c>)
+![t](a<b)
+
+!! should handle a destination that starts with a parenthesis !!
+![t]((a)b)
+![t](())
+![t]((a) "title")
+
+[expect]
+![t]((a)b)
+![t](())
+![t]((a) "title")

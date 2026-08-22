@@ -79,4 +79,22 @@ mod test {
     assert_eq!(image.range().start, 10);
     assert_eq!(image.range().end, 22);
   }
+
+  #[test]
+  fn it_should_parse_image_with_parens_in_destination() {
+    // balanced parentheses don't close the image
+    assert_url(parse_image(0, "![text](a(b)c)\n", LinkType::Inline), "a(b)c");
+    // ...and within pointy brackets they don't need to be balanced
+    assert_url(parse_image(0, "![text](<a(b>)\n", LinkType::Inline), "<a(b>");
+    assert_url(parse_image(0, "![text](<a)b>)\n", LinkType::Inline), "<a)b>");
+    // an escaped parenthesis is never a container char
+    assert_url(parse_image(0, "![text](a\\(b)\n", LinkType::Inline), "a\\(b");
+  }
+
+  fn assert_url(result: Result<Node, ParseError>, expected: &str) {
+    match result.ok().unwrap() {
+      Node::InlineImage(image) => assert_eq!(image.url, expected),
+      _ => panic!("Expected an inline image."),
+    }
+  }
 }
