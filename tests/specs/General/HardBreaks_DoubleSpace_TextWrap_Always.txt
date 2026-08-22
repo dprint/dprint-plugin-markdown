@@ -1,0 +1,10 @@
+~~ hardBreakKind: doubleSpace, textWrap: always, lineWidth: 20 ~~
+!! should use two trailing spaces when wrapping text !!
+this is some text that will wrap\
+and this is more text that will wrap
+
+[expect]
+this is some text
+that will wrap  
+and this is more
+text that will wrap

@@ -302,7 +302,9 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   } else {
     // atx headings apply to all levels.
     items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+    items.extend(with_no_new_lines(
+      context.with_single_line_heading(|context| gen_nodes(&heading.children, context)),
+    ));
   }
 
   items
@@ -1373,9 +1375,18 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
   "---".into()
 }
 
-fn gen_hard_break(_: &mut Context) -> PrintItems {
+fn gen_hard_break(context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_sc(sc!("\\"));
+  // a hard break can't exist within a heading that's on a single line
+  // (ex. an ATX heading), so use a space instead
+  if context.is_in_single_line_heading() {
+    items.push_space();
+    return items;
+  }
+  match context.configuration.hard_break_kind {
+    HardBreakKind::Backslash => items.push_sc(sc!("\\")),
+    HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
+  }
   items.push_signal(Signal::NewLine);
   items
 }
@@ -1632,7 +1643,13 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
       new_line_text: "\n",
     },
   );
-  rendered.lines().map(UnicodeWidthStr::width).max().unwrap_or(0)
+  // trailing whitespace isn't visible, so ignore it when measuring
+  // (ex. the two spaces of a hard break)
+  rendered
+    .lines()
+    .map(|line| UnicodeWidthStr::width(line.trim_end()))
+    .max()
+    .unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {

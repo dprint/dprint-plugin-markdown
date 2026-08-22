@@ -5,3 +5,19 @@ asdf
 [expect]
 test\
 asdf
+
+!! should convert two trailing spaces to a backslash !!
+test  
+asdf
+
+[expect]
+test\
+asdf
+
+!! should use a space for a hard break in an atx heading !!
+head\
+ing
+===
+
+[expect]
+# head ing
