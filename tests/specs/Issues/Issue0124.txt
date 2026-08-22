@@ -1,0 +1,49 @@
+!! should maintain the indentation of an html block's first line !!
+<table>
+  <tr>
+  <td></td>
+
+  </tr>
+</table>
+
+[expect]
+<table>
+  <tr>
+  <td></td>
+
+  </tr>
+</table>
+
+!! should maintain the indentation in a list !!
+- Test
+
+    <div>
+    </div>
+
+[expect]
+- Test
+
+    <div>
+    </div>
+
+!! should maintain the indentation in a block quote !!
+> <div>
+>
+>   </div>
+
+[expect]
+> <div>
+>
+>   </div>
+
+!! should not include a list marker in the html !!
+- <div>
+
+[expect]
+- <div>
+
+!! should maintain up to three spaces of indentation !!
+   <div>
+
+[expect]
+   <div>

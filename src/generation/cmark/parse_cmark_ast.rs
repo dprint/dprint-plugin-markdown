@@ -40,7 +40,12 @@ impl<'a> EventIterator<'a> {
       self.last_range = range;
       self.next = self.move_iterator_next();
 
-      if !self.allow_empty_text_events {
+      // pulldown-cmark provides the indentation of an html block's first line
+      // as a synthesized text event with an empty range, so don't discard it
+      // here because parse_html_block uses it to maintain the indentation
+      let is_html_block_start = matches!(event, Event::Start(Tag::HtmlBlock));
+
+      if !self.allow_empty_text_events && !is_html_block_start {
         // skip over any empty text or html events
         while let Some((Event::Text(_), range)) | Some((Event::Html(_), range)) = &self.next {
           if trim_document_whitespace(&self.file_text[range.start..range.end]).is_empty() {
@@ -552,14 +557,23 @@ fn parse_inline_math(_text: CowStr, iterator: &mut EventIterator) -> Result<Inli
 }
 
 fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
-  let start = iterator.start();
+  let mut start = iterator.start();
   let original_allow_empty_text_events = iterator.allow_empty_text_events;
   iterator.allow_empty_text_events = true;
 
+  let mut is_first_event = true;
   while let Some(event) = iterator.next() {
-    if let Event::End(TagEnd::HtmlBlock) = event {
-      break;
+    match event {
+      Event::End(TagEnd::HtmlBlock) => break,
+      // pulldown-cmark excludes the indentation of an html block's first line
+      // from the ranges, providing it as a synthesized text event instead, so
+      // include it in the range in order to maintain the indentation
+      Event::Text(text) if is_first_event => {
+        start -= trailing_spaces_len(iterator.file_text, start, text.len());
+      }
+      _ => {}
     }
+    is_first_event = false;
   }
 
   iterator.allow_empty_text_events = original_allow_empty_text_events;
@@ -571,6 +585,19 @@ fn parse_html_block(iterator: &mut EventIterator) -> Result<Html, ParseError> {
       end: start + iterator.file_text[range].trim_end().len(),
     },
   })
+}
+
+/// Gets the length of the spaces found before the provided index,
+/// searching backwards up to a maximum length. Only spaces are
+/// handled because the maximum length is a column count, which won't
+/// line up with the byte count when tabs are involved.
+fn trailing_spaces_len(file_text: &str, end: usize, max_len: usize) -> usize {
+  let bytes = file_text.as_bytes();
+  let mut len = 0;
+  while len < max_len && len < end && bytes[end - len - 1] == b' ' {
+    len += 1;
+  }
+  len
 }
 
 fn parse_footnote_reference(name: CowStr, iterator: &mut EventIterator) -> Result<FootnoteReference, ParseError> {
