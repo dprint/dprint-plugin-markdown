@@ -235,3 +235,9 @@ reference]
 ![a](x.png)![b](y.png)
 
 ![a](x.png) ![b](y.png)
+
+!! should not separate an image from adjacent code !!
+`a`![b](y.png)`c`
+
+[expect]
+`a`![b](y.png)`c`
