@@ -490,8 +490,13 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
     }
   }
 
-  let full_string = format!("{0}{1}{2}{1}{0}", backtick_text, separator, text);
-  gen_str(&full_string, context)
+  // only the text is run through the text builder so that the backticks
+  // always stay attached to it when the text is wrapped
+  let mut items = PrintItems::new();
+  items.push_string(format!("{}{}", backtick_text, separator));
+  items.extend(gen_str(text, context));
+  items.push_string(format!("{}{}", separator, backtick_text));
+  items
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {

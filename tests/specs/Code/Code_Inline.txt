@@ -49,3 +49,11 @@ Testing
 [expect]
 > Testing `this
 > out`.
+
+!! inline code newlines !!
+`Inline code can
+include newlines.`
+
+[expect]
+`Inline code can
+include newlines.`
