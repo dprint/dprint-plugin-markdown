@@ -28,7 +28,8 @@ pub struct Context<'a> {
   /** The current indentation level within the file being formatted. */
   pub raw_indent_level: u32,
   is_in_list_count: u32,
-  is_in_block_quote_count: u32,
+  /// The indentation level each surrounding block quote started at, from outermost to innermost.
+  block_quote_base_indents: Vec<u32>,
   text_wrap_disabled_count: u32,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
@@ -49,7 +50,7 @@ impl<'a> Context<'a> {
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
-      is_in_block_quote_count: 0,
+      block_quote_base_indents: Vec::new(),
       text_wrap_disabled_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
@@ -88,12 +89,15 @@ impl<'a> Context<'a> {
     }
   }
 
-  pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, usize) -> T) -> T {
+  /// Marks being within a block quote, providing the indentation level of every
+  /// surrounding block quote (from outermost to innermost) to the provided function.
+  pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, Vec<u32>) -> T) -> T {
     let original_is_in_list_count = self.is_in_list_count;
     self.is_in_list_count = 0;
-    self.is_in_block_quote_count += 1;
-    let items = func(self, self.is_in_block_quote_count as usize);
-    self.is_in_block_quote_count -= 1;
+    self.block_quote_base_indents.push(self.indent_level);
+    let base_indents = self.block_quote_base_indents.clone();
+    let items = func(self, base_indents);
+    self.block_quote_base_indents.pop();
     self.is_in_list_count = original_is_in_list_count;
     items
   }
@@ -110,7 +114,7 @@ impl<'a> Context<'a> {
   }
 
   pub fn is_in_block_quote(&self) -> bool {
-    self.is_in_block_quote_count > 0
+    !self.block_quote_base_indents.is_empty()
   }
 
   /// Whether the position at `index` is preceded by a blank line, accounting for
