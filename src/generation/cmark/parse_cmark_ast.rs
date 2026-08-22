@@ -40,12 +40,10 @@ impl<'a> EventIterator<'a> {
       self.last_range = range;
       self.next = self.move_iterator_next();
 
-      // pulldown-cmark provides the indentation of an html block's first line
-      // as a synthesized text event with an empty range, so don't discard it
-      // here because parse_html_block uses it to maintain the indentation
-      let is_html_block_start = matches!(event, Event::Start(Tag::HtmlBlock));
-
-      if !self.allow_empty_text_events && !is_html_block_start {
+      // note: pulldown-cmark provides the indentation of an html block's first
+      // line as a synthesized text event with an empty range, so don't discard
+      // it here because parse_html_block uses it to maintain the indentation
+      if !self.allow_empty_text_events && !matches!(event, Event::Start(Tag::HtmlBlock)) {
         // skip over any empty text or html events
         while let Some((Event::Text(_), range)) | Some((Event::Html(_), range)) = &self.next {
           if trim_document_whitespace(&self.file_text[range.start..range.end]).is_empty() {
@@ -618,6 +616,8 @@ fn parse_footnote_definition(name: CowStr, iterator: &mut EventIterator) -> Resu
     }
   }
 
+  remove_indent_beside_marker(&mut children, iterator.file_text);
+
   Ok(FootnoteDefinition {
     range: iterator.get_range_for_start(start),
     name: String::from(name.as_ref()),
@@ -887,6 +887,8 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     children.push(references);
   }
 
+  remove_indent_beside_marker(&mut children, iterator.file_text);
+
   Ok(Item {
     range,
     marker,
@@ -1041,7 +1043,19 @@ fn parse_definition_list_definition(iterator: &mut EventIterator) -> Result<Defi
     children.push(references);
   }
 
+  remove_indent_beside_marker(&mut children, iterator.file_text);
+
   Ok(DefinitionListDefinition { range, children })
+}
+
+/// A container's first child is generated beside its marker (ex. `- ` or `: `),
+/// where the indentation an html block keeps for its first line stops being
+/// indentation, so discard it in that case.
+fn remove_indent_beside_marker(children: &mut [Node], file_text: &str) {
+  if let Some(Node::Html(html)) = children.first_mut() {
+    let text = &file_text[html.range.start..html.range.end];
+    html.range.start += text.len() - text.trim_start_matches(' ').len();
+  }
 }
 
 /// Gets the byte position directly after a definition's `:` marker, which may

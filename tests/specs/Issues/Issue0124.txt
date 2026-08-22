@@ -47,3 +47,48 @@
 
 [expect]
    <div>
+
+!! should discard the indentation when beside a marker !!
+-
+    <div>
+      Test
+    </div>
+
+[expect]
+- <div>
+      Test
+    </div>
+
+!! should maintain the indentation in a footnote definition !!
+[^1]: Test
+
+      <div>
+      </div>
+
+Test[^1]
+
+[expect]
+[^1]: Test
+
+      <div>
+      </div>
+
+Test[^1]
+
+!! should not restore a tab of indentation !!
+- Test
+
+	<div>
+
+[expect]
+- Test
+
+  <div>
+
+!! should maintain the indentation of an indented ignore comment !!
+  <!-- dprint-ignore -->
+  <div>   </div>
+
+[expect]
+  <!-- dprint-ignore -->
+  <div>   </div>
