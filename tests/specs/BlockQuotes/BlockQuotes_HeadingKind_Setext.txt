@@ -1,0 +1,18 @@
+~~ headingKind: setext ~~
+!! should keep the markers of a setext heading !!
+> some words here that are quite long and more text again that keeps going on and on
+> ===
+
+[expect]
+> some words here that are quite long and more text again that keeps going on and on
+> ==================================================================================
+
+!! should keep the markers of a line break within a setext heading's link !!
+> [some words here that are quite long
+> and more](a.png) text
+> ===
+
+[expect]
+> [some words here that are quite long
+> and more](a.png) text
+> ====================================

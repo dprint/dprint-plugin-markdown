@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use dprint_core::formatting::PrintItemPath;
 use dprint_core::formatting::PrintItems;
@@ -36,6 +37,9 @@ pub struct Context<'a> {
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
   memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
+  /// The paths above, by address, so they can be told apart from the paths
+  /// that hold generated content.
+  memoized_rc_path_addresses: HashSet<usize>,
 }
 
 impl<'a> Context<'a> {
@@ -57,6 +61,7 @@ impl<'a> Context<'a> {
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
       ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
       memoized_rc_paths: HashMap::new(),
+      memoized_rc_path_addresses: HashSet::new(),
     }
   }
 
@@ -85,8 +90,17 @@ impl<'a> Context<'a> {
       }
       let path = items.into_rc_path();
       self.memoized_rc_paths.insert(kind, path);
+      if let Some(path) = path {
+        self.memoized_rc_path_addresses.insert(path as *const _ as usize);
+      }
       path
     }
+  }
+
+  /// Whether the path is one of the memoized paths handed out above, rather
+  /// than a path holding generated content.
+  pub fn is_memoized_rc_path(&self, path: PrintItemPath) -> bool {
+    self.memoized_rc_path_addresses.contains(&(path as *const _ as usize))
   }
 
   /// Marks being within a block quote, providing the indentation level of every

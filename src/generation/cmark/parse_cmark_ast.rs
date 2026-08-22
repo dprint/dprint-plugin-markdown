@@ -135,8 +135,9 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
 
     // do not parse for link references while inside a table
     if iterator.in_table_count() <= 1 {
+      // `or(Some(0))` so the text before the first event is looked at too
       if let Some(references) = parse_references(
-        last_event_range.as_ref().map(|r| r.end),
+        last_event_range.as_ref().map(|r| r.end).or(Some(0)),
         current_range.start,
         &mut iterator,
       )? {
@@ -293,8 +294,11 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
     Tag::DefinitionList => parse_definition_list(iterator).map(|x| x.into()),
     Tag::DefinitionListTitle => parse_definition_list_title(iterator).map(|x| x.into()),
     Tag::DefinitionListDefinition => parse_definition_list_definition(iterator).map(|x| x.into()),
-    // superscripts and subscripts are not enabled, so these are not reachable
-    Tag::Superscript | Tag::Subscript => Ok(iterator.get_not_implemented()),
+    // these tags are only emitted when their corresponding options are enabled, which they aren't
+    Tag::Superscript | Tag::Subscript => Err(ParseError::new(
+      iterator.get_last_range(),
+      format!("Tag not implemented {:?}", start_tag),
+    )),
   }
 }
 
@@ -352,18 +356,32 @@ fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError
 fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
+  let mut last_event_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::BlockQuote(_)) => break,
-      _ => children.push(parse_event(event, iterator)?),
+    if matches!(event, Event::End(TagEnd::BlockQuote(_))) {
+      break;
     }
+
+    // cmark doesn't raise events for link reference definitions, so look for
+    // them in the text leading up to this event
+    let current_range = iterator.get_last_range();
+    if let Some(references) = parse_references(last_event_end.or(Some(start)), current_range.start, iterator)? {
+      children.push(references);
+    }
+
+    children.push(parse_event(event, iterator)?);
+    last_event_end = Some(current_range.end);
   }
 
-  Ok(BlockQuote {
-    range: iterator.get_range_for_start(start),
-    children,
-  })
+  let range = iterator.get_range_for_start(start);
+  // a block quote may consist of only link reference definitions, in which
+  // case it has no children to search after
+  if let Some(references) = parse_references(last_event_end.or(Some(start)), range.end, iterator)? {
+    children.push(references);
+  }
+
+  Ok(BlockQuote { range, children })
 }
 
 fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator) -> Result<CodeBlock, ParseError> {
@@ -623,7 +641,7 @@ fn parse_link(
     }
     LinkType::Shortcut | LinkType::ShortcutUnknown => Ok(ShortcutLink { range, children }.into()),
     LinkType::Email | LinkType::Autolink => Ok(AutoLink { range, children }.into()),
-    // wiki links are not enabled, so this is not reachable
+    // only emitted when Options::ENABLE_WIKILINKS is enabled, which it isn't
     LinkType::WikiLink { .. } => Err(ParseError::new(
       range,
       format!("Link type not implemented {:?}", link_type),
@@ -775,40 +793,58 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
   let mut children = Vec::new();
   let mut sub_lists = Vec::new();
 
+  let mut last_event_end: Option<usize> = None;
   let marker = if let Some((Event::TaskListMarker(is_checked), _)) = iterator.peek() {
     let marker = TaskListMarker {
       range: iterator.get_last_range(),
       is_checked: *is_checked,
     };
     iterator.next();
+    last_event_end = Some(iterator.get_last_range().end);
     Some(marker)
   } else {
     None
   };
 
   while let Some(event) = iterator.next() {
+    if matches!(event, Event::End(TagEnd::Item)) {
+      break;
+    }
+
+    // cmark doesn't raise events for link reference definitions, so look for
+    // them in the text leading up to this event
+    let current_range = iterator.get_last_range();
+    let references = match last_event_end {
+      Some(last_event_end) => parse_references(Some(last_event_end), current_range.start, iterator)?,
+      // the text before the first event contains the list item's marker and
+      // possibly a task list marker, so ignore it when it doesn't parse
+      None => parse_item_start_references(start, current_range.start, iterator),
+    };
+    if let Some(references) = references {
+      children.append(&mut sub_lists); // the sub lists are no longer last
+      children.push(references);
+    }
+
     match event {
-      Event::End(TagEnd::Item) => break,
       Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
       _ => {
         children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
         children.push(parse_event(event, iterator)?)
       }
     }
+    // a node may consume multiple events (ex. adjacent text events), so take
+    // whatever the iterator ended up on
+    last_event_end = Some(std::cmp::max(current_range.end, iterator.get_last_range().end));
   }
 
   let range = iterator.get_range_for_start(start);
 
-  let references_start = sub_lists
-    .last()
-    .map(|c| c.range())
-    .or_else(|| children.last().map(|c| c.range()))
-    .map(|r| r.end)
-    .or_else(|| marker.as_ref().map(|m| m.range.end))
+  let references_start = last_event_end
     // an item may consist of only link reference definitions, in which case
     // it has no children, so start searching after the list item marker
     .or_else(|| get_item_marker_end(iterator.file_text, range.start));
   if let Some(references) = parse_references(references_start, range.end, iterator)? {
+    children.append(&mut sub_lists); // the sub lists are no longer last
     children.push(references);
   }
 
@@ -818,6 +854,14 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     children,
     sub_lists,
   })
+}
+
+/// Parses any link reference definitions that appear before a list item's first
+/// event, ignoring the text when it's not link reference definitions (ex. it
+/// could be a task list marker, which cmark raises an event for later on).
+fn parse_item_start_references(item_start: usize, end: usize, iterator: &mut EventIterator) -> Option<Node> {
+  let start = get_item_marker_end(iterator.file_text, item_start)?;
+  parse_references(Some(start), end, iterator).ok().flatten()
 }
 
 /// Gets the byte position directly after a list item's marker

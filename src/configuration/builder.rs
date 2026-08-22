@@ -207,7 +207,7 @@ mod tests {
     assert_eq!(result.config.tags.get("markdown").unwrap(), "md");
     // keys should be lowercased
     assert_eq!(result.config.tags.get("jsx").unwrap(), "tsx");
-    assert!(result.config.tags.get("JSX").is_none());
+    assert!(!result.config.tags.contains_key("JSX"));
   }
 
   #[test]

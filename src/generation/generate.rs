@@ -179,7 +179,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               } else if let Node::Html(_) = node {
                 node.has_preceding_space(context.file_text)
               } else {
-                true
+                // ex. two images beside each other shouldn't be separated
+                node.has_preceding_whitespace(context.file_text)
               };
 
               if needs_space {
@@ -333,7 +334,8 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
     // the opening `>` cannot rely on being at the start of a line, because a block
     // quote may begin mid-line -- for example directly after a list item marker.
     let mut needs_opening_marker = true;
-    for print_item in gen_nodes(&block_quote.children, context).iter() {
+    let children = gen_nodes(&block_quote.children, context);
+    for print_item in get_content_print_items(children, context) {
       match print_item {
         PrintItem::String(text) if needs_opening_marker => {
           // at the beginning of a block quote, '>' is necessary
@@ -390,6 +392,31 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+/// Gets the print items of a block quote's content, stepping into the paths
+/// that hold generated content so the markers can be added to the lines within
+/// them (ex. the text of a link, which is shared in a path in order to measure
+/// it). The paths holding the markers of a nested block quote are left alone,
+/// since the indentation they contain isn't the content's.
+fn get_content_print_items(items: PrintItems, context: &Context) -> Vec<PrintItem> {
+  let mut result = Vec::new();
+  let mut iterators = vec![items.iter()];
+
+  while let Some(mut iterator) = iterators.pop() {
+    while let Some(print_item) = iterator.next() {
+      match print_item {
+        PrintItem::RcPath(path) if !context.is_memoized_rc_path(path) => {
+          iterators.push(iterator);
+          iterators.push(PrintItemsIterator::new(path));
+          break;
+        }
+        _ => result.push(print_item),
+      }
+    }
+  }
+
+  result
 }
 
 enum MarkersTrailing {
@@ -529,7 +556,14 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 }
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
-  let text = code.code.trim();
+  let trimmed_text = code.code.trim();
+  // a code span that's only whitespace keeps its text because trimming
+  // it would cause the code span to disappear entirely
+  let text = if trimmed_text.is_empty() {
+    code.code.as_str()
+  } else {
+    trimmed_text
+  };
   let backtick_text = "`".repeat(get_backtick_count(text));
   let separator = if text.starts_with('`') || text.ends_with('`') {
     " "
@@ -1027,9 +1061,10 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
   })
 }
 
-fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
+fn gen_link_reference(link_ref: &LinkReference, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string(format!("[{}]: ", link_ref.name.trim()));
+  items.extend(gen_reference_label(&link_ref.name, context));
+  items.push_sc(sc!(": "));
 
   let url = format_raw_link_destination(link_ref.link.trim());
   if url.is_empty() {
@@ -1041,7 +1076,7 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   }
 
   if let Some(title) = &link_ref.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
+    items.extend(gen_title(title, context));
   }
   ir_helpers::new_line_group(items)
 }
@@ -1165,7 +1200,9 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       };
       let indent_increment = match context.configuration.list_indent_kind {
         crate::configuration::ListIndentKind::CommonMark => (prefix_text.chars().count() + 1) as u32,
-        crate::configuration::ListIndentKind::PythonMarkdown => std::cmp::max(prefix_text.chars().count() as u32 + 1, 4),
+        crate::configuration::ListIndentKind::PythonMarkdown => {
+          std::cmp::max(prefix_text.chars().count() as u32 + 1, 4)
+        }
       };
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
