@@ -30,3 +30,27 @@
 > Second
 >
 > Third
+
+!! should keep the markers of a line break within a link's text !!
+> [some words here that are quite long
+> and more text](a.png)
+
+[expect]
+> [some words here that are quite long
+> and more text](a.png)
+
+!! should keep the markers of a line break within a link's text when nested !!
+> > [some words here that are quite long
+> > and more text](a.png)
+
+[expect]
+>> [some words here that are quite long
+>> and more text](a.png)
+
+!! should keep the markers of a line break within a link's text in a list !!
+> - [some words here that are quite long
+>   and more text](a.png)
+
+[expect]
+> - [some words here that are quite long
+>   and more text](a.png)
