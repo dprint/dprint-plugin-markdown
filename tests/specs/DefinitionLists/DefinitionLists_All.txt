@@ -233,3 +233,21 @@ Term
 
 [ref]: https://example.com
 [other]: https://example.org
+
+!! should keep the link reference definitions within a definition !!
+Term
+: A [link][ref] definition.
+
+  [ref]: https://example.com
+
+Other
+: text
+
+[expect]
+Term
+: A [link][ref] definition.
+
+  [ref]: https://example.com
+
+Other
+: text

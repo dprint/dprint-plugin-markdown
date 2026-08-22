@@ -971,16 +971,46 @@ fn parse_definition_list_title(iterator: &mut EventIterator) -> Result<Definitio
 fn parse_definition_list_definition(iterator: &mut EventIterator) -> Result<DefinitionListDefinition, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
+  let mut last_event_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::DefinitionListDefinition) => break,
-      _ => children.push(parse_event(event, iterator)?),
+    if matches!(event, Event::End(TagEnd::DefinitionListDefinition)) {
+      break;
     }
+
+    // cmark doesn't raise events for link reference definitions, so look for
+    // them in the text leading up to this event
+    let current_range = iterator.get_last_range();
+    let references_start = last_event_end.or_else(|| get_definition_marker_end(iterator.file_text, start));
+    if let Some(references) = parse_references(references_start, current_range.start, iterator)? {
+      children.push(references);
+    }
+
+    children.push(parse_event(event, iterator)?);
+    // a node may consume multiple events (ex. adjacent text events), so take
+    // whatever the iterator ended up on
+    last_event_end = Some(std::cmp::max(current_range.end, iterator.get_last_range().end));
   }
 
-  Ok(DefinitionListDefinition {
-    range: iterator.get_range_for_start(start),
-    children,
-  })
+  let range = iterator.get_range_for_start(start);
+  // a definition may consist of only link reference definitions, in which case
+  // it has no children to search after
+  let references_start = last_event_end.or_else(|| get_definition_marker_end(iterator.file_text, start));
+  if let Some(references) = parse_references(references_start, range.end, iterator)? {
+    children.push(references);
+  }
+
+  Ok(DefinitionListDefinition { range, children })
+}
+
+/// Gets the byte position directly after a definition's `:` marker, which may
+/// be indented (ex. after the `:` in `: test` or ` : test`).
+fn get_definition_marker_end(file_text: &str, definition_start: usize) -> Option<usize> {
+  let text = &file_text[definition_start..];
+  let marker_pos = text.find(|c| c != ' ' && c != '\t')?;
+  if text[marker_pos..].starts_with(':') {
+    Some(definition_start + marker_pos + 1)
+  } else {
+    None
+  }
 }
