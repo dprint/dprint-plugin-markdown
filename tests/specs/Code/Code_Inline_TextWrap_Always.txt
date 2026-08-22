@@ -53,3 +53,20 @@ Testing `this out`.
 [expect]
 `This is a long inline code span that should have its text wrapped when it
 exceeds the line width.`
+
+!! should not wrap a block marker in inline code to the start of a line !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo # pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo > pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo --- pppp` qqqq
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo # pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo > pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo --- pppp` qqqq

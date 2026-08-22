@@ -13,8 +13,8 @@ struct EventIterator<'a> {
   last_range: Range,
   next: Option<(Event<'a>, Range)>,
   allow_empty_text_events: bool,
-  in_table_count: i8,
-  in_block_quote_count: i8,
+  in_table_count: usize,
+  in_block_quote_count: usize,
 }
 
 impl<'a> EventIterator<'a> {
@@ -63,20 +63,22 @@ impl<'a> EventIterator<'a> {
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
-      Some((Event::End(TagEnd::Table), _)) => self.in_table_count -= 1,
+      Some((Event::End(TagEnd::Table), _)) => self.in_table_count = self.in_table_count.saturating_sub(1),
       Some((Event::Start(Tag::BlockQuote(_)), _)) => self.in_block_quote_count += 1,
-      Some((Event::End(TagEnd::BlockQuote), _)) => self.in_block_quote_count -= 1,
+      Some((Event::End(TagEnd::BlockQuote), _)) => {
+        self.in_block_quote_count = self.in_block_quote_count.saturating_sub(1)
+      }
       _ => {}
     }
 
     next
   }
 
-  pub fn in_table_count(&self) -> i8 {
+  pub fn in_table_count(&self) -> usize {
     self.in_table_count
   }
 
-  pub fn in_block_quote_count(&self) -> i8 {
+  pub fn in_block_quote_count(&self) -> usize {
     self.in_block_quote_count
   }
 
@@ -378,8 +380,8 @@ fn parse_code(iterator: &mut EventIterator) -> Result<Code, ParseError> {
 
 /// A code span may span multiple lines, in which case the raw text of the
 /// continuation lines still contains the block quote markers they're within.
-fn strip_block_quote_markers(text: &str, block_quote_count: i8) -> String {
-  if block_quote_count <= 0 || !text.contains('\n') {
+fn strip_block_quote_markers(text: &str, block_quote_count: usize) -> String {
+  if block_quote_count == 0 || !text.contains('\n') {
     return text.to_string();
   }
 
@@ -394,12 +396,20 @@ fn strip_block_quote_markers(text: &str, block_quote_count: i8) -> String {
   }
   return result;
 
-  fn strip_line_block_quote_markers(line: &str, block_quote_count: i8) -> &str {
+  fn strip_line_block_quote_markers(line: &str, block_quote_count: usize) -> &str {
+    // a marker may be indented up to three spaces. Any further and it's part
+    // of the code span's text rather than a marker
+    const MAX_MARKER_INDENT: usize = 3;
+
     let mut line = line;
     for _ in 0..block_quote_count {
-      let trimmed = line.trim_start();
-      match trimmed.strip_prefix('>') {
-        Some(text) => line = text,
+      let indent = line.len() - line.trim_start_matches(' ').len();
+      if indent > MAX_MARKER_INDENT {
+        break;
+      }
+      match line[indent..].strip_prefix('>') {
+        // a single space following the marker is part of the marker
+        Some(text) => line = text.strip_prefix(' ').unwrap_or(text),
         None => break,
       }
     }

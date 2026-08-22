@@ -494,9 +494,66 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   // always stay attached to it when the text is wrapped
   let mut items = PrintItems::new();
   items.push_string(format!("{}{}", backtick_text, separator));
-  items.extend(gen_str(text, context));
+  items.extend(gen_code_str(text, context));
   items.push_string(format!("{}{}", separator, backtick_text));
   items
+}
+
+/// Generates the text of a code span.
+///
+/// This can't use `gen_str` because a code span renders its content verbatim
+/// apart from line endings, which render as a single space. So a run of a
+/// single space or line ending is a place the text may be wrapped, but any
+/// longer run of whitespace has to be kept at its original width.
+fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let mut current_word = String::new();
+  let mut was_last_newline = false;
+  let mut chars = text.chars().peekable();
+
+  while let Some(c) = chars.next() {
+    if c != ' ' && c != '\n' {
+      current_word.push(c);
+      continue;
+    }
+
+    let mut whitespace_count = 1;
+    while chars.peek().map(|c| *c == ' ' || *c == '\n').unwrap_or(false) {
+      whitespace_count += 1;
+      chars.next();
+    }
+
+    if whitespace_count == 1 && chars.peek().is_some() {
+      push_word(&mut items, &mut current_word, was_last_newline, context);
+      was_last_newline = c == '\n' && context.configuration.text_wrap == TextWrap::Maintain;
+    } else {
+      // keep the width the same because a line ending renders as a space
+      current_word.push_str(&" ".repeat(whitespace_count));
+    }
+  }
+
+  push_word(&mut items, &mut current_word, was_last_newline, context);
+
+  return items;
+
+  fn push_word(items: &mut PrintItems, word: &mut String, was_last_newline: bool, context: &Context) {
+    if word.is_empty() {
+      return;
+    }
+    if !items.is_empty() {
+      // a chunk may have significant whitespace merged into it, so only the
+      // leading token decides whether it could start a block
+      let leading_token = word.split(' ').next().unwrap_or(word);
+      if utils::is_block_start_word(leading_token) {
+        items.push_space();
+      } else if was_last_newline {
+        items.push_signal(Signal::NewLine);
+      } else {
+        items.extend(get_space_or_newline_based_on_config(context));
+      }
+    }
+    items.push_string(std::mem::take(word));
+  }
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
@@ -570,7 +627,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     fn flush_current_word(&mut self) {
       if let Some(current_word) = self.current_word.take() {
         if !self.items.is_empty() {
-          if utils::is_list_word(&current_word) {
+          if utils::is_block_start_word(&current_word) {
             self.items.push_space();
           } else if self.was_last_newline {
             self.items.push_signal(Signal::NewLine)
