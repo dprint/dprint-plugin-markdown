@@ -128,7 +128,7 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     markdown_text,
     Parser::new_ext(markdown_text, options).into_offset_iter(),
   );
-  let mut last_event_range: Option<Range> = None;
+  let mut last_node_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
     let current_range = iterator.get_last_range();
@@ -136,30 +136,17 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
     // do not parse for link references while inside a table
     if iterator.in_table_count() <= 1 {
       // `or(Some(0))` so the text before the first event is looked at too
-      if let Some(references) = parse_references(
-        last_event_range.as_ref().map(|r| r.end).or(Some(0)),
-        current_range.start,
-        &mut iterator,
-      )? {
+      if let Some(references) = parse_references(last_node_end.or(Some(0)), current_range.start, &mut iterator)? {
         children.push(references);
       }
     }
 
     let node = parse_event(event, &mut iterator)?;
-    // cmark says a definition list ends at the end of the block that follows
-    // it, so use the corrected range of the node in that case
-    last_event_range = Some(match &node {
-      Node::DefinitionList(list) => list.range.clone(),
-      _ => current_range,
-    });
+    last_node_end = Some(get_references_search_start(&node, current_range.end));
     children.push(node);
   }
 
-  if let Some(references) = parse_references(
-    last_event_range.as_ref().map(|r| r.end).or(Some(0)),
-    markdown_text.len(),
-    &mut iterator,
-  )? {
+  if let Some(references) = parse_references(last_node_end.or(Some(0)), markdown_text.len(), &mut iterator)? {
     children.push(references);
   }
 
@@ -225,6 +212,20 @@ fn parse_references(
     }
   }
   Ok(None)
+}
+
+/// Gets the position to start searching for link reference definitions at
+/// after the provided node.
+fn get_references_search_start(node: &Node, event_end: usize) -> usize {
+  match node {
+    // cmark includes any link reference definitions that follow a list in the
+    // list's range, so search from where the list's last item ended
+    Node::List(list) => list.range.end,
+    // cmark says a definition list ends at the end of the block that follows
+    // it, so use the corrected range of the node in that case
+    Node::DefinitionList(list) => list.range.end,
+    _ => event_end,
+  }
 }
 
 fn parse_event(event: Event, iterator: &mut EventIterator) -> Result<Node, ParseError> {
@@ -356,7 +357,7 @@ fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError
 fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
-  let mut last_event_end: Option<usize> = None;
+  let mut last_node_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
     if matches!(event, Event::End(TagEnd::BlockQuote(_))) {
@@ -366,18 +367,19 @@ fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseEr
     // cmark doesn't raise events for link reference definitions, so look for
     // them in the text leading up to this event
     let current_range = iterator.get_last_range();
-    if let Some(references) = parse_references(last_event_end.or(Some(start)), current_range.start, iterator)? {
+    if let Some(references) = parse_references(last_node_end.or(Some(start)), current_range.start, iterator)? {
       children.push(references);
     }
 
-    children.push(parse_event(event, iterator)?);
-    last_event_end = Some(current_range.end);
+    let node = parse_event(event, iterator)?;
+    last_node_end = Some(get_references_search_start(&node, current_range.end));
+    children.push(node);
   }
 
   let range = iterator.get_range_for_start(start);
   // a block quote may consist of only link reference definitions, in which
   // case it has no children to search after
-  if let Some(references) = parse_references(last_event_end.or(Some(start)), range.end, iterator)? {
+  if let Some(references) = parse_references(last_node_end.or(Some(start)), range.end, iterator)? {
     children.push(references);
   }
 
@@ -673,8 +675,16 @@ fn parse_list(start_index: Option<u64>, iterator: &mut EventIterator) -> Result<
     }
   }
 
+  // cmark includes any link reference definitions that follow a list in the
+  // list's range, so end the list at its last item in order for them to be
+  // found in the text that follows it
+  let end = children
+    .last()
+    .map(|c| c.range().end)
+    .unwrap_or_else(|| iterator.get_last_range().end);
+
   Ok(List {
-    range: iterator.get_range_for_start(start),
+    range: Range { start, end },
     start_index,
     children,
   })
@@ -793,14 +803,14 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
   let mut children = Vec::new();
   let mut sub_lists = Vec::new();
 
-  let mut last_event_end: Option<usize> = None;
+  let mut last_node_end: Option<usize> = None;
   let marker = if let Some((Event::TaskListMarker(is_checked), _)) = iterator.peek() {
     let marker = TaskListMarker {
       range: iterator.get_last_range(),
       is_checked: *is_checked,
     };
     iterator.next();
-    last_event_end = Some(iterator.get_last_range().end);
+    last_node_end = Some(iterator.get_last_range().end);
     Some(marker)
   } else {
     None
@@ -814,8 +824,8 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     // cmark doesn't raise events for link reference definitions, so look for
     // them in the text leading up to this event
     let current_range = iterator.get_last_range();
-    let references = match last_event_end {
-      Some(last_event_end) => parse_references(Some(last_event_end), current_range.start, iterator)?,
+    let references = match last_node_end {
+      Some(last_node_end) => parse_references(Some(last_node_end), current_range.start, iterator)?,
       // the text before the first event contains the list item's marker and
       // possibly a task list marker, so ignore it when it doesn't parse
       None => parse_item_start_references(start, current_range.start, iterator),
@@ -825,21 +835,23 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
       children.push(references);
     }
 
-    match event {
-      Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
-      _ => {
-        children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
-        children.push(parse_event(event, iterator)?)
-      }
-    }
+    let node = parse_event(event, iterator)?;
     // a node may consume multiple events (ex. adjacent text events), so take
     // whatever the iterator ended up on
-    last_event_end = Some(std::cmp::max(current_range.end, iterator.get_last_range().end));
+    let event_end = std::cmp::max(current_range.end, iterator.get_last_range().end);
+    last_node_end = Some(get_references_search_start(&node, event_end));
+    match node {
+      Node::List(_) => sub_lists.push(node),
+      _ => {
+        children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
+        children.push(node)
+      }
+    }
   }
 
   let range = iterator.get_range_for_start(start);
 
-  let references_start = last_event_end
+  let references_start = last_node_end
     // an item may consist of only link reference definitions, in which case
     // it has no children, so start searching after the list item marker
     .or_else(|| get_item_marker_end(iterator.file_text, range.start));
@@ -867,6 +879,8 @@ fn parse_item_start_references(item_start: usize, end: usize, iterator: &mut Eve
 /// Gets the byte position directly after a list item's marker
 /// (ex. after the `-` in `- test` or after the `1.` in `1. test`).
 fn get_item_marker_end(file_text: &str, item_start: usize) -> Option<usize> {
+  // cmark's range for an item includes the indentation before its marker
+  let item_start = item_start + file_text[item_start..].find(|c| !matches!(c, ' ' | '\t'))?;
   let mut chars = file_text[item_start..].char_indices();
   let (_, first_char) = chars.next()?;
 

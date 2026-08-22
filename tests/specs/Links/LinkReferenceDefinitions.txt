@@ -1,0 +1,90 @@
+!! should keep a title that's on the line after the destination !!
+[a]: https://example.com
+"Title"
+
+[expect]
+[a]: https://example.com "Title"
+
+!! should keep a destination that's on the line after the label !!
+[a]:
+https://example.com
+
+[expect]
+[a]: https://example.com
+
+!! should keep a multi-line title that starts on the line after the destination !!
+[a]: https://example.com
+"Title
+that spans lines"
+
+[expect]
+[a]: https://example.com "Title
+that spans lines"
+
+!! should keep a title on the next line in a list item !!
+- Text
+
+  [a]: https://example.com
+  "Title"
+
+  - Sublist
+
+[expect]
+- Text
+
+  [a]: https://example.com "Title"
+
+  - Sublist
+
+!! should keep a title on the next line in a block quote !!
+> [a]: https://example.com
+> "Title"
+
+[expect]
+> [a]: https://example.com "Title"
+
+!! should not treat the next definition as a title !!
+[a]: https://example.com/a
+[b]: https://example.com/b
+
+[expect]
+[a]: https://example.com/a
+[b]: https://example.com/b
+
+!! should keep the definitions on the lines after a list !!
+- Item
+
+[a]: https://example.com/a
+[b]: https://example.com/b
+
+[expect]
+- Item
+
+[a]: https://example.com/a
+[b]: https://example.com/b
+
+!! should keep the definitions on the lines after a sublist !!
+- Item
+
+  - Sublist
+
+  [a]: https://example.com/a
+  [b]: https://example.com/b
+
+[expect]
+- Item
+
+  - Sublist
+
+  [a]: https://example.com/a
+  [b]: https://example.com/b
+
+!! should keep a definition in an indented list item !!
+  - [a]: https://example.com
+
+    Text [a]
+
+[expect]
+- [a]: https://example.com
+
+  Text [a]
