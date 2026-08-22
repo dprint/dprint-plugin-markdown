@@ -50,3 +50,25 @@ places.
 
 [expect]
 # Here is a test
+
+!! should not leave a trailing space for an empty heading !!
+#
+
+##
+
+######
+
+> #
+
+- #
+
+[expect]
+#
+
+##
+
+######
+
+> #
+
+- #

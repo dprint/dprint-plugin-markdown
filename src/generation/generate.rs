@@ -285,26 +285,39 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 }
 
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-
+  // setext headings only apply to level 1 and level 2.
   if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
-    // setext headings only apply to level 1 and level 2.
-    let heading_children = gen_nodes(&heading.children, context);
-    let (heading_children, cloned_children) = clone_items(heading_children);
-    items.extend(heading_children);
-    items.push_item(PrintItem::Signal(Signal::NewLine));
+    let children = gen_nodes(&heading.children, context);
+    let (children, cloned_children) = clone_items(children);
 
     // render the heading text with the actual line width so wrapping is
     // applied, then measure the longest line for the underline width.
     let underline_width = measure_longest_line_width(cloned_children, context.configuration.line_width);
-    let underline_char = if heading.level == 1 { "=" } else { "-" };
-    items.push_string(underline_char.repeat(underline_width));
-  } else {
-    // atx headings apply to all levels.
-    items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+
+    // an underline with no text above it isn't a heading at all, so an
+    // empty heading can only be written as atx
+    if underline_width > 0 {
+      let mut items = PrintItems::new();
+      items.extend(children);
+      items.push_signal(Signal::NewLine);
+      let underline_char = if heading.level == 1 { "=" } else { "-" };
+      items.push_string(underline_char.repeat(underline_width));
+      return items;
+    }
+
+    return gen_atx_heading(heading.level, children);
   }
 
+  // atx headings apply to all levels.
+  gen_atx_heading(heading.level, gen_nodes(&heading.children, context))
+}
+
+fn gen_atx_heading(level: u32, children: PrintItems) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_string("#".repeat(level as usize));
+  // an empty heading is just the number signs, so don't leave a trailing space
+  items.push_signal(Signal::SpaceIfNotTrailing);
+  items.extend(with_no_new_lines(children));
   items
 }
 
