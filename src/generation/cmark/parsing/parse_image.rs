@@ -16,7 +16,8 @@ pub fn parse_image(offset: usize, text: &str, link_type: LinkType) -> Result<Nod
       parse_reference(start_pos, &mut char_scanner)
     }
     LinkType::Shortcut | LinkType::ShortcutUnknown => parse_shortcut(start_pos, &mut char_scanner),
-    LinkType::Email | LinkType::Autolink => Err(ParseError::new(
+    // wiki links are not enabled, so that variant is not reachable
+    LinkType::Email | LinkType::Autolink | LinkType::WikiLink { .. } => Err(ParseError::new(
       Range {
         start: offset,
         end: offset,

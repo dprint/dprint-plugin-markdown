@@ -168,6 +168,25 @@ pub struct TaskListMarker {
   pub is_checked: bool,
 }
 
+/// A definition list. Contains alternating `DefinitionListTitle` and
+/// `DefinitionListDefinition` children.
+pub struct DefinitionList {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
+/// The term of a definition list.
+pub struct DefinitionListTitle {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
+/// A `:` prefixed definition of the preceding definition list term.
+pub struct DefinitionListDefinition {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
 /// Inline code.
 pub struct Code {
   pub range: Range,
@@ -336,6 +355,9 @@ generate_node![
   List,
   Item,
   TaskListMarker,
+  DefinitionList,
+  DefinitionListTitle,
+  DefinitionListDefinition,
   SoftBreak,
   HardBreak,
   Code,
