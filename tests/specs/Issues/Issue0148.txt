@@ -1,0 +1,53 @@
+!! should not use a backslash hard break after a callout header !!
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+[expect]
+> [!IMPORTANT]
+> Crucial information necessary for users to succeed.
+
+!! should not use a backslash hard break after a nested callout header !!
+> > [!NOTE]  
+> > Some sort of note
+
+[expect]
+>> [!NOTE]
+>> Some sort of note
+
+!! should keep hard break when callout syntax is not at the start of the block quote !!
+> Some text
+> [!NOTE]  
+> more text
+
+[expect]
+> Some text
+> [!NOTE]\
+> more text
+
+!! should keep hard break when callout syntax starts a later paragraph !!
+> First para
+>
+> [!NOTE]  
+> more text
+
+[expect]
+> First para
+>
+> [!NOTE]\
+> more text
+
+!! should keep hard break when callout syntax is emphasized !!
+> _[!NOTE]  
+> more text_
+
+[expect]
+> _[!NOTE]\
+> more text_
+
+!! should keep hard break when the callout kind is empty !!
+> [!]  
+> more text
+
+[expect]
+> [!]\
+> more text

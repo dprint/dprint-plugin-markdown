@@ -31,6 +31,8 @@ pub struct Context<'a> {
   is_in_list_count: u32,
   /// The indentation level each surrounding block quote started at, from outermost to innermost.
   block_quote_base_indents: Vec<u32>,
+  /// The start position of the first child of each surrounding block quote.
+  block_quote_content_starts: Vec<Option<usize>>,
   text_wrap_disabled_count: u32,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
@@ -55,6 +57,7 @@ impl<'a> Context<'a> {
       raw_indent_level: 0,
       is_in_list_count: 0,
       block_quote_base_indents: Vec::new(),
+      block_quote_content_starts: Vec::new(),
       text_wrap_disabled_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
@@ -103,14 +106,21 @@ impl<'a> Context<'a> {
     self.memoized_rc_path_addresses.contains(&(path as *const _ as usize))
   }
 
-  /// Marks being within a block quote, providing the indentation level of every
-  /// surrounding block quote (from outermost to innermost) to the provided function.
-  pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, Vec<u32>) -> T) -> T {
+  /// Marks being within a block quote whose content starts at `content_start`,
+  /// providing the indentation level of every surrounding block quote (from
+  /// outermost to innermost) to the provided function.
+  pub fn mark_in_block_quotes<T>(
+    &mut self,
+    content_start: Option<usize>,
+    func: impl FnOnce(&mut Context, Vec<u32>) -> T,
+  ) -> T {
     let original_is_in_list_count = self.is_in_list_count;
     self.is_in_list_count = 0;
     self.block_quote_base_indents.push(self.indent_level);
+    self.block_quote_content_starts.push(content_start);
     let base_indents = self.block_quote_base_indents.clone();
     let items = func(self, base_indents);
+    self.block_quote_content_starts.pop();
     self.block_quote_base_indents.pop();
     self.is_in_list_count = original_is_in_list_count;
     items
@@ -129,6 +139,11 @@ impl<'a> Context<'a> {
 
   pub fn is_in_block_quote(&self) -> bool {
     !self.block_quote_base_indents.is_empty()
+  }
+
+  /// Whether the position is where the innermost block quote's content starts.
+  pub fn is_block_quote_content_start(&self, pos: usize) -> bool {
+    self.block_quote_content_starts.last().copied().flatten() == Some(pos)
   }
 
   /// Whether the position at `index` is preceded by a blank line, accounting for

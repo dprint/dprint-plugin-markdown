@@ -30,3 +30,25 @@
 [expect]
 > [!NOTE]
 > _Some_ sort of note
+
+!! should format when has trailing hard break after callout !!
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+[expect]
+> [!IMPORTANT]
+> Crucial information necessary for users to succeed.
+
+!! should format when hard break after callout with nothing else !!
+> [!IMPORTANT]  
+
+[expect]
+> [!IMPORTANT]
+
+!! should keep hard break when not a callout !!
+> Some text  
+> and more text
+
+[expect]
+> Some text\
+> and more text
