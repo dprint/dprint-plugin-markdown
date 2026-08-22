@@ -1,0 +1,26 @@
+!! should not trim a code span that's only whitespace !!
+Optionally, a delimiter char may be provided. By default, the parser uses a delimiter char of `SPACE` (`U+0020`), literally ` `.
+
+Multiple spaces: `   `.
+
+[expect]
+Optionally, a delimiter char may be provided. By default, the parser uses a delimiter char of `SPACE` (`U+0020`), literally ` `.
+
+Multiple spaces: `   `.
+
+!! should not trim a code span that's only a newline !!
+Testing `
+` out.
+
+[expect]
+Testing ` ` out.
+
+!! should not trim a code span that's only whitespace in a table !!
+| a | b |
+| - | - |
+| ` ` | `  ` |
+
+[expect]
+| a   | b    |
+| --- | ---- |
+| ` ` | `  ` |
