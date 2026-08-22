@@ -406,9 +406,9 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 
   // header
   if code_block.is_fenced {
-    items.push_string(backtick_text.clone());
+    items.push_str(&backtick_text);
     if let Some(tag) = &code_block.tag {
-      items.push_string(tag.to_string());
+      items.push_str(tag);
     }
     items.push_signal(Signal::NewLine);
   }
@@ -1030,9 +1030,9 @@ fn gen_task_list_marker_children(
 fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   if marker.is_checked {
-    items.push_string("[x]".into());
+    items.push_sc(sc!("[x]"));
   } else {
-    items.push_string("[ ]".into());
+    items.push_sc(sc!("[ ]"));
   }
 
   items
