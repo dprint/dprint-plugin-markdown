@@ -1373,11 +1373,24 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
   "---".into()
 }
 
+/// Generates a hard break, which has no representation on a single line, so it
+/// becomes a space where newlines are being forced off (ex. within an ATX
+/// heading). Otherwise the backslash it leaves behind would escape the
+/// character that followed it.
 fn gen_hard_break(_: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_sc(sc!("\\"));
-  items.push_signal(Signal::NewLine);
-  items
+  let hard_break = {
+    let mut items = PrintItems::new();
+    items.push_sc(sc!("\\"));
+    items.push_signal(Signal::NewLine);
+    items
+  };
+  if_true_or(
+    "hardBreakOrSpaceIfNewlinesDisabled",
+    condition_resolvers::is_forcing_no_newlines(),
+    space(),
+    hard_break,
+  )
+  .into()
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
