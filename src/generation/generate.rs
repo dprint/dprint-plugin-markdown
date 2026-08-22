@@ -41,6 +41,9 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ShortcutImage(node) => gen_shortcut_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
+    Node::DefinitionList(node) => gen_definition_list(node, context),
+    Node::DefinitionListTitle(_) => unreachable!("this should be handled by gen_definition_list"),
+    Node::DefinitionListDefinition(_) => unreachable!("this should be handled by gen_definition_list"),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
@@ -104,6 +107,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::FootnoteDefinition(_)
           | Node::HorizontalRule(_)
           | Node::List(_)
+          | Node::DefinitionList(_)
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
@@ -116,6 +120,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::FootnoteDefinition(_)
           | Node::HorizontalRule(_)
           | Node::List(_)
+          | Node::DefinitionList(_)
           | Node::Table(_)
           | Node::MetadataBlock(_)
           | Node::BlockQuote(_)
@@ -196,6 +201,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           Node::NotImplemented(_)
           | Node::SourceFile(_)
           | Node::Item(_)
+          | Node::DefinitionListTitle(_)
+          | Node::DefinitionListDefinition(_)
           | Node::TaskListMarker(_)
           | Node::HardBreak(_)
           | Node::TableHead(_)
@@ -1229,6 +1236,73 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   items
 }
 
+fn gen_definition_list(definition_list: &DefinitionList, context: &mut Context) -> PrintItems {
+  context.mark_in_list(|context| {
+    let mut items = PrintItems::new();
+
+    for (index, child) in definition_list.children.iter().enumerate() {
+      if index > 0 {
+        items.push_signal(Signal::NewLine);
+        if context.has_leading_blankline(child.range().start) {
+          items.push_signal(Signal::NewLine);
+        }
+      }
+
+      items.extend(match child {
+        Node::DefinitionListTitle(title) => gen_term(title, context),
+        Node::DefinitionListDefinition(definition) => gen_definition(definition, context),
+        _ => generate(child, context),
+      });
+    }
+
+    items
+  })
+}
+
+/// Every term of a definition list must be kept on its own line, otherwise it
+/// stops being a definition list, so keep the line breaks found in the source
+/// and never wrap the text.
+fn gen_term(title: &DefinitionListTitle, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let terms = title
+    .children
+    .split(|c| matches!(c, Node::SoftBreak(_) | Node::HardBreak(_)));
+
+  for (index, term) in terms.enumerate() {
+    if index > 0 {
+      items.push_signal(Signal::NewLine);
+    }
+    items.extend(context.with_no_text_wrap(|context| ir_helpers::with_no_new_lines(gen_nodes(term, context))));
+  }
+
+  items
+}
+
+fn gen_definition(definition: &DefinitionListDefinition, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let indent_increment = match context.configuration.list_indent_kind {
+    crate::configuration::ListIndentKind::CommonMark => 2,
+    crate::configuration::ListIndentKind::PythonMarkdown => 4,
+  };
+
+  context.indent_level += indent_increment;
+  items.push_sc(sc!(":"));
+  let after_child = LineAndColumn::new("afterDefinition");
+  items.push_condition(if_true(
+    "spaceIfHasDefinition",
+    Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
+    Signal::SpaceIfNotTrailing.into(),
+  ));
+  items.extend(with_indent_times(
+    gen_nodes(&definition.children, context),
+    indent_increment,
+  ));
+  items.push_line_and_column(after_child);
+  context.indent_level -= indent_increment;
+
+  items
+}
+
 fn gen_task_list_marker_children(
   children: &[Node],
   marker: Option<&TaskListMarker>,
@@ -1243,7 +1317,12 @@ fn gen_task_list_marker_children(
     .position(|c| {
       matches!(
         c,
-        Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
+        Node::List(_)
+          | Node::DefinitionList(_)
+          | Node::CodeBlock(_)
+          | Node::BlockQuote(_)
+          | Node::Heading(_)
+          | Node::Table(_)
       ) || context.has_leading_blankline(c.range().start)
     })
     .unwrap_or(children.len());
