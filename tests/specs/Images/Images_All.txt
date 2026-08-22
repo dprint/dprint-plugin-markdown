@@ -163,14 +163,15 @@ reference]
 
 [some text]: https://dprint.dev/image.png
 
-!! should move alt text onto a single line within a link !!
+!! should keep a line break in alt text within a link !!
 [![some
 text]](https://dprint.dev)
 
 [some text]: https://dprint.dev/image.png
 
 [expect]
-[![some text]](https://dprint.dev)
+[![some
+text]](https://dprint.dev)
 
 [some text]: https://dprint.dev/image.png
 

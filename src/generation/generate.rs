@@ -851,20 +851,8 @@ fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &m
 fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    let generated_children = gen_nodes(&link.children, context);
     items.push_sc(sc!("["));
-
-    // force the text to be on a single line in some scenarios
-    let (generated_children, generated_children_clone) = clone_items(generated_children);
-    let single_line_text = get_items_text(ir_helpers::with_no_new_lines(generated_children_clone));
-    if single_line_text.len() < (context.configuration.line_width / 2) as usize {
-      // printing the children back out to text flattens any tab signal
-      // they had, so they need breaking up again
-      items.extend(gen_text_with_tabs(single_line_text));
-    } else {
-      items.extend(generated_children);
-    }
-
+    items.extend(gen_nodes(&link.children, context));
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
     // the parser resolves the escapes in an inline link's url, so render it
@@ -1664,22 +1652,24 @@ fn space() -> PrintItems {
 }
 
 fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
+  if context.is_text_wrap_disabled() {
+    // ex. within a link, whose text is moved onto a single line when text is
+    // being wrapped, but keeps the line breaks it has when text is maintained
+    return match context.configuration.text_wrap {
+      TextWrap::Always | TextWrap::Never => space(),
+      TextWrap::Maintain => if_true_or(
+        "newLineOrSpaceIfNewlinesDisabled",
+        condition_resolvers::is_forcing_no_newlines(),
+        space(),
+        Signal::NewLine.into(),
+      )
+      .into(),
+    };
+  }
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
     TextWrap::Never => space(),
-    TextWrap::Maintain => {
-      if context.is_text_wrap_disabled() {
-        if_true_or(
-          "newLineOrSpaceIfNewlinesDisabled",
-          condition_resolvers::is_forcing_no_newlines(),
-          space(),
-          Signal::NewLine.into(),
-        )
-        .into()
-      } else {
-        Signal::NewLine.into()
-      }
-    }
+    TextWrap::Maintain => Signal::NewLine.into(),
   }
 }
 
