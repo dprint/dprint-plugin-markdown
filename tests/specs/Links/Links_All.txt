@@ -75,3 +75,23 @@ Test [this out](/test) test
 
 [expect]
 [Some reference]: https://github.com
+
+!! should keep a line break in a title !!
+[testing](https://dprint.dev "some
+title")
+
+[expect]
+[testing](https://dprint.dev "some
+title")
+
+!! should keep a line break in a reference label !!
+[testing][some
+reference]
+
+[some reference]: https://dprint.dev
+
+[expect]
+[testing][some
+reference]
+
+[some reference]: https://dprint.dev
