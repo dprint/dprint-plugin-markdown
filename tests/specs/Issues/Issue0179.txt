@@ -37,3 +37,85 @@
 [4]: <foo(bar>
 [5]: <foo)(bar>
 [6]: <foo)(bar>
+
+!! should keep the title outside the pointy brackets !!
+[link](<foo bar> "title")
+[link](foo\(bar "title")
+
+[expect]
+[link](<foo bar> "title")
+[link](<foo(bar> "title")
+
+!! should escape pointy brackets in the destination !!
+[link](<a\> b>)
+[link](<a\< b>)
+[link](a>b)
+[link](\<foo)
+
+[expect]
+[link](<a\> b>)
+[link](<a\< b>)
+[link](a>b)
+[link](<\<foo>)
+
+!! should keep a backslash from escaping the character after it !!
+[link](foo\\_bar)
+[link](<foo\\_bar baz>)
+
+[expect]
+[link](foo\\_bar)
+[link](<foo\\_bar baz>)
+
+!! should keep a trailing backslash from escaping the delimiter after it !!
+[link](foo\\)
+[link](<foo bar\\>)
+
+[expect]
+[link](foo\\)
+[link](<foo bar\\>)
+
+!! should keep an ampersand from becoming a character reference !!
+[link](\&amp;)
+[link](\&#41;)
+[link](x?a=1&b=2)
+
+[expect]
+[link](\&amp;)
+[link](\&#41;)
+[link](x?a=1&b=2)
+
+!! should keep the escapes of a link reference definition destination !!
+[1]: foo\\_bar
+[2]: <a\> b>
+[3]: foo\_bar
+[4]: <foo bar\\>
+[5]: \&amp;
+[6]: x?a=1\&amp;b=2
+[7]: x?a=1&amp;b=2
+[8]: <foo\\(bar>
+
+[expect]
+[1]: foo\\_bar
+[2]: <a\> b>
+[3]: foo\_bar
+[4]: <foo bar\\>
+[5]: \&amp;
+[6]: x?a=1\&amp;b=2
+[7]: x?a=1&amp;b=2
+[8]: <foo\\(bar>
+
+!! should drop the parentheses escapes of a link reference definition destination !!
+[1]: <a\(b)c>
+[2]: <a(b\)c>
+[3]: foo\(bar\)baz
+
+[expect]
+[1]: a(b)c
+[2]: a(b)c
+[3]: foo(bar)baz
+
+!! should escape the pointy brackets of a link reference definition destination !!
+[1]: a>b\(c
+
+[expect]
+[1]: <a\>b(c>

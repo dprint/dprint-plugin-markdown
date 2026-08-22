@@ -674,17 +674,11 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
-    let url = link.url.trim().to_string();
-    let pointy_brackets_are_needed = inline_link_destination_needs_pointy_brackets(&url);
-    if pointy_brackets_are_needed {
-      items.push_sc(sc!("<"));
-    }
-    items.push_string(url);
+    // the parser resolves the escapes in an inline link's url, so render it
+    // back out with the escapes it needs and no others
+    items.push_string(format_link_destination(link.url.trim()));
     if let Some(title) = &link.title {
       items.push_string(format!(" \"{}\"", title.trim()));
-    }
-    if pointy_brackets_are_needed {
-      items.push_sc(sc!(">"));
     }
     items.push_sc(sc!(")"));
 
@@ -692,12 +686,29 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   })
 }
 
-/// Returns `true` if destination contains a space or unbalanced parentheses.
-fn inline_link_destination_needs_pointy_brackets(destination: &str) -> bool {
+/// Renders an unescaped link destination, enclosing it in pointy brackets and
+/// escaping characters only where necessary for it to round trip.
+fn format_link_destination(destination: &str) -> String {
+  let escaped = escape_link_destination(destination);
+  if link_destination_needs_pointy_brackets(destination) {
+    format!("<{}>", escaped.replace('<', r"\<").replace('>', r"\>"))
+  } else {
+    escaped
+  }
+}
+
+/// Returns `true` if the destination can't be written without pointy brackets,
+/// which is when it starts with `<`, contains a space or ascii control
+/// character, or has unbalanced parentheses.
+fn link_destination_needs_pointy_brackets(destination: &str) -> bool {
+  if destination.starts_with('<') {
+    return true;
+  }
+
   let mut parentheses_depth = 0;
   for c in destination.chars() {
     match c {
-      ' ' => return true,
+      c if c == ' ' || c.is_ascii_control() => return true,
       '(' => parentheses_depth += 1,
       ')' => parentheses_depth -= 1,
       _ => (),
@@ -707,6 +718,39 @@ fn inline_link_destination_needs_pointy_brackets(destination: &str) -> bool {
     }
   }
   parentheses_depth != 0
+}
+
+/// Escapes the characters that would otherwise take on a different meaning
+/// when the destination gets parsed again.
+fn escape_link_destination(destination: &str) -> String {
+  let mut text = String::with_capacity(destination.len());
+  for (index, c) in destination.char_indices() {
+    let rest = &destination[index + c.len_utf8()..];
+    match c {
+      // a trailing backslash would escape the delimiter written after the
+      // destination, so it needs escaping too
+      '\\' if rest.chars().next().is_none_or(|c| c.is_ascii_punctuation()) => text.push('\\'),
+      '&' if starts_character_reference(rest) => text.push('\\'),
+      _ => (),
+    }
+    text.push(c);
+  }
+  text
+}
+
+/// Returns `true` if the text following an ampersand makes it a character
+/// reference (ex. `amp;`, `#41;` or `#x29;`).
+fn starts_character_reference(text: &str) -> bool {
+  let Some((body, _)) = text.split_once(';') else {
+    return false;
+  };
+  match body.strip_prefix('#') {
+    Some(number) => match number.strip_prefix(['x', 'X']) {
+      Some(number) => !number.is_empty() && number.chars().all(|c| c.is_ascii_hexdigit()),
+      None => !number.is_empty() && number.chars().all(|c| c.is_ascii_digit()),
+    },
+    None => !body.is_empty() && body.chars().all(|c| c.is_ascii_alphanumeric()),
+  }
 }
 
 fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
@@ -745,19 +789,7 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
 
-  let mut url = link_ref.link.trim();
-  if url.starts_with("<") && url.ends_with(">") {
-    url = &url[1..(url.len() - 1)]
-  }
-  let url = url.replace(r#"\("#, "(").replace(r#"\)"#, ")");
-  let pointy_brackets_are_needed = link_reference_destination_needs_pointy_brackets(&url);
-  if pointy_brackets_are_needed {
-    items.push_sc(sc!("<"));
-  }
-  items.push_string(url);
-  if pointy_brackets_are_needed {
-    items.push_sc(sc!(">"));
-  }
+  items.push_string(format_raw_link_destination(link_ref.link.trim()));
 
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));
@@ -765,11 +797,71 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   ir_helpers::new_line_group(items)
 }
 
-fn link_reference_destination_needs_pointy_brackets(destination: &str) -> bool {
+/// Renders a link destination that's still in the raw form it has in the file.
+///
+/// The escapes the author wrote are kept as they are, because resolving them
+/// would also resolve any character reference, and there's no way to tell a
+/// resolved one apart from text that merely looks like one.
+fn format_raw_link_destination(destination: &str) -> String {
+  let destination = destination
+    .strip_prefix('<')
+    .and_then(|destination| destination.strip_suffix('>'))
+    .unwrap_or(destination);
   if destination.is_empty() {
-    return true;
+    // a link reference definition can't have an empty destination without these
+    return "<>".to_string();
   }
-  inline_link_destination_needs_pointy_brackets(destination)
+
+  let needs_pointy_brackets = link_destination_needs_pointy_brackets(&unescape_link_destination(destination));
+  let mut text = String::with_capacity(destination.len() + 2);
+  if needs_pointy_brackets {
+    text.push('<');
+  }
+  let mut chars = destination.chars();
+  while let Some(c) = chars.next() {
+    match c {
+      // pointy brackets only need escaping when they're within pointy brackets
+      '<' | '>' if needs_pointy_brackets => {
+        text.push('\\');
+        text.push(c);
+      }
+      '\\' => match chars.next() {
+        // parentheses are escaped for the sake of the surrounding form, which
+        // has been decided here, so drop the escapes and let the form decide
+        Some(escaped @ ('(' | ')')) => text.push(escaped),
+        Some(escaped) => {
+          text.push('\\');
+          text.push(escaped);
+        }
+        // a trailing backslash would escape whatever comes after the destination
+        None => text.push_str(r"\\"),
+      },
+      _ => text.push(c),
+    }
+  }
+  if needs_pointy_brackets {
+    text.push('>');
+  }
+  text
+}
+
+/// Resolves the backslash escapes in a raw link destination.
+///
+/// This is only good enough to decide how the destination has to be written,
+/// since it leaves any character reference alone.
+fn unescape_link_destination(destination: &str) -> String {
+  let mut text = String::with_capacity(destination.len());
+  let mut chars = destination.chars().peekable();
+  while let Some(c) = chars.next() {
+    match chars.peek() {
+      Some(next) if c == '\\' && next.is_ascii_punctuation() => {
+        text.push(*next);
+        chars.next();
+      }
+      _ => text.push(c),
+    }
+  }
+  text
 }
 
 fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
@@ -1215,5 +1307,88 @@ fn is_all_ones_list(list: &List, context: &Context) -> bool {
   list.children.len() > 1 && list.start_index.unwrap_or(0) == 1 && {
     let text = list.children.get(1).unwrap().text(context).trim();
     text.starts_with("1.") || text.starts_with("1)")
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::format_link_destination;
+  use super::format_raw_link_destination;
+  use super::unescape_link_destination;
+
+  #[test]
+  fn formats_link_destination_without_pointy_brackets_when_possible() {
+    assert_eq!(format_link_destination(""), "");
+    assert_eq!(format_link_destination("foo%20bar"), "foo%20bar");
+    assert_eq!(format_link_destination("foo(bar)baz"), "foo(bar)baz");
+    assert_eq!(format_link_destination("a>b"), "a>b");
+  }
+
+  #[test]
+  fn formats_link_destination_with_pointy_brackets_when_necessary() {
+    assert_eq!(format_link_destination("foo bar"), "<foo bar>");
+    assert_eq!(format_link_destination("foo(bar"), "<foo(bar>");
+    assert_eq!(format_link_destination("foo)(bar"), "<foo)(bar>");
+    // can't start with a pointy bracket without them
+    assert_eq!(format_link_destination("<foo"), r"<\<foo>");
+    // ascii control characters aren't allowed without them
+    assert_eq!(format_link_destination("foo\u{1}bar"), "<foo\u{1}bar>");
+  }
+
+  #[test]
+  fn escapes_link_destination_characters() {
+    // pointy brackets need escaping within pointy brackets
+    assert_eq!(format_link_destination("a> b"), r"<a\> b>");
+    assert_eq!(format_link_destination("a< b"), r"<a\< b>");
+    // a backslash needs escaping when it would escape what follows it
+    assert_eq!(format_link_destination(r"foo\_bar"), r"foo\\_bar");
+    assert_eq!(format_link_destination(r"foo\bar"), r"foo\bar");
+    assert_eq!(format_link_destination(r"foo\<bar baz"), r"<foo\\\<bar baz>");
+    // ...including the delimiter that follows the destination
+    assert_eq!(format_link_destination(r"foo\"), r"foo\\");
+    assert_eq!(format_link_destination("foo bar\\"), r"<foo bar\\>");
+  }
+
+  #[test]
+  fn escapes_ampersands_that_would_become_character_references() {
+    assert_eq!(format_link_destination("&amp;"), r"\&amp;");
+    assert_eq!(format_link_destination("&#41;"), r"\&#41;");
+    assert_eq!(format_link_destination("&#x29;"), r"\&#x29;");
+    // these can't be mistaken for a character reference
+    assert_eq!(format_link_destination("x?a=1&b=2"), "x?a=1&b=2");
+    assert_eq!(format_link_destination("x?a=1&b=2;c=3"), "x?a=1&b=2;c=3");
+    assert_eq!(format_link_destination("&;"), "&;");
+    assert_eq!(format_link_destination("&#;"), "&#;");
+  }
+
+  #[test]
+  fn unescapes_link_destination() {
+    assert_eq!(unescape_link_destination(r"foo\(bar"), "foo(bar");
+    assert_eq!(unescape_link_destination(r"foo\\_bar"), r"foo\_bar");
+    assert_eq!(unescape_link_destination("foo\\"), "foo\\");
+    // only ascii punctuation is escapable
+    assert_eq!(unescape_link_destination(r"foo\bar"), r"foo\bar");
+    // a character reference is left alone, since it isn't an escape
+    assert_eq!(unescape_link_destination("&amp;"), "&amp;");
+  }
+
+  #[test]
+  fn formats_raw_link_destination_keeping_its_escapes() {
+    assert_eq!(format_raw_link_destination("<>"), "<>");
+    assert_eq!(format_raw_link_destination("<foo bar>"), "<foo bar>");
+    assert_eq!(format_raw_link_destination(r"foo\_bar"), r"foo\_bar");
+    assert_eq!(format_raw_link_destination("x?a=1&amp;b=2"), "x?a=1&amp;b=2");
+    assert_eq!(format_raw_link_destination(r"x?a=1\&amp;b=2"), r"x?a=1\&amp;b=2");
+    // the parentheses escapes follow the form that gets written here
+    assert_eq!(format_raw_link_destination(r"foo\(bar"), "<foo(bar>");
+    assert_eq!(format_raw_link_destination(r"a\(b)c"), "a(b)c");
+    assert_eq!(format_raw_link_destination(r"foo\(bar\)baz"), "foo(bar)baz");
+    assert_eq!(format_raw_link_destination(r"<foo\\(bar>"), r"<foo\\(bar>");
+    // ...but pointy brackets do
+    assert_eq!(format_raw_link_destination(r"a>b\(c"), r"<a\>b(c>");
+    assert_eq!(format_raw_link_destination(r"<a\> b>"), r"<a\> b>");
+    // a trailing backslash would escape the closing pointy bracket
+    assert_eq!(format_raw_link_destination("<foo bar\\\\>"), r"<foo bar\\>");
+    assert_eq!(format_raw_link_destination("foo bar\\"), r"<foo bar\\>");
   }
 }
