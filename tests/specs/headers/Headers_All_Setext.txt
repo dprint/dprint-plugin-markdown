@@ -76,3 +76,73 @@ b here
 Testing a\
 b here
 ==========
+
+!! should use an atx heading when the heading is empty !!
+#
+
+##
+
+# a
+
+#
+
+# b
+
+[expect]
+#
+
+##
+
+a
+=
+
+#
+
+b
+=
+
+!! should use an atx heading for an empty heading in a container !!
+> #
+
+- #
+
+> > #
+
+[^1]: #
+
+term
+
+: #
+
+[expect]
+> #
+
+- #
+
+>> #
+
+[^1]: #
+
+term
+
+: #
+
+!! should use an atx heading when the heading has no visible width !!
+#  
+
+# ​
+
+[expect]
+#  
+
+# ​
+
+!! should not leave a trailing space for an empty level 3 or higher heading !!
+###
+
+######
+
+[expect]
+###
+
+######
