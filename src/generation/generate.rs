@@ -174,7 +174,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               } else if let Node::Html(_) = node {
                 node.has_preceding_space(context.file_text)
               } else {
-                true
+                // ex. two images beside each other shouldn't be separated
+                node.has_preceding_whitespace(context.file_text)
               };
 
               if needs_space {
@@ -1020,9 +1021,10 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
   })
 }
 
-fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
+fn gen_link_reference(link_ref: &LinkReference, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string(format!("[{}]: ", link_ref.name.trim()));
+  items.extend(gen_reference_label(&link_ref.name, context));
+  items.push_sc(sc!(": "));
 
   let url = format_raw_link_destination(link_ref.link.trim());
   if url.is_empty() {
@@ -1034,7 +1036,7 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   }
 
   if let Some(title) = &link_ref.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
+    items.extend(gen_title(title, context));
   }
   ir_helpers::new_line_group(items)
 }
