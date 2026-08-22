@@ -327,7 +327,8 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
     // the opening `>` cannot rely on being at the start of a line, because a block
     // quote may begin mid-line -- for example directly after a list item marker.
     let mut needs_opening_marker = true;
-    for print_item in gen_nodes(&block_quote.children, context).iter() {
+    let children = gen_nodes(&block_quote.children, context);
+    for print_item in get_content_print_items(children, context) {
       match print_item {
         PrintItem::String(text) if needs_opening_marker => {
           // at the beginning of a block quote, '>' is necessary
@@ -384,6 +385,31 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+/// Gets the print items of a block quote's content, stepping into the paths
+/// that hold generated content so the markers can be added to the lines within
+/// them (ex. the text of a link, which is shared in a path in order to measure
+/// it). The paths holding the markers of a nested block quote are left alone,
+/// since the indentation they contain isn't the content's.
+fn get_content_print_items(items: PrintItems, context: &Context) -> Vec<PrintItem> {
+  let mut result = Vec::new();
+  let mut iterators = vec![items.iter()];
+
+  while let Some(mut iterator) = iterators.pop() {
+    while let Some(print_item) = iterator.next() {
+      match print_item {
+        PrintItem::RcPath(path) if !context.is_memoized_rc_path(path) => {
+          iterators.push(iterator);
+          iterators.push(PrintItemsIterator::new(path));
+          break;
+        }
+        _ => result.push(print_item),
+      }
+    }
+  }
+
+  result
 }
 
 enum MarkersTrailing {
