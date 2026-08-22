@@ -53,9 +53,29 @@ fn parse_link_reference_definition(
 
 fn parse_reference_link(start_pos: usize, char_scanner: &mut CharScanner) -> Result<String, ParseError> {
   let mut reference_link = String::new();
+  let mut is_in_title = false;
   while let Some((_, c)) = char_scanner.next() {
     match c {
-      '\n' => break,
+      // a title may span lines, so only the line ending that follows the
+      // definition ends it
+      '\n' if !is_in_title => break,
+      '\\' if is_in_title => {
+        reference_link.push(c);
+        // push the next char without checking it, since it's escaped
+        if let Some((_, next_c)) = char_scanner.next() {
+          reference_link.push(next_c);
+        }
+      }
+      '"' => {
+        // a title opens after the whitespace that ends the destination, so a
+        // quote anywhere else is part of the destination (ex. `[a]: a"b`)
+        if is_in_title {
+          is_in_title = false;
+        } else if reference_link.chars().next_back().is_none_or(|c| c.is_whitespace()) {
+          is_in_title = true;
+        }
+        reference_link.push(c);
+      }
       _ => reference_link.push(c),
     }
   }

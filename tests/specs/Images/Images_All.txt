@@ -225,3 +225,13 @@ reference]
 ![a	b][e	f]
 
 [e f]: https://dprint.dev/image.png
+
+!! should not separate adjacent images !!
+![a](x.png)![b](y.png)
+
+![a](x.png) ![b](y.png)
+
+[expect]
+![a](x.png)![b](y.png)
+
+![a](x.png) ![b](y.png)
