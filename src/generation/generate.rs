@@ -523,14 +523,12 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   let text = code.code.trim();
-  let mut backtick_text = "`";
-  let mut separator = "";
-  if text.contains('`') {
-    backtick_text = "``";
-    if text.starts_with('`') || text.ends_with('`') {
-      separator = " ";
-    }
-  }
+  let backtick_text = "`".repeat(get_backtick_count(text));
+  let separator = if text.starts_with('`') || text.ends_with('`') {
+    " "
+  } else {
+    ""
+  };
 
   // only the text is run through the text builder so that the backticks
   // always stay attached to it when the text is wrapped
@@ -538,7 +536,34 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   items.push_string(format!("{}{}", backtick_text, separator));
   items.extend(gen_code_str(text, context));
   items.push_string(format!("{}{}", separator, backtick_text));
-  items
+  return items;
+
+  /// A code span ends at the first run of backticks with the same length as
+  /// the one that opened it, so the delimiter must be a length that doesn't
+  /// appear in the text.
+  fn get_backtick_count(text: &str) -> usize {
+    let mut text_counts = Vec::new();
+    let mut current_count = 0;
+    for c in text.chars() {
+      if c == '`' {
+        current_count += 1;
+      } else {
+        if current_count > 0 {
+          text_counts.push(current_count);
+        }
+        current_count = 0;
+      }
+    }
+    if current_count > 0 {
+      text_counts.push(current_count);
+    }
+
+    let mut count = 1;
+    while text_counts.contains(&count) {
+      count += 1;
+    }
+    count
+  }
 }
 
 /// Generates the text of a code span.
