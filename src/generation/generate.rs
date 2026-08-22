@@ -824,7 +824,14 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
 
-  items.extend(gen_link_destination_text(format_raw_link_destination(link_ref.link.trim())));
+  let url = format_raw_link_destination(link_ref.link.trim());
+  if url.is_empty() {
+    // unlike an inline link, a link reference definition can't have an
+    // empty destination without these
+    items.push_sc(sc!("<>"));
+  } else {
+    items.extend(gen_link_destination_text(url));
+  }
 
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));
@@ -842,11 +849,6 @@ fn format_raw_link_destination(destination: &str) -> String {
     .strip_prefix('<')
     .and_then(|destination| destination.strip_suffix('>'))
     .unwrap_or(destination);
-  if destination.is_empty() {
-    // a link reference definition can't have an empty destination without these
-    return "<>".to_string();
-  }
-
   let needs_pointy_brackets = link_destination_needs_pointy_brackets(&unescape_link_destination(destination));
   let mut text = String::with_capacity(destination.len() + 2);
   if needs_pointy_brackets {
@@ -903,7 +905,8 @@ fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
   items.push_sc(sc!("("));
-  items.push_string(image.url.trim().to_string());
+  // like a link reference definition, this is the raw text from the file
+  items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
   if let Some(title) = &image.title {
     items.push_string(format!(" \"{}\"", title.trim()));
   }
@@ -1409,7 +1412,9 @@ mod tests {
 
   #[test]
   fn formats_raw_link_destination_keeping_its_escapes() {
-    assert_eq!(format_raw_link_destination("<>"), "<>");
+    // the caller decides what an empty destination gets written as
+    assert_eq!(format_raw_link_destination("<>"), "");
+    assert_eq!(format_raw_link_destination(""), "");
     assert_eq!(format_raw_link_destination("<foo bar>"), "<foo bar>");
     assert_eq!(format_raw_link_destination(r"foo\_bar"), r"foo\_bar");
     assert_eq!(format_raw_link_destination("x?a=1&amp;b=2"), "x?a=1&amp;b=2");

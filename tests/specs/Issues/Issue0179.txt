@@ -122,11 +122,15 @@
 
 !! should keep a tab in a destination !!
 [link](<a	b>)
+![img](<a	b>)
+[![img](<a	b>)](c)
 
 [1]: <a	b>
 
 [expect]
 [link](<a	b>)
+![img](<a	b>)
+[![img](<a	b>)](c)
 
 [1]: <a	b>
 
