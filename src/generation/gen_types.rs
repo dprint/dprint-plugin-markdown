@@ -113,6 +113,12 @@ impl<'a> Context<'a> {
     self.is_in_block_quote_count > 0
   }
 
+  /// Whether the position at `index` is preceded by a blank line, accounting for
+  /// the block quote markers that prefix a blank line inside a block quote.
+  pub fn has_leading_blankline(&self, index: usize) -> bool {
+    has_leading_blankline(index, self.file_text, self.is_in_block_quote())
+  }
+
   pub fn with_no_text_wrap<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
     self.text_wrap_disabled_count += 1;
     let items = func(self);

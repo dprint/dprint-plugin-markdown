@@ -211,7 +211,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
       if context.ignore_regex.is_match(html_text) {
         items.push_signal(Signal::NewLine);
         if let Some(node) = node_iterator.next() {
-          if utils::has_leading_blankline(node.range().start, context.file_text) {
+          if context.has_leading_blankline(node.range().start) {
             items.push_signal(Signal::NewLine);
           }
 
@@ -264,7 +264,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
   fn get_conditional_blank_line(range: &Range, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    if !context.is_in_list() || utils::has_leading_blankline(range.start, context.file_text) {
+    if !context.is_in_list() || context.has_leading_blankline(range.start) {
       items.push_signal(Signal::NewLine);
     }
     items.push_signal(Signal::NewLine);
@@ -753,7 +753,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
         items.push_signal(Signal::NewLine);
-        if utils::has_leading_blankline(child.range().start, context.file_text) {
+        if context.has_leading_blankline(child.range().start) {
           items.push_signal(Signal::NewLine);
         }
       }
@@ -807,7 +807,7 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
 
   if !item.sub_lists.is_empty() {
     items.push_signal(Signal::NewLine);
-    if utils::has_leading_blankline(item.sub_lists.first().unwrap().range().start, context.file_text) {
+    if context.has_leading_blankline(item.sub_lists.first().unwrap().range().start) {
       items.push_signal(Signal::NewLine);
     }
     items.extend(gen_nodes(&item.sub_lists, context));
@@ -831,7 +831,7 @@ fn gen_task_list_marker_children(
       matches!(
         c,
         Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
-      ) || utils::has_leading_blankline(c.range().start, context.file_text)
+      ) || context.has_leading_blankline(c.range().start)
     })
     .unwrap_or(children.len());
   items.extend(with_indent_times(
@@ -843,7 +843,7 @@ fn gen_task_list_marker_children(
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != children.len() {
     items.push_signal(Signal::NewLine);
-    if utils::has_leading_blankline(children[indent_child_index_end].range().start, context.file_text) {
+    if context.has_leading_blankline(children[indent_child_index_end].range().start) {
       items.push_signal(Signal::NewLine);
     }
   }
