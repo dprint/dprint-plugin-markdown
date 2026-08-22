@@ -2,6 +2,43 @@ use std::borrow::Cow;
 
 use regex::Regex;
 
+/// Checks if the provided word would start a new block when it appears at the
+/// start of a line (ex. a list item, block quote, heading, thematic break, or
+/// code fence). Such a word can't be moved to the start of a line by wrapping
+/// without changing the meaning of the document.
+/// Assumes the provided string is one word and doesn't have whitespace.
+pub fn is_block_start_word(word: &str) -> bool {
+  if is_list_word(word) {
+    return true;
+  }
+
+  // block quote (ex. >, >>, >text)
+  if word.starts_with('>') {
+    return true;
+  }
+
+  // atx heading (ex. #, ###) -- only when nothing follows the hashes,
+  // since #text isn't a heading
+  let hash_count = word.chars().take_while(|c| *c == '#').count();
+  if hash_count > 0 && hash_count <= 6 && word.len() == hash_count {
+    return true;
+  }
+
+  // setext heading underline (ex. =, ===), which would turn the previous
+  // line into a heading
+  if !word.is_empty() && word.chars().all(|c| c == '=') {
+    return true;
+  }
+
+  // thematic break or code fence (ex. ---, ***, ___, ~~~ and three backticks)
+  match word.chars().next() {
+    Some(c) if matches!(c, '-' | '*' | '_' | '`' | '~') => {
+      word.chars().count() >= 3 && word.chars().all(|other| other == c)
+    }
+    _ => false,
+  }
+}
+
 /// Checks if the provided word is a word that could be a list.
 /// Assumes the provided string is one word and doesn't have whitespace.
 pub fn is_list_word(word: &str) -> bool {
@@ -169,6 +206,30 @@ mod test {
     assert_eq!(is_list_word("10)"), true);
     assert_eq!(is_list_word("9999)"), true);
     assert_eq!(is_list_word("9999)."), false);
+  }
+
+  #[test]
+  fn it_should_find_block_start_words() {
+    assert_eq!(is_block_start_word("test"), false);
+    assert_eq!(is_block_start_word("-"), true);
+    assert_eq!(is_block_start_word("1."), true);
+    assert_eq!(is_block_start_word(">"), true);
+    assert_eq!(is_block_start_word(">text"), true);
+    assert_eq!(is_block_start_word("#"), true);
+    assert_eq!(is_block_start_word("######"), true);
+    assert_eq!(is_block_start_word("#######"), false);
+    assert_eq!(is_block_start_word("#text"), false);
+    assert_eq!(is_block_start_word("="), true);
+    assert_eq!(is_block_start_word("==="), true);
+    assert_eq!(is_block_start_word("=text"), false);
+    assert_eq!(is_block_start_word("---"), true);
+    assert_eq!(is_block_start_word("***"), true);
+    assert_eq!(is_block_start_word("___"), true);
+    assert_eq!(is_block_start_word("~~~"), true);
+    assert_eq!(is_block_start_word("```"), true);
+    assert_eq!(is_block_start_word("--"), false);
+    assert_eq!(is_block_start_word("~~"), false);
+    assert_eq!(is_block_start_word("---a"), false);
   }
 
   #[test]

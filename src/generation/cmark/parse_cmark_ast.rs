@@ -13,22 +13,25 @@ struct EventIterator<'a> {
   last_range: Range,
   next: Option<(Event<'a>, Range)>,
   allow_empty_text_events: bool,
-  in_table_count: i8,
+  in_table_count: usize,
+  in_block_quote_count: usize,
 }
 
 impl<'a> EventIterator<'a> {
   pub fn new(file_text: &'a str, iterator: OffsetIter<'a, DefaultBrokenLinkCallback>) -> EventIterator<'a> {
-    let mut iterator = iterator;
-    let next = iterator.next();
-    // eprintln!("Raw event: {:?}", next);
-    EventIterator {
+    let mut event_iterator = EventIterator {
       file_text,
       iterator,
       last_range: Range { start: 0, end: 0 },
-      next,
+      next: None,
       allow_empty_text_events: false,
       in_table_count: 0,
-    }
+      in_block_quote_count: 0,
+    };
+    // get the first event through the same code path as the rest
+    // so that the nesting counts are kept up to date
+    event_iterator.next = event_iterator.move_iterator_next();
+    event_iterator
   }
 
   pub fn next(&mut self) -> Option<Event<'a>> {
@@ -60,15 +63,23 @@ impl<'a> EventIterator<'a> {
 
     match next {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
-      Some((Event::End(TagEnd::Table), _)) => self.in_table_count -= 1,
+      Some((Event::End(TagEnd::Table), _)) => self.in_table_count = self.in_table_count.saturating_sub(1),
+      Some((Event::Start(Tag::BlockQuote(_)), _)) => self.in_block_quote_count += 1,
+      Some((Event::End(TagEnd::BlockQuote), _)) => {
+        self.in_block_quote_count = self.in_block_quote_count.saturating_sub(1)
+      }
       _ => {}
     }
 
     next
   }
 
-  pub fn in_table_count(&self) -> i8 {
+  pub fn in_table_count(&self) -> usize {
     self.in_table_count
+  }
+
+  pub fn in_block_quote_count(&self) -> usize {
+    self.in_block_quote_count
   }
 
   pub fn start(&self) -> usize {
@@ -363,8 +374,47 @@ fn parse_code(iterator: &mut EventIterator) -> Result<Code, ParseError> {
   }
   Ok(Code {
     range: iterator.get_last_range(),
-    code: raw_text.to_string(),
+    code: strip_block_quote_markers(&raw_text.replace("\r\n", "\n"), iterator.in_block_quote_count()),
   })
+}
+
+/// A code span may span multiple lines, in which case the raw text of the
+/// continuation lines still contains the block quote markers they're within.
+fn strip_block_quote_markers(text: &str, block_quote_count: usize) -> String {
+  if block_quote_count == 0 || !text.contains('\n') {
+    return text.to_string();
+  }
+
+  let mut result = String::with_capacity(text.len());
+  for (i, line) in text.split('\n').enumerate() {
+    if i > 0 {
+      result.push('\n');
+      result.push_str(strip_line_block_quote_markers(line, block_quote_count));
+    } else {
+      result.push_str(line);
+    }
+  }
+  return result;
+
+  fn strip_line_block_quote_markers(line: &str, block_quote_count: usize) -> &str {
+    // a marker may be indented up to three spaces. Any further and it's part
+    // of the code span's text rather than a marker
+    const MAX_MARKER_INDENT: usize = 3;
+
+    let mut line = line;
+    for _ in 0..block_quote_count {
+      let indent = line.len() - line.trim_start_matches(' ').len();
+      if indent > MAX_MARKER_INDENT {
+        break;
+      }
+      match line[indent..].strip_prefix('>') {
+        // a single space following the marker is part of the marker
+        Some(text) => line = text.strip_prefix(' ').unwrap_or(text),
+        None => break,
+      }
+    }
+    line
+  }
 }
 
 fn parse_text(iterator: &mut EventIterator) -> Result<Text, ParseError> {

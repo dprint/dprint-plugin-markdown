@@ -41,3 +41,36 @@ Testing
 `` `test` ``
 `` `test` test ``
 `` test `test` ``
+
+!! should maintain newlines in inline code in a block quote !!
+> Testing `this
+> out`.
+
+[expect]
+> Testing `this
+> out`.
+
+!! inline code newlines !!
+`Inline code can
+include newlines.`
+
+[expect]
+`Inline code can
+include newlines.`
+
+!! should keep interior whitespace in inline code !!
+`a    b`
+
+Testing `a    b` out.
+
+[expect]
+`a    b`
+
+Testing `a    b` out.
+
+!! should keep an indented angle bracket in inline code in a block quote !!
+> `a
+>     > b` c
+
+[expect]
+> `a     > b` c

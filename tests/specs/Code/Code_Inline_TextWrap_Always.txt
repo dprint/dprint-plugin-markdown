@@ -18,3 +18,55 @@ Testing
 
 [expect]
 Testing `this` out.
+
+!! should wrap inline code across lines !!
+Testing `this
+out`.
+
+[expect]
+Testing `this out`.
+
+!! should rewrap inline code across lines in blockquote !!
+> Testing `this
+> out`.
+
+[expect]
+> Testing `this out`.
+
+!! should rewrap inline code across lines which are too long in blockquote !!
+> This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+
+[expect]
+> This is some long text, which will have a bit of inline code across the `80
+> character limit` and then more after that.
+
+!! should rewrap inline code across lines in a nested blockquote !!
+>> Testing `this
+>> out`.
+
+[expect]
+>> Testing `this out`.
+
+!! wrapping within inline code blocks !!
+`This is a long inline code span that should have its text wrapped when it exceeds the line width.`
+
+[expect]
+`This is a long inline code span that should have its text wrapped when it
+exceeds the line width.`
+
+!! should not wrap a block marker in inline code to the start of a line !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo # pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo > pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo --- pppp` qqqq
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo # pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo > pppp` qqqq
+
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo --- pppp` qqqq
