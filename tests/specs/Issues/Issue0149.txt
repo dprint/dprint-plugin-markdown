@@ -1,0 +1,35 @@
+!! should maintain a line break within a link's text !!
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, [quis
+nostrud](https://example.com) exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat.
+
+[expect]
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, [quis
+nostrud](https://example.com) exercitation ullamco laboris nisi ut aliquip ex ea
+commodo consequat.
+
+!! should maintain a line break within a link's text in a list item !!
+- Testing [this
+  out](/test) testing
+
+[expect]
+- Testing [this
+  out](/test) testing
+
+!! should maintain a line break within a link's text in a block quote !!
+> Testing [this
+> out](/test) testing
+
+[expect]
+> Testing [this
+> out](/test) testing
+
+!! should move a link's text onto a single line within a heading !!
+Testing [this
+out](/test) testing
+===
+
+[expect]
+# Testing [this out](/test) testing

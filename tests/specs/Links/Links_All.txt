@@ -63,12 +63,13 @@ Testing <https://google.com> this.
 [expect]
 [![CI](image.svg)](https://github.com)
 
-!! should handle going multi-line to single line within a link !!
+!! should keep a line break in a link's text !!
 Test [this
 out](/test) test
 
 [expect]
-Test [this out](/test) test
+Test [this
+out](/test) test
 
 !! handle when file only has link reference directive !!
 [Some reference]: https://github.com

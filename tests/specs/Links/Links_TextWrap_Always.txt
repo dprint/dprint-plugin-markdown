@@ -31,3 +31,28 @@ Testing this out with some text to
 ensure wrapping still works after.
 
 [Some reference with text that exceeds line width]: https://github.com
+
+!! should move a link's text onto a single line !!
+Test [this
+out](/test) test
+
+[expect]
+Test [this out](/test) test
+
+!! should move alt text onto a single line within a link !!
+[![some
+text]](https://dprint.dev)
+
+[some text]: https://dprint.dev/image.png
+
+[expect]
+[![some text]](https://dprint.dev)
+
+[some text]: https://dprint.dev/image.png
+
+!! should move a title onto a single line within a link !!
+[testing](https://dprint.dev "some
+title")
+
+[expect]
+[testing](https://dprint.dev "some title")
