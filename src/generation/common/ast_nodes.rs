@@ -293,6 +293,12 @@ impl Node {
     }
   }
 
+  /// Whether any whitespace, not only a space, comes before this node.
+  pub fn has_preceding_whitespace(&self, file_text: &str) -> bool {
+    let range = self.range();
+    matches!(file_text[..range.start].chars().next_back(), Some(c) if c.is_whitespace())
+  }
+
   pub fn starts_with_punctuation(&self, file_text: &str) -> bool {
     let range = self.range();
     let text = &file_text[range.start..range.end];

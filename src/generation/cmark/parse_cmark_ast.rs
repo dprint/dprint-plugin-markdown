@@ -132,8 +132,9 @@ pub fn parse_cmark_ast(markdown_text: &str) -> Result<SourceFile, ParseError> {
 
     // do not parse for link references while inside a table
     if iterator.in_table_count() <= 1 {
+      // `or(Some(0))` so the text before the first event is looked at too
       if let Some(references) = parse_references(
-        last_event_range.as_ref().map(|r| r.end),
+        last_event_range.as_ref().map(|r| r.end).or(Some(0)),
         current_range.start,
         &mut iterator,
       )? {
@@ -315,18 +316,32 @@ fn parse_paragraph(iterator: &mut EventIterator) -> Result<Paragraph, ParseError
 fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseError> {
   let start = iterator.start();
   let mut children = Vec::new();
+  let mut last_event_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
-    match event {
-      Event::End(TagEnd::BlockQuote(_)) => break,
-      _ => children.push(parse_event(event, iterator)?),
+    if matches!(event, Event::End(TagEnd::BlockQuote(_))) {
+      break;
     }
+
+    // cmark doesn't raise events for link reference definitions, so look for
+    // them in the text leading up to this event
+    let current_range = iterator.get_last_range();
+    if let Some(references) = parse_references(last_event_end.or(Some(start)), current_range.start, iterator)? {
+      children.push(references);
+    }
+
+    children.push(parse_event(event, iterator)?);
+    last_event_end = Some(current_range.end);
   }
 
-  Ok(BlockQuote {
-    range: iterator.get_range_for_start(start),
-    children,
-  })
+  let range = iterator.get_range_for_start(start);
+  // a block quote may consist of only link reference definitions, in which
+  // case it has no children to search after
+  if let Some(references) = parse_references(last_event_end.or(Some(start)), range.end, iterator)? {
+    children.push(references);
+  }
+
+  Ok(BlockQuote { range, children })
 }
 
 fn parse_code_block(code_block_kind: CodeBlockKind, iterator: &mut EventIterator) -> Result<CodeBlock, ParseError> {

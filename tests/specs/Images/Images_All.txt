@@ -106,3 +106,138 @@ testing
 ![t]((a)b)
 ![t](())
 ![t]((a) "title")
+
+!! should keep a line break in alt text !!
+![some
+text](https://dprint.dev/image.png)
+
+![some
+text][testing]
+
+![some
+text]
+
+[testing]: https://dprint.dev/image.png
+
+[expect]
+![some
+text](https://dprint.dev/image.png)
+
+![some
+text][testing]
+
+![some
+text]
+
+[testing]: https://dprint.dev/image.png
+
+!! should keep a line break in a title !!
+![img](https://dprint.dev/image.png "some
+title")
+
+[expect]
+![img](https://dprint.dev/image.png "some
+title")
+
+!! should keep a line break in a reference label !!
+![img][some
+reference]
+
+[some reference]: https://dprint.dev/image.png
+
+[expect]
+![img][some
+reference]
+
+[some reference]: https://dprint.dev/image.png
+
+!! should keep the indentation of a line break in alt text out of the text !!
+- ![some
+  text]
+
+[some text]: https://dprint.dev/image.png
+
+[expect]
+- ![some
+  text]
+
+[some text]: https://dprint.dev/image.png
+
+!! should move alt text onto a single line within a link !!
+[![some
+text]](https://dprint.dev)
+
+[some text]: https://dprint.dev/image.png
+
+[expect]
+[![some text]](https://dprint.dev)
+
+[some text]: https://dprint.dev/image.png
+
+!! should keep the block quote markers of a line break in alt text !!
+> ![some
+> text](https://dprint.dev/image.png)
+
+> > ![some
+> > text][testing]
+
+[testing]: https://dprint.dev/image.png
+
+[expect]
+> ![some
+> text](https://dprint.dev/image.png)
+
+>> ![some
+>> text][testing]
+
+[testing]: https://dprint.dev/image.png
+
+!! should move alt text onto a single line within a heading !!
+![some
+text](https://dprint.dev/image.png)
+===
+
+[expect]
+# ![some text](https://dprint.dev/image.png)
+
+!! should keep a reference label resolvable within a heading !!
+![img][some
+reference]
+===
+
+[some reference]: https://dprint.dev/image.png
+
+[expect]
+# ![img][some reference]
+
+[some reference]: https://dprint.dev/image.png
+
+!! should keep a tab in alt text, a title and a reference label !!
+![a	b](https://dprint.dev/image.png "c	d")
+
+![a	b][e	f]
+
+[e f]: https://dprint.dev/image.png
+
+[expect]
+![a	b](https://dprint.dev/image.png "c	d")
+
+![a	b][e	f]
+
+[e f]: https://dprint.dev/image.png
+
+!! should not separate adjacent images !!
+![a](x.png)![b](y.png)
+
+![a](x.png) ![b](y.png)
+
+[expect]
+![a](x.png)![b](y.png)
+
+![a](x.png) ![b](y.png)
+
+!! should not separate an image from adjacent code !!
+`a`![b](y.png)`c`
+
+[expect]
+`a`![b](y.png)`c`

@@ -75,3 +75,119 @@ Test [this out](/test) test
 
 [expect]
 [Some reference]: https://github.com
+
+!! should keep a line break in a title !!
+[testing](https://dprint.dev "some
+title")
+
+[expect]
+[testing](https://dprint.dev "some
+title")
+
+!! should keep a line break in a reference label !!
+[testing][some
+reference]
+
+[some reference]: https://dprint.dev
+
+[expect]
+[testing][some
+reference]
+
+[some reference]: https://dprint.dev
+
+!! should keep the block quote markers of a line break in a title !!
+> [testing](https://dprint.dev "some
+> title")
+
+[expect]
+> [testing](https://dprint.dev "some
+> title")
+
+!! should keep a reference label resolvable within a heading !!
+[testing][some
+reference]
+===
+
+[some reference]: https://dprint.dev
+
+[expect]
+# [testing][some reference]
+
+[some reference]: https://dprint.dev
+
+!! should keep a link reference definition that comes before other content !!
+[some name]: https://dprint.dev
+
+[some name]
+
+[expect]
+[some name]: https://dprint.dev
+
+[some name]
+
+!! should keep a link reference definition in a block quote !!
+> [some name]: https://dprint.dev
+>
+> [some name]
+
+[expect]
+> [some name]: https://dprint.dev
+>
+> [some name]
+
+!! should keep a link reference definition that's a block quote's only content !!
+> [some name]: https://dprint.dev
+
+[expect]
+> [some name]: https://dprint.dev
+
+!! should keep a line break in a link reference definition's label !!
+[some
+name]: https://dprint.dev
+
+[some name]
+
+[expect]
+[some
+name]: https://dprint.dev
+
+[some name]
+
+!! should keep the block quote markers of a line break in a definition's label !!
+> [some
+> name]: https://dprint.dev
+>
+> [some name]
+
+[expect]
+> [some
+> name]: https://dprint.dev
+>
+> [some name]
+
+!! should not separate adjacent links !!
+[a](x)[b](y)
+
+[expect]
+[a](x)[b](y)
+
+!! should keep a line break in a link reference definition's title !!
+[n]: https://dprint.dev "some
+title"
+
+[n]
+
+[expect]
+[n]: https://dprint.dev "some
+title"
+
+[n]
+
+!! should keep a quote in a link reference definition's destination !!
+[a]: https://dprint.dev/q"z
+[b]: https://dprint.dev
+
+[expect]
+[a]: https://dprint.dev/q"z
+[b]: https://dprint.dev
