@@ -15,7 +15,8 @@ pub fn parse_image(offset: usize, text: &str, link_type: LinkType) -> Result<Nod
     LinkType::Reference | LinkType::ReferenceUnknown | LinkType::Collapsed | LinkType::CollapsedUnknown => {
       parse_reference(start_pos, &mut char_scanner)
     }
-    LinkType::Shortcut | LinkType::ShortcutUnknown | LinkType::Email | LinkType::Autolink => Err(ParseError::new(
+    LinkType::Shortcut | LinkType::ShortcutUnknown => parse_shortcut(start_pos, &mut char_scanner),
+    LinkType::Email | LinkType::Autolink => Err(ParseError::new(
       Range {
         start: offset,
         end: offset,
@@ -62,6 +63,23 @@ fn parse_reference(start_pos: usize, char_scanner: &mut CharScanner) -> Result<N
       },
       text,
       reference,
+    }
+    .into(),
+  )
+}
+
+fn parse_shortcut(start_pos: usize, char_scanner: &mut CharScanner) -> Result<Node, ParseError> {
+  char_scanner.assert_char('!')?;
+  char_scanner.assert_char('[')?;
+  let text = parse_text_in_brackets(start_pos, char_scanner)?;
+
+  Ok(
+    ShortcutImage {
+      range: Range {
+        start: start_pos,
+        end: char_scanner.end(),
+      },
+      text,
     }
     .into(),
   )

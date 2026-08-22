@@ -38,6 +38,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::LinkReference(node) => gen_link_reference(node, context),
     Node::InlineImage(node) => gen_inline_image(node, context),
     Node::ReferenceImage(node) => gen_reference_image(node, context),
+    Node::ShortcutImage(node) => gen_shortcut_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
@@ -133,6 +134,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::Html(_)
           | Node::InlineImage(_)
           | Node::ReferenceImage(_)
+          | Node::ShortcutImage(_)
           | Node::InlineMath(_) => {
             let between_range = (last_node.range().end, node.range().start);
             let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
@@ -923,6 +925,12 @@ fn gen_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("![{}]", image.text.trim()));
   items.push_string(format!("[{}]", image.reference.trim()));
+  ir_helpers::new_line_group(items)
+}
+
+fn gen_shortcut_image(image: &ShortcutImage, _: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_string(format!("![{}]", image.text.trim()));
   ir_helpers::new_line_group(items)
 }
 

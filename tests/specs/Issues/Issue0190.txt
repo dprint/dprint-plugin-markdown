@@ -1,0 +1,27 @@
+!! should format a shortcut reference image !!
+[![GitHub Release]][release]
+
+![GitHub Release]
+
+![nested *emphasis* text]
+
+![escaped \] bracket]
+
+[GitHub Release]: https://img.shields.io/github/v/release/kjanat/kp2bw
+[nested *emphasis* text]: https://dprint.dev/image.png
+[escaped \] bracket]: https://dprint.dev/image.png
+[release]: https://github.com/kjanat/kp2bw/releases
+
+[expect]
+[![GitHub Release]][release]
+
+![GitHub Release]
+
+![nested *emphasis* text]
+
+![escaped \] bracket]
+
+[GitHub Release]: https://img.shields.io/github/v/release/kjanat/kp2bw
+[nested *emphasis* text]: https://dprint.dev/image.png
+[escaped \] bracket]: https://dprint.dev/image.png
+[release]: https://github.com/kjanat/kp2bw/releases

@@ -120,6 +120,11 @@ pub struct ReferenceImage {
   pub reference: String,
 }
 
+pub struct ShortcutImage {
+  pub range: Range,
+  pub text: String,
+}
+
 impl Text {
   pub fn starts_with_list_word(&self) -> bool {
     return crate::generation::utils::is_list_word(&get_first_word(&self.text));
@@ -327,6 +332,7 @@ generate_node![
   LinkReference,
   InlineImage,
   ReferenceImage,
+  ShortcutImage,
   List,
   Item,
   TaskListMarker,

@@ -29,6 +29,30 @@ testing
 
 testing
 
+!! should format a collapsed reference image !!
+![testing][]
+![  testing ][]
+
+[testing]: https://dprint.dev/image.png
+
+[expect]
+![testing][]
+![testing][]
+
+[testing]: https://dprint.dev/image.png
+
+!! should format a shortcut reference image !!
+![testing]
+![  testing ]
+
+[testing]: https://dprint.dev/image.png
+
+[expect]
+![testing]
+![testing]
+
+[testing]: https://dprint.dev/image.png
+
 !! should remove unnecessary pointy brackets from a destination !!
 ![img](<foo>)
 ![img](<>)
