@@ -321,8 +321,25 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
     // add a > for any string that is on the start of a line
     // Note: This is extremely hacky
     let mut indent_level = 0;
+    // the opening `>` cannot rely on being at the start of a line, because a block
+    // quote may begin mid-line -- for example directly after a list item marker.
+    let mut needs_opening_marker = true;
     for print_item in gen_nodes(&block_quote.children, context).iter() {
       match print_item {
+        PrintItem::String(text) if needs_opening_marker => {
+          // at the beginning of a block quote, '>' is necessary
+          // even if it is not at the start of a line i.e. the start of a list item.
+          needs_opening_marker = false;
+          items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
+          items.push_sc(sc!(">"));
+          // avoid inserting space in nested block quote markers (`> > foo`).
+          if text.text != ">" {
+            items.push_space();
+          }
+          items
+            .push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)));
+          items.push_item(PrintItem::String(text));
+        }
         PrintItem::String(text) => {
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
@@ -331,7 +348,10 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
               let mut items = PrintItems::new();
               items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
               items.push_string(">".repeat(block_quote_count));
-              items.push_space();
+              // avoid inserting space in nested block quote markers (`> > foo`).
+              if text.text != ">" {
+                items.push_space();
+              }
               items.push_optional_path(
                 context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
               );
@@ -341,6 +361,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           items.push_item(PrintItem::String(text));
         }
         PrintItem::Signal(Signal::NewLine) => {
+          needs_opening_marker = false;
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
@@ -364,6 +385,12 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
         }
         _ => items.push_item(print_item),
       }
+    }
+
+    // an empty block quote generates no print items, so there is nothing above to
+    // hang the marker off of. emit it here rather than dropping the block quote.
+    if needs_opening_marker {
+      items.push_sc(sc!(">"));
     }
 
     items
