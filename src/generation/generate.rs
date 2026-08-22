@@ -148,16 +148,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // Callout example:
               // > [!NOTE]
               // > Some note.
-              let is_callout = if context.is_in_block_quote() {
-                if let Node::Text(text) = last_node {
-                  is_callout_text(&text.text)
-                } else {
-                  false
-                }
-              } else {
-                false
-              };
-              if is_callout && !context.is_text_wrap_disabled() {
+              if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
@@ -210,6 +201,17 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::TableCell(_) => {}
         }
       }
+    }
+
+    // a hard break after a callout header (ex. `> [!NOTE]` with trailing
+    // spaces) would stop it from being recognized as a callout, so only newline
+    if matches!(node, Node::HardBreak(_))
+      && !context.is_text_wrap_disabled()
+      && last_node.map(|n| is_callout_node(n, context)).unwrap_or(false)
+    {
+      items.push_signal(Signal::NewLine);
+      last_node = Some(node);
+      continue;
     }
 
     items.extend(generate(node, context));
@@ -325,7 +327,8 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  context.mark_in_block_quotes(|context, base_indents| {
+  let content_start = block_quote.children.first().map(|child| child.range().start);
+  context.mark_in_block_quotes(content_start, |context, base_indents| {
     let mut items = PrintItems::new();
 
     // add a > for any string that is on the start of a line
@@ -668,9 +671,21 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   gen_str(&text.text, context)
 }
 
+/// Whether the node is a callout header (ex. `[!NOTE]`), which is only
+/// recognized as one when it's the very first thing in a block quote.
+fn is_callout_node(node: &Node, context: &Context) -> bool {
+  match node {
+    Node::Text(text) => context.is_block_quote_content_start(text.range.start) && is_callout_text(&text.text),
+    _ => false,
+  }
+}
+
 fn is_callout_text(text: &str) -> bool {
   // ex. [!NOTE]
-  text.starts_with("[!") && text.ends_with("]") && text[2..text.len() - 1].chars().all(|c| c.is_ascii_uppercase())
+  let Some(kind) = text.strip_prefix("[!").and_then(|text| text.strip_suffix("]")) else {
+    return false;
+  };
+  !kind.is_empty() && kind.chars().all(|c| c.is_ascii_uppercase())
 }
 
 fn gen_str(text: &str, context: &mut Context) -> PrintItems {
