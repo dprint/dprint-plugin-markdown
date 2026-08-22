@@ -41,3 +41,11 @@ Testing
 `` `test` ``
 `` `test` test ``
 `` test `test` ``
+
+!! should maintain newlines in inline code in a block quote !!
+> Testing `this
+> out`.
+
+[expect]
+> Testing `this
+> out`.
