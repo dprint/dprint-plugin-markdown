@@ -85,6 +85,12 @@ impl ConfigurationBuilder {
     self.insert("headingKind", value.to_string().into())
   }
 
+  /// The style of hard line break to use.
+  /// Default: `HardBreakKind::Backslash`
+  pub fn hard_break_kind(&mut self, value: HardBreakKind) -> &mut Self {
+    self.insert("hardBreakKind", value.to_string().into())
+  }
+
   /// Whether to unindent the contents of code blocks.
   /// Default: `true`
   pub fn unindent_code_blocks(&mut self, value: bool) -> &mut Self {
@@ -159,6 +165,7 @@ mod tests {
       .strong_kind(StrongKind::Underscores)
       .unordered_list_kind(UnorderedListKind::Asterisks)
       .heading_kind(HeadingKind::Atx)
+      .hard_break_kind(HardBreakKind::DoubleSpace)
       .unindent_code_blocks(false)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
       .ignore_directive("test")
@@ -167,7 +174,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 13);
+    assert_eq!(inner_config.len(), 14);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

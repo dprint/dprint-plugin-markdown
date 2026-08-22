@@ -65,6 +65,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
+    hard_break_kind: get_value(&mut config, "hardBreakKind", HardBreakKind::Backslash, &mut diagnostics),
     unindent_code_blocks: get_value(&mut config, "unindentCodeBlocks", true, &mut diagnostics),
     list_indent_kind: get_value(
       &mut config,

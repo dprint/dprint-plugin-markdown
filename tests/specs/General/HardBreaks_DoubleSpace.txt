@@ -1,0 +1,62 @@
+~~ hardBreakKind: doubleSpace ~~
+!! should use two trailing spaces for hard breaks !!
+test\
+asdf
+
+other  
+text
+
+[expect]
+test  
+asdf
+
+other  
+text
+
+!! should use two trailing spaces in block quotes and lists !!
+> test\
+> asdf
+
+- test\
+  asdf
+
+[expect]
+> test  
+> asdf
+
+- test  
+  asdf
+
+!! should use two trailing spaces in footnote definitions and definition lists !!
+[^1]: test\
+    asdf
+
+term
+
+: test\
+  asdf
+
+[expect]
+[^1]: test  
+    asdf
+
+term
+
+: test  
+  asdf
+
+!! should not use a hard break after a callout header !!
+> [!NOTE]\
+> Some note.
+
+[expect]
+> [!NOTE]
+> Some note.
+
+!! should use a space for a hard break in an atx heading !!
+head\
+ing
+===
+
+[expect]
+# head ing
