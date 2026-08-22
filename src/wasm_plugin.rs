@@ -118,6 +118,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "json" => Some("json"),
         "jsonc" => Some("jsonc"),
         "rust" | "rs" => Some("rs"),
+        "cpp" => Some("cpp"),
         "csharp" | "cs" => Some("cs"),
         "visualbasic" | "vb" => Some("vb"),
         "html" => Some("html"),
