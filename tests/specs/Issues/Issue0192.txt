@@ -1,0 +1,42 @@
+!! should keep a link reference definition that's the only content of a list item !!
+- [0,35 mm;]: url
+
+[expect]
+- [0,35 mm;]: url
+
+!! should keep multiple link reference definitions in a list item !!
+- [a]:   b
+  [c]: d "title"
+
+[expect]
+- [a]: b
+  [c]: d "title"
+
+!! should keep a link reference definition in an ordered list item !!
+1. [a]: b
+2. [c]: d
+
+[expect]
+1. [a]: b
+2. [c]: d
+
+!! should keep a link reference definition in a nested list item !!
+- - [a]: b
+
+[expect]
+-
+  - [a]: b
+
+!! should keep a link reference definition in a block quote's list item !!
+> - [a]: b
+
+[expect]
+> - [a]: b
+
+!! should keep empty list items as-is !!
+-
+-
+
+[expect]
+-
+-
