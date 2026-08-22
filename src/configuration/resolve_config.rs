@@ -66,7 +66,12 @@ pub fn resolve_config(
     ),
     heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
     unindent_code_blocks: get_value(&mut config, "unindentCodeBlocks", true, &mut diagnostics),
-    list_indent_kind: get_value(&mut config, "listIndentKind", ListIndentKind::CommonMark, &mut diagnostics),
+    list_indent_kind: get_value(
+      &mut config,
+      "listIndentKind",
+      ListIndentKind::CommonMark,
+      &mut diagnostics,
+    ),
     allow_fenced_blank_lines: get_value(&mut config, "allowFencedBlankLines", false, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,

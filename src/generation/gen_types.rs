@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use dprint_core::formatting::PrintItemPath;
 use dprint_core::formatting::PrintItems;
@@ -28,13 +29,19 @@ pub struct Context<'a> {
   /** The current indentation level within the file being formatted. */
   pub raw_indent_level: u32,
   is_in_list_count: u32,
-  is_in_block_quote_count: u32,
+  /// The indentation level each surrounding block quote started at, from outermost to innermost.
+  block_quote_base_indents: Vec<u32>,
+  /// The start position of the first child of each surrounding block quote.
+  block_quote_content_starts: Vec<Option<usize>>,
   text_wrap_disabled_count: u32,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
   memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
+  /// The paths above, by address, so they can be told apart from the paths
+  /// that hold generated content.
+  memoized_rc_path_addresses: HashSet<usize>,
 }
 
 impl<'a> Context<'a> {
@@ -49,13 +56,15 @@ impl<'a> Context<'a> {
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
-      is_in_block_quote_count: 0,
+      block_quote_base_indents: Vec::new(),
+      block_quote_content_starts: Vec::new(),
       text_wrap_disabled_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
       ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
       memoized_rc_paths: HashMap::new(),
+      memoized_rc_path_addresses: HashSet::new(),
     }
   }
 
@@ -84,16 +93,35 @@ impl<'a> Context<'a> {
       }
       let path = items.into_rc_path();
       self.memoized_rc_paths.insert(kind, path);
+      if let Some(path) = path {
+        self.memoized_rc_path_addresses.insert(path as *const _ as usize);
+      }
       path
     }
   }
 
-  pub fn mark_in_block_quotes<T>(&mut self, func: impl FnOnce(&mut Context, usize) -> T) -> T {
+  /// Whether the path is one of the memoized paths handed out above, rather
+  /// than a path holding generated content.
+  pub fn is_memoized_rc_path(&self, path: PrintItemPath) -> bool {
+    self.memoized_rc_path_addresses.contains(&(path as *const _ as usize))
+  }
+
+  /// Marks being within a block quote whose content starts at `content_start`,
+  /// providing the indentation level of every surrounding block quote (from
+  /// outermost to innermost) to the provided function.
+  pub fn mark_in_block_quotes<T>(
+    &mut self,
+    content_start: Option<usize>,
+    func: impl FnOnce(&mut Context, Vec<u32>) -> T,
+  ) -> T {
     let original_is_in_list_count = self.is_in_list_count;
     self.is_in_list_count = 0;
-    self.is_in_block_quote_count += 1;
-    let items = func(self, self.is_in_block_quote_count as usize);
-    self.is_in_block_quote_count -= 1;
+    self.block_quote_base_indents.push(self.indent_level);
+    self.block_quote_content_starts.push(content_start);
+    let base_indents = self.block_quote_base_indents.clone();
+    let items = func(self, base_indents);
+    self.block_quote_content_starts.pop();
+    self.block_quote_base_indents.pop();
     self.is_in_list_count = original_is_in_list_count;
     items
   }
@@ -110,7 +138,12 @@ impl<'a> Context<'a> {
   }
 
   pub fn is_in_block_quote(&self) -> bool {
-    self.is_in_block_quote_count > 0
+    !self.block_quote_base_indents.is_empty()
+  }
+
+  /// Whether the position is where the innermost block quote's content starts.
+  pub fn is_block_quote_content_start(&self, pos: usize) -> bool {
+    self.block_quote_content_starts.last().copied().flatten() == Some(pos)
   }
 
   /// Whether the position at `index` is preceded by a blank line, accounting for

@@ -26,3 +26,15 @@ Test ~~strikethrough~~ test
 *wor*d
 *word*1
 _word_?
+
+!! should not separate adjacent text decoration !!
+**a**_b_
+
+[expect]
+**a**_b_
+
+!! should turn a tab between adjacent nodes into a space !!
+**a**	_b_
+
+[expect]
+**a** _b_

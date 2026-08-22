@@ -1,0 +1,16 @@
+~~ lineWidth: 40, textWrap: always ~~
+!! should wrap a definition but never its term !!
+A term that is much longer than the configured line width
+: A definition that is much longer than the configured line width.
+
+[expect]
+A term that is much longer than the configured line width
+: A definition that is much longer than
+  the configured line width.
+
+!! should not wrap a definition marker onto the start of a line !!
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa : def more words here
+
+[expect]
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa :
+def more words here

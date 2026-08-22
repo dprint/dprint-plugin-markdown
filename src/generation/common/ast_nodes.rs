@@ -168,6 +168,25 @@ pub struct TaskListMarker {
   pub is_checked: bool,
 }
 
+/// A definition list. Contains alternating `DefinitionListTitle` and
+/// `DefinitionListDefinition` children.
+pub struct DefinitionList {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
+/// The term of a definition list.
+pub struct DefinitionListTitle {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
+/// A `:` prefixed definition of the preceding definition list term.
+pub struct DefinitionListDefinition {
+  pub range: Range,
+  pub children: Vec<Node>,
+}
+
 /// Inline code.
 pub struct Code {
   pub range: Range,
@@ -293,6 +312,12 @@ impl Node {
     }
   }
 
+  /// Whether any whitespace, not only a space, comes before this node.
+  pub fn has_preceding_whitespace(&self, file_text: &str) -> bool {
+    let range = self.range();
+    matches!(file_text[..range.start].chars().next_back(), Some(c) if c.is_whitespace())
+  }
+
   pub fn starts_with_punctuation(&self, file_text: &str) -> bool {
     let range = self.range();
     let text = &file_text[range.start..range.end];
@@ -336,6 +361,9 @@ generate_node![
   List,
   Item,
   TaskListMarker,
+  DefinitionList,
+  DefinitionListTitle,
+  DefinitionListDefinition,
   SoftBreak,
   HardBreak,
   Code,

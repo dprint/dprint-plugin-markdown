@@ -1,0 +1,15 @@
+!! should use the shortest backtick delimiter not found in the code span !!
+In PowerShell, special characters are escaped using backticks:
+
+- New line: `` `n ``
+- Backtick: ` `` ` or ``` `` ```
+- Runs of one and two: ```` ` `` ````
+- Runs of two and three: ```` `` ``` ````
+
+[expect]
+In PowerShell, special characters are escaped using backticks:
+
+- New line: `` `n ``
+- Backtick: ` `` ` or ` `` `
+- Runs of one and two: ``` ` `` ```
+- Runs of two and three: ` `` ``` `

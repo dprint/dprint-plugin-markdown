@@ -41,6 +41,9 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::ShortcutImage(node) => gen_shortcut_image(node, context),
     Node::List(node) => gen_list(node, false, context),
     Node::Item(node) => gen_item(node, context),
+    Node::DefinitionList(node) => gen_definition_list(node, context),
+    Node::DefinitionListTitle(_) => unreachable!("this should be handled by gen_definition_list"),
+    Node::DefinitionListDefinition(_) => unreachable!("this should be handled by gen_definition_list"),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
     Node::SoftBreak(_) => PrintItems::new(),
@@ -104,6 +107,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::FootnoteDefinition(_)
           | Node::HorizontalRule(_)
           | Node::List(_)
+          | Node::DefinitionList(_)
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
@@ -116,6 +120,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::FootnoteDefinition(_)
           | Node::HorizontalRule(_)
           | Node::List(_)
+          | Node::DefinitionList(_)
           | Node::Table(_)
           | Node::MetadataBlock(_)
           | Node::BlockQuote(_)
@@ -143,16 +148,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // Callout example:
               // > [!NOTE]
               // > Some note.
-              let is_callout = if context.is_in_block_quote() {
-                if let Node::Text(text) = last_node {
-                  is_callout_text(&text.text)
-                } else {
-                  false
-                }
-              } else {
-                false
-              };
-              if is_callout && !context.is_text_wrap_disabled() {
+              if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
@@ -174,7 +170,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               } else if let Node::Html(_) = node {
                 node.has_preceding_space(context.file_text)
               } else {
-                true
+                // ex. two images beside each other shouldn't be separated
+                node.has_preceding_whitespace(context.file_text)
               };
 
               if needs_space {
@@ -195,6 +192,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           Node::NotImplemented(_)
           | Node::SourceFile(_)
           | Node::Item(_)
+          | Node::DefinitionListTitle(_)
+          | Node::DefinitionListDefinition(_)
           | Node::TaskListMarker(_)
           | Node::HardBreak(_)
           | Node::TableHead(_)
@@ -202,6 +201,17 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::TableCell(_) => {}
         }
       }
+    }
+
+    // a hard break after a callout header (ex. `> [!NOTE]` with trailing
+    // spaces) would stop it from being recognized as a callout, so only newline
+    if matches!(node, Node::HardBreak(_))
+      && !context.is_text_wrap_disabled()
+      && last_node.map(|n| is_callout_node(n, context)).unwrap_or(false)
+    {
+      items.push_signal(Signal::NewLine);
+      last_node = Some(node);
+      continue;
     }
 
     items.extend(generate(node, context));
@@ -317,7 +327,8 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  context.mark_in_block_quotes(|context, block_quote_count| {
+  let content_start = block_quote.children.first().map(|child| child.range().start);
+  context.mark_in_block_quotes(content_start, |context, base_indents| {
     let mut items = PrintItems::new();
 
     // add a > for any string that is on the start of a line
@@ -326,7 +337,8 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
     // the opening `>` cannot rely on being at the start of a line, because a block
     // quote may begin mid-line -- for example directly after a list item marker.
     let mut needs_opening_marker = true;
-    for print_item in gen_nodes(&block_quote.children, context).iter() {
+    let children = gen_nodes(&block_quote.children, context);
+    for print_item in get_content_print_items(children, context) {
       match print_item {
         PrintItem::String(text) if needs_opening_marker => {
           // at the beginning of a block quote, '>' is necessary
@@ -343,22 +355,14 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           items.push_item(PrintItem::String(text));
         }
         PrintItem::String(text) => {
+          // avoid inserting space in nested block quote markers (`> > foo`).
+          let trailing = MarkersTrailing::Text {
+            space: text.text != ">",
+          };
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            {
-              let mut items = PrintItems::new();
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-              items.push_string(">".repeat(block_quote_count));
-              // avoid inserting space in nested block quote markers (`> > foo`).
-              if text.text != ">" {
-                items.push_space();
-              }
-              items.push_optional_path(
-                context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
-              );
-              items
-            },
+            gen_block_quote_markers(&base_indents, indent_level, trailing, context),
           ));
           items.push_item(PrintItem::String(text));
         }
@@ -367,13 +371,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            {
-              let mut items = PrintItems::new();
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-              items.push_string(">".repeat(block_quote_count));
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
-              items
-            },
+            gen_block_quote_markers(&base_indents, indent_level, MarkersTrailing::BlankLine, context),
           ));
           items.push_signal(Signal::NewLine);
         }
@@ -397,6 +395,85 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+/// Gets the print items of a block quote's content, stepping into the paths
+/// that hold generated content so the markers can be added to the lines within
+/// them (ex. the text of a link, which is shared in a path in order to measure
+/// it). The paths holding the markers of a nested block quote are left alone,
+/// since the indentation they contain isn't the content's.
+fn get_content_print_items(items: PrintItems, context: &Context) -> Vec<PrintItem> {
+  let mut result = Vec::new();
+  let mut iterators = vec![items.iter()];
+
+  while let Some(mut iterator) = iterators.pop() {
+    while let Some(print_item) = iterator.next() {
+      match print_item {
+        PrintItem::RcPath(path) if !context.is_memoized_rc_path(path) => {
+          iterators.push(iterator);
+          iterators.push(PrintItemsIterator::new(path));
+          break;
+        }
+        _ => result.push(print_item),
+      }
+    }
+  }
+
+  result
+}
+
+enum MarkersTrailing {
+  /// Text follows the markers on the same line.
+  Text { space: bool },
+  /// Nothing follows the markers on the line.
+  BlankLine,
+}
+
+/// Generates the `>` markers that prefix a line within a block quote, keeping the
+/// indentation that occurs between the block quote levels (ex. `> - > text`, where
+/// a list within the outer block quote indents the inner block quote).
+fn gen_block_quote_markers(
+  base_indents: &[u32],
+  inner_indent_level: u32,
+  trailing: MarkersTrailing,
+  context: &mut Context,
+) -> PrintItems {
+  let mut items = PrintItems::new();
+  let outermost_indent = *base_indents.first().unwrap();
+  let current_indent = *base_indents.last().unwrap() + inner_indent_level;
+
+  // go back to where the outermost marker belongs, then write each
+  // marker at the indentation its block quote started at
+  items.push_optional_path(
+    context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(current_indent - outermost_indent)),
+  );
+  let mut written_indent = outermost_indent;
+  for base_indent in base_indents {
+    if *base_indent > written_indent {
+      items.push_space();
+      items.push_optional_path(
+        context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(base_indent - written_indent)),
+      );
+      written_indent = *base_indent;
+    }
+    items.push_sc(sc!(">"));
+  }
+
+  let remaining_indent = current_indent - written_indent;
+  match trailing {
+    MarkersTrailing::Text { space } => {
+      if space {
+        items.push_space();
+      }
+      items
+        .push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(remaining_indent)));
+    }
+    MarkersTrailing::BlankLine => {
+      items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(remaining_indent)));
+    }
+  }
+
+  items
 }
 
 fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
@@ -493,15 +570,20 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 }
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
-  let text = code.code.trim();
-  let mut backtick_text = "`";
-  let mut separator = "";
-  if text.contains('`') {
-    backtick_text = "``";
-    if text.starts_with('`') || text.ends_with('`') {
-      separator = " ";
-    }
-  }
+  let trimmed_text = code.code.trim();
+  // a code span that's only whitespace keeps its text because trimming
+  // it would cause the code span to disappear entirely
+  let text = if trimmed_text.is_empty() {
+    code.code.as_str()
+  } else {
+    trimmed_text
+  };
+  let backtick_text = "`".repeat(get_backtick_count(text));
+  let separator = if text.starts_with('`') || text.ends_with('`') {
+    " "
+  } else {
+    ""
+  };
 
   // only the text is run through the text builder so that the backticks
   // always stay attached to it when the text is wrapped
@@ -509,7 +591,34 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   items.push_string(format!("{}{}", backtick_text, separator));
   items.extend(gen_code_str(text, context));
   items.push_string(format!("{}{}", separator, backtick_text));
-  items
+  return items;
+
+  /// A code span ends at the first run of backticks with the same length as
+  /// the one that opened it, so the delimiter must be a length that doesn't
+  /// appear in the text.
+  fn get_backtick_count(text: &str) -> usize {
+    let mut text_counts = Vec::new();
+    let mut current_count = 0;
+    for c in text.chars() {
+      if c == '`' {
+        current_count += 1;
+      } else {
+        if current_count > 0 {
+          text_counts.push(current_count);
+        }
+        current_count = 0;
+      }
+    }
+    if current_count > 0 {
+      text_counts.push(current_count);
+    }
+
+    let mut count = 1;
+    while text_counts.contains(&count) {
+      count += 1;
+    }
+    count
+  }
 }
 
 /// Generates the text of a code span.
@@ -573,9 +682,21 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   gen_str(&text.text, context)
 }
 
+/// Whether the node is a callout header (ex. `[!NOTE]`), which is only
+/// recognized as one when it's the very first thing in a block quote.
+fn is_callout_node(node: &Node, context: &Context) -> bool {
+  match node {
+    Node::Text(text) => context.is_block_quote_content_start(text.range.start) && is_callout_text(&text.text),
+    _ => false,
+  }
+}
+
 fn is_callout_text(text: &str) -> bool {
   // ex. [!NOTE]
-  text.starts_with("[!") && text.ends_with("]") && text[2..text.len() - 1].chars().all(|c| c.is_ascii_uppercase())
+  let Some(kind) = text.strip_prefix("[!").and_then(|text| text.strip_suffix("]")) else {
+    return false;
+  };
+  !kind.is_empty() && kind.chars().all(|c| c.is_ascii_uppercase())
 }
 
 fn gen_str(text: &str, context: &mut Context) -> PrintItems {
@@ -741,27 +862,15 @@ fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &m
 fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
-    let generated_children = gen_nodes(&link.children, context);
     items.push_sc(sc!("["));
-
-    // force the text to be on a single line in some scenarios
-    let (generated_children, generated_children_clone) = clone_items(generated_children);
-    let single_line_text = get_items_text(ir_helpers::with_no_new_lines(generated_children_clone));
-    if single_line_text.len() < (context.configuration.line_width / 2) as usize {
-      // printing the children back out to text flattens any tab signal
-      // they had, so they need breaking up again
-      items.extend(gen_text_with_tabs(single_line_text));
-    } else {
-      items.extend(generated_children);
-    }
-
+    items.extend(gen_nodes(&link.children, context));
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
     // the parser resolves the escapes in an inline link's url, so render it
     // back out with the escapes it needs and no others
     items.extend(gen_link_destination_text(format_link_destination(link.url.trim())));
     if let Some(title) = &link.title {
-      items.push_string(format!(" \"{}\"", title.trim()));
+      items.extend(gen_title(title, context));
     }
     items.push_sc(sc!(")"));
 
@@ -780,6 +889,71 @@ fn gen_link_destination_text(text: String) -> PrintItems {
     text
   };
   gen_text_with_tabs(text)
+}
+
+/// Generates an image's alt text, which is the raw text from the file.
+fn gen_image_alt_text(text: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!("!["));
+  items.extend(gen_raw_text(text.trim(), context));
+  items.push_sc(sc!("]"));
+  items
+}
+
+/// Generates the label of a reference image or link.
+fn gen_reference_label(reference: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!("["));
+  items.extend(gen_raw_text(reference.trim(), context));
+  items.push_sc(sc!("]"));
+  items
+}
+
+/// Generates the title that follows an inline image or link's destination.
+///
+/// A title continued onto another line loses that line's indentation, since
+/// there's no telling apart the indentation that's part of the title from the
+/// indentation the enclosing list item or block quote gave it.
+fn gen_title(title: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!(" \""));
+  items.extend(gen_raw_text(title.trim(), context));
+  items.push_sc(sc!("\""));
+  items
+}
+
+/// Generates raw text from the file that may span multiple lines.
+///
+/// The printer requires the strings it's given to be a single line, so the
+/// line breaks the text contains need to be sent as print items instead.
+fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  // a line ending may be in either of its forms, so split on both characters
+  // and skip the empty text a carriage return and line feed pair leaves behind
+  let mut lines = text.split(['\r', '\n']).filter(|line| !line.is_empty());
+  if let Some(line) = lines.next() {
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+  }
+  for line in lines {
+    items.extend(get_newline_wrapping_based_on_config(context));
+    // the printer provides the indentation and block quote markers of a
+    // continued line, so drop the ones this picked up from the file
+    let line = strip_block_quote_markers(line, context);
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+  }
+  items
+}
+
+/// Strips the markers a line of raw text picked up by continuing within a
+/// block quote.
+fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
+  let mut line = line.trim_start();
+  if context.is_in_block_quote() {
+    while let Some(rest) = line.strip_prefix('>') {
+      line = rest.trim_start();
+    }
+  }
+  line
 }
 
 /// Writes out text, sending any tab it has as a signal, since the printer
@@ -875,7 +1049,7 @@ fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems
     items.push_sc(sc!("["));
     items.extend(gen_nodes(&link.children, context));
     items.push_sc(sc!("]"));
-    items.push_string(format!("[{}]", link.reference.trim()));
+    items.extend(gen_reference_label(&link.reference, context));
     ir_helpers::new_line_group(items)
   })
 }
@@ -901,9 +1075,10 @@ fn gen_auto_link(link: &AutoLink, context: &mut Context) -> PrintItems {
   })
 }
 
-fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
+fn gen_link_reference(link_ref: &LinkReference, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string(format!("[{}]: ", link_ref.name.trim()));
+  items.extend(gen_reference_label(&link_ref.name, context));
+  items.push_sc(sc!(": "));
 
   let url = format_raw_link_destination(link_ref.link.trim());
   if url.is_empty() {
@@ -915,7 +1090,7 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   }
 
   if let Some(title) = &link_ref.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
+    items.extend(gen_title(title, context));
   }
   ir_helpers::new_line_group(items)
 }
@@ -982,30 +1157,36 @@ fn unescape_link_destination(destination: &str) -> String {
   text
 }
 
-fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  items.push_sc(sc!("("));
-  // like a link reference definition, this is the raw text from the file
-  items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
-  if let Some(title) = &image.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
-  }
-  items.push_sc(sc!(")"));
-  ir_helpers::new_line_group(items)
+fn gen_inline_image(image: &InlineImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.push_sc(sc!("("));
+    // like a link reference definition, this is the raw text from the file
+    items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
+    if let Some(title) = &image.title {
+      items.extend(gen_title(title, context));
+    }
+    items.push_sc(sc!(")"));
+    ir_helpers::new_line_group(items)
+  })
 }
 
-fn gen_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  items.push_string(format!("[{}]", image.reference.trim()));
-  ir_helpers::new_line_group(items)
+fn gen_reference_image(image: &ReferenceImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.extend(gen_reference_label(&image.reference, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
-fn gen_shortcut_image(image: &ShortcutImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  ir_helpers::new_line_group(items)
+fn gen_shortcut_image(image: &ShortcutImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
 fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
@@ -1033,7 +1214,9 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       };
       let indent_increment = match context.configuration.list_indent_kind {
         crate::configuration::ListIndentKind::CommonMark => (prefix_text.chars().count() + 1) as u32,
-        crate::configuration::ListIndentKind::PythonMarkdown => std::cmp::max(prefix_text.chars().count() as u32 + 1, 4),
+        crate::configuration::ListIndentKind::PythonMarkdown => {
+          std::cmp::max(prefix_text.chars().count() as u32 + 1, 4)
+        }
       };
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
@@ -1079,6 +1262,73 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   items
 }
 
+fn gen_definition_list(definition_list: &DefinitionList, context: &mut Context) -> PrintItems {
+  context.mark_in_list(|context| {
+    let mut items = PrintItems::new();
+
+    for (index, child) in definition_list.children.iter().enumerate() {
+      if index > 0 {
+        items.push_signal(Signal::NewLine);
+        if context.has_leading_blankline(child.range().start) {
+          items.push_signal(Signal::NewLine);
+        }
+      }
+
+      items.extend(match child {
+        Node::DefinitionListTitle(title) => gen_term(title, context),
+        Node::DefinitionListDefinition(definition) => gen_definition(definition, context),
+        _ => generate(child, context),
+      });
+    }
+
+    items
+  })
+}
+
+/// Every term of a definition list must be kept on its own line, otherwise it
+/// stops being a definition list, so keep the line breaks found in the source
+/// and never wrap the text.
+fn gen_term(title: &DefinitionListTitle, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let terms = title
+    .children
+    .split(|c| matches!(c, Node::SoftBreak(_) | Node::HardBreak(_)));
+
+  for (index, term) in terms.enumerate() {
+    if index > 0 {
+      items.push_signal(Signal::NewLine);
+    }
+    items.extend(context.with_no_text_wrap(|context| ir_helpers::with_no_new_lines(gen_nodes(term, context))));
+  }
+
+  items
+}
+
+fn gen_definition(definition: &DefinitionListDefinition, context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  let indent_increment = match context.configuration.list_indent_kind {
+    crate::configuration::ListIndentKind::CommonMark => 2,
+    crate::configuration::ListIndentKind::PythonMarkdown => 4,
+  };
+
+  context.indent_level += indent_increment;
+  items.push_sc(sc!(":"));
+  let after_child = LineAndColumn::new("afterDefinition");
+  items.push_condition(if_true(
+    "spaceIfHasDefinition",
+    Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
+    Signal::SpaceIfNotTrailing.into(),
+  ));
+  items.extend(with_indent_times(
+    gen_nodes(&definition.children, context),
+    indent_increment,
+  ));
+  items.push_line_and_column(after_child);
+  context.indent_level -= indent_increment;
+
+  items
+}
+
 fn gen_task_list_marker_children(
   children: &[Node],
   marker: Option<&TaskListMarker>,
@@ -1093,7 +1343,12 @@ fn gen_task_list_marker_children(
     .position(|c| {
       matches!(
         c,
-        Node::List(_) | Node::CodeBlock(_) | Node::BlockQuote(_) | Node::Heading(_) | Node::Table(_)
+        Node::List(_)
+          | Node::DefinitionList(_)
+          | Node::CodeBlock(_)
+          | Node::BlockQuote(_)
+          | Node::Heading(_)
+          | Node::Table(_)
       ) || context.has_leading_blankline(c.range().start)
     })
     .unwrap_or(children.len());
@@ -1129,11 +1384,24 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
   "---".into()
 }
 
+/// Generates a hard break, which has no representation on a single line, so it
+/// becomes a space where newlines are being forced off (ex. within an ATX
+/// heading). Otherwise the backslash it leaves behind would escape the
+/// character that followed it.
 fn gen_hard_break(_: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_sc(sc!("\\"));
-  items.push_signal(Signal::NewLine);
-  items
+  let hard_break = {
+    let mut items = PrintItems::new();
+    items.push_sc(sc!("\\"));
+    items.push_signal(Signal::NewLine);
+    items
+  };
+  if_true_or(
+    "hardBreakOrSpaceIfNewlinesDisabled",
+    condition_resolvers::is_forcing_no_newlines(),
+    space(),
+    hard_break,
+  )
+  .into()
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
@@ -1408,22 +1676,24 @@ fn space() -> PrintItems {
 }
 
 fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
+  if context.is_text_wrap_disabled() {
+    // ex. within a link, whose text is moved onto a single line when text is
+    // being wrapped, but keeps the line breaks it has when text is maintained
+    return match context.configuration.text_wrap {
+      TextWrap::Always | TextWrap::Never => space(),
+      TextWrap::Maintain => if_true_or(
+        "newLineOrSpaceIfNewlinesDisabled",
+        condition_resolvers::is_forcing_no_newlines(),
+        space(),
+        Signal::NewLine.into(),
+      )
+      .into(),
+    };
+  }
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
     TextWrap::Never => space(),
-    TextWrap::Maintain => {
-      if context.is_text_wrap_disabled() {
-        if_true_or(
-          "newLineOrSpaceIfNewlinesDisabled",
-          condition_resolvers::is_forcing_no_newlines(),
-          space(),
-          Signal::NewLine.into(),
-        )
-        .into()
-      } else {
-        Signal::NewLine.into()
-      }
-    }
+    TextWrap::Maintain => Signal::NewLine.into(),
   }
 }
 

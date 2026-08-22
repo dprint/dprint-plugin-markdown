@@ -17,6 +17,11 @@ pub fn is_block_start_word(word: &str) -> bool {
     return true;
   }
 
+  // definition list marker, which is a `:` followed by whitespace
+  if word == ":" {
+    return true;
+  }
+
   // atx heading (ex. #, ###) -- only when nothing follows the hashes,
   // since #text isn't a heading
   let hash_count = word.chars().take_while(|c| *c == '#').count();

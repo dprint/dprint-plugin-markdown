@@ -1,0 +1,75 @@
+!! should handle a block quote in a list in a block quote !!
+> - > foo
+>   > bar
+
+[expect]
+> - > foo
+>   > bar
+
+!! should handle a lazy continuation line !!
+> - > foo
+bar
+
+[expect]
+> - > foo
+>   > bar
+
+!! should handle a blank line in a block quote in a list in a block quote !!
+> - > foo
+>   >
+>   > bar
+
+[expect]
+> - > foo
+>   >
+>   > bar
+
+!! should handle an ordered list between block quotes !!
+> 1. > foo
+>    > bar
+
+[expect]
+> 1. > foo
+>    > bar
+
+!! should handle nested block quotes within a list in a block quote !!
+> - > > foo
+>   > > bar
+
+[expect]
+> - >> foo
+>   >> bar
+
+!! should handle a list within nested block quotes !!
+> > - > foo
+> >   > bar
+
+[expect]
+>> - > foo
+>>   > bar
+
+!! should handle a list outside the outer block quote !!
+- > - > foo
+  >   > bar
+
+[expect]
+- > - > foo
+  >   > bar
+
+!! should handle a sub list !!
+> - foo
+>   - > bar
+>     > baz
+
+[expect]
+> - foo
+>   - > bar
+>     > baz
+
+!! should handle alternating lists and block quotes !!
+> - > 1. > foo
+>   >    > bar
+
+[expect]
+> - > 1. > foo
+>   >    > bar

@@ -5,3 +5,33 @@ asdf
 [expect]
 test\
 asdf
+
+!! should handle a hard break with trailing spaces !!
+test  
+asdf
+
+[expect]
+test\
+asdf
+
+!! should turn a hard break into a space within a heading !!
+Testing a\
+b here
+===
+
+Testing c  
+d here
+---
+
+[expect]
+# Testing a b here
+
+## Testing c d here
+
+!! should turn a hard break into a space within a link in a heading !!
+[this\
+out](/test)
+===
+
+[expect]
+# [this out](/test)

@@ -134,4 +134,8 @@ pub enum ListIndentKind {
   PythonMarkdown,
 }
 
-generate_str_to_from![ListIndentKind, [CommonMark, "commonMark"], [PythonMarkdown, "pythonMarkdown"]];
+generate_str_to_from![
+  ListIndentKind,
+  [CommonMark, "commonMark"],
+  [PythonMarkdown, "pythonMarkdown"]
+];

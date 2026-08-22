@@ -1,0 +1,16 @@
+~~ textWrap: never ~~
+!! should format !!
+> [!NOTE]
+> Some sort of note
+
+[expect]
+> [!NOTE]
+> Some sort of note
+
+!! should format when has trailing hard break after callout !!
+> [!IMPORTANT]  
+> Crucial information necessary for users to succeed.
+
+[expect]
+> [!IMPORTANT]
+> Crucial information necessary for users to succeed.
