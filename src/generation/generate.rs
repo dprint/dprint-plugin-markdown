@@ -790,7 +790,7 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     // back out with the escapes it needs and no others
     items.extend(gen_link_destination_text(format_link_destination(link.url.trim())));
     if let Some(title) = &link.title {
-      items.push_string(format!(" \"{}\"", title.trim()));
+      items.extend(gen_title(title, context));
     }
     items.push_sc(sc!(")"));
 
@@ -809,6 +809,71 @@ fn gen_link_destination_text(text: String) -> PrintItems {
     text
   };
   gen_text_with_tabs(text)
+}
+
+/// Generates an image's alt text, which is the raw text from the file.
+fn gen_image_alt_text(text: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!("!["));
+  items.extend(gen_raw_text(text.trim(), context));
+  items.push_sc(sc!("]"));
+  items
+}
+
+/// Generates the label of a reference image or link.
+fn gen_reference_label(reference: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!("["));
+  items.extend(gen_raw_text(reference.trim(), context));
+  items.push_sc(sc!("]"));
+  items
+}
+
+/// Generates the title that follows an inline image or link's destination.
+///
+/// A title continued onto another line loses that line's indentation, since
+/// there's no telling apart the indentation that's part of the title from the
+/// indentation the enclosing list item or block quote gave it.
+fn gen_title(title: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_sc(sc!(" \""));
+  items.extend(gen_raw_text(title.trim(), context));
+  items.push_sc(sc!("\""));
+  items
+}
+
+/// Generates raw text from the file that may span multiple lines.
+///
+/// The printer requires the strings it's given to be a single line, so the
+/// line breaks the text contains need to be sent as print items instead.
+fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  // a line ending may be in either of its forms, so split on both characters
+  // and skip the empty text a carriage return and line feed pair leaves behind
+  let mut lines = text.split(['\r', '\n']).filter(|line| !line.is_empty());
+  if let Some(line) = lines.next() {
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+  }
+  for line in lines {
+    items.extend(get_newline_wrapping_based_on_config(context));
+    // the printer provides the indentation and block quote markers of a
+    // continued line, so drop the ones this picked up from the file
+    let line = strip_block_quote_markers(line, context);
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+  }
+  items
+}
+
+/// Strips the markers a line of raw text picked up by continuing within a
+/// block quote.
+fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
+  let mut line = line.trim_start();
+  if context.is_in_block_quote() {
+    while let Some(rest) = line.strip_prefix('>') {
+      line = rest.trim_start();
+    }
+  }
+  line
 }
 
 /// Writes out text, sending any tab it has as a signal, since the printer
@@ -904,7 +969,7 @@ fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems
     items.push_sc(sc!("["));
     items.extend(gen_nodes(&link.children, context));
     items.push_sc(sc!("]"));
-    items.push_string(format!("[{}]", link.reference.trim()));
+    items.extend(gen_reference_label(&link.reference, context));
     ir_helpers::new_line_group(items)
   })
 }
@@ -1011,30 +1076,36 @@ fn unescape_link_destination(destination: &str) -> String {
   text
 }
 
-fn gen_inline_image(image: &InlineImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  items.push_sc(sc!("("));
-  // like a link reference definition, this is the raw text from the file
-  items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
-  if let Some(title) = &image.title {
-    items.push_string(format!(" \"{}\"", title.trim()));
-  }
-  items.push_sc(sc!(")"));
-  ir_helpers::new_line_group(items)
+fn gen_inline_image(image: &InlineImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.push_sc(sc!("("));
+    // like a link reference definition, this is the raw text from the file
+    items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
+    if let Some(title) = &image.title {
+      items.extend(gen_title(title, context));
+    }
+    items.push_sc(sc!(")"));
+    ir_helpers::new_line_group(items)
+  })
 }
 
-fn gen_reference_image(image: &ReferenceImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  items.push_string(format!("[{}]", image.reference.trim()));
-  ir_helpers::new_line_group(items)
+fn gen_reference_image(image: &ReferenceImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.extend(gen_reference_label(&image.reference, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
-fn gen_shortcut_image(image: &ShortcutImage, _: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.push_string(format!("![{}]", image.text.trim()));
-  ir_helpers::new_line_group(items)
+fn gen_shortcut_image(image: &ShortcutImage, context: &mut Context) -> PrintItems {
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
 fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
