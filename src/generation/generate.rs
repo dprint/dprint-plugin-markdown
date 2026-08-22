@@ -727,6 +727,10 @@ fn gen_reference_label(reference: &str, context: &Context) -> PrintItems {
 }
 
 /// Generates the title that follows an inline image or link's destination.
+///
+/// A title continued onto another line loses that line's indentation, since
+/// there's no telling apart the indentation that's part of the title from the
+/// indentation the enclosing list item or block quote gave it.
 fn gen_title(title: &str, context: &Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_sc(sc!(" \""));
@@ -741,16 +745,32 @@ fn gen_title(title: &str, context: &Context) -> PrintItems {
 /// line breaks the text contains need to be sent as print items instead.
 fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
   let mut items = PrintItems::new();
-  let mut lines = text.lines();
+  // a line ending may be in either of its forms, so split on both characters
+  // and skip the empty text a carriage return and line feed pair leaves behind
+  let mut lines = text.split(['\r', '\n']).filter(|line| !line.is_empty());
   if let Some(line) = lines.next() {
-    items.push_string(line.trim_end().to_string());
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
   }
   for line in lines {
-    // the indentation of a continued line is provided by the printer
     items.extend(get_newline_wrapping_based_on_config(context));
-    items.push_string(line.trim().to_string());
+    // the printer provides the indentation and block quote markers of a
+    // continued line, so drop the ones this picked up from the file
+    let line = strip_block_quote_markers(line, context);
+    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
   }
   items
+}
+
+/// Strips the markers a line of raw text picked up by continuing within a
+/// block quote.
+fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
+  let mut line = line.trim_start();
+  if context.is_in_block_quote() {
+    while let Some(rest) = line.strip_prefix('>') {
+      line = rest.trim_start();
+    }
+  }
+  line
 }
 
 /// Writes out text, sending any tab it has as a signal, since the printer
@@ -954,29 +974,35 @@ fn unescape_link_destination(destination: &str) -> String {
 }
 
 fn gen_inline_image(image: &InlineImage, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.extend(gen_image_alt_text(&image.text, context));
-  items.push_sc(sc!("("));
-  // like a link reference definition, this is the raw text from the file
-  items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
-  if let Some(title) = &image.title {
-    items.extend(gen_title(title, context));
-  }
-  items.push_sc(sc!(")"));
-  ir_helpers::new_line_group(items)
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.push_sc(sc!("("));
+    // like a link reference definition, this is the raw text from the file
+    items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
+    if let Some(title) = &image.title {
+      items.extend(gen_title(title, context));
+    }
+    items.push_sc(sc!(")"));
+    ir_helpers::new_line_group(items)
+  })
 }
 
 fn gen_reference_image(image: &ReferenceImage, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.extend(gen_image_alt_text(&image.text, context));
-  items.extend(gen_reference_label(&image.reference, context));
-  ir_helpers::new_line_group(items)
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    items.extend(gen_reference_label(&image.reference, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
 fn gen_shortcut_image(image: &ShortcutImage, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  items.extend(gen_image_alt_text(&image.text, context));
-  ir_helpers::new_line_group(items)
+  context.with_no_text_wrap(|context| {
+    let mut items = PrintItems::new();
+    items.extend(gen_image_alt_text(&image.text, context));
+    ir_helpers::new_line_group(items)
+  })
 }
 
 fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {

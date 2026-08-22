@@ -173,3 +173,55 @@ text]](https://dprint.dev)
 [![some text]](https://dprint.dev)
 
 [some text]: https://dprint.dev/image.png
+
+!! should keep the block quote markers of a line break in alt text !!
+> ![some
+> text](https://dprint.dev/image.png)
+
+> > ![some
+> > text][testing]
+
+[testing]: https://dprint.dev/image.png
+
+[expect]
+> ![some
+> text](https://dprint.dev/image.png)
+
+>> ![some
+>> text][testing]
+
+[testing]: https://dprint.dev/image.png
+
+!! should move alt text onto a single line within a heading !!
+![some
+text](https://dprint.dev/image.png)
+===
+
+[expect]
+# ![some text](https://dprint.dev/image.png)
+
+!! should keep a reference label resolvable within a heading !!
+![img][some
+reference]
+===
+
+[some reference]: https://dprint.dev/image.png
+
+[expect]
+# ![img][some reference]
+
+[some reference]: https://dprint.dev/image.png
+
+!! should keep a tab in alt text, a title and a reference label !!
+![a	b](https://dprint.dev/image.png "c	d")
+
+![a	b][e	f]
+
+[e f]: https://dprint.dev/image.png
+
+[expect]
+![a	b](https://dprint.dev/image.png "c	d")
+
+![a	b][e	f]
+
+[e f]: https://dprint.dev/image.png

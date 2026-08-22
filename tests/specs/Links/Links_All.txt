@@ -95,3 +95,23 @@ reference]
 reference]
 
 [some reference]: https://dprint.dev
+
+!! should keep the block quote markers of a line break in a title !!
+> [testing](https://dprint.dev "some
+> title")
+
+[expect]
+> [testing](https://dprint.dev "some
+> title")
+
+!! should keep a reference label resolvable within a heading !!
+[testing][some
+reference]
+===
+
+[some reference]: https://dprint.dev
+
+[expect]
+# [testing][some reference]
+
+[some reference]: https://dprint.dev
