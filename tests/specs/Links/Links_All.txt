@@ -71,6 +71,28 @@ out](/test) test
 Test [this
 out](/test) test
 
+!! should keep a hard break in a link's text !!
+[this  
+out](/test)
+
+[this\
+out](/test)
+
+[expect]
+[this\
+out](/test)
+
+[this\
+out](/test)
+
+!! should keep a line break in a code span within a link's text !!
+[`this
+out`](/test)
+
+[expect]
+[`this
+out`](/test)
+
 !! handle when file only has link reference directive !!
 [Some reference]: https://github.com
 

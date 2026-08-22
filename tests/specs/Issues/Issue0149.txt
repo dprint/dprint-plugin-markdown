@@ -33,3 +33,27 @@ out](/test) testing
 
 [expect]
 # Testing [this out](/test) testing
+
+!! should maintain a line break within a link's text in a footnote definition !!
+Text[^1]
+
+[^1]: Testing [this
+    out](/test) testing
+
+[expect]
+Text[^1]
+
+[^1]: Testing [this
+    out](/test) testing
+
+!! should maintain a line break within a link's text in a definition list !!
+Term
+
+: Testing [this
+  out](/test) testing
+
+[expect]
+Term
+
+: Testing [this
+  out](/test) testing

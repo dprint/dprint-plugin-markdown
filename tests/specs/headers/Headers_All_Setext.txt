@@ -56,3 +56,13 @@ This Header
 spans
 multiple lines
 ==============
+
+!! should keep a line break within a link's text and size the underline to the longest line !!
+Testing [this
+out](/test) testing
+===
+
+[expect]
+Testing [this
+out](/test) testing
+===================
