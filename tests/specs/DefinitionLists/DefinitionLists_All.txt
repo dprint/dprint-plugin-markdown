@@ -1,0 +1,253 @@
+!! should format a definition list !!
+Apple
+: Pomaceous fruit of plants of the genus Malus in the family Rosaceae.
+
+Orange
+: The fruit of an evergreen tree of the genus Citrus.
+
+[expect]
+Apple
+: Pomaceous fruit of plants of the genus Malus in the family Rosaceae.
+
+Orange
+: The fruit of an evergreen tree of the genus Citrus.
+
+!! should normalize the spacing after the definition marker !!
+Apple
+:   A fruit.
+:	A seed bearing structure.
+
+[expect]
+Apple
+: A fruit.
+: A seed bearing structure.
+
+!! should not treat anything in the file as a definition when a marker has no whitespace after it !!
+Apple
+:   A fruit.
+:Not a definition marker without whitespace.
+
+[expect]
+Apple
+: A fruit.
+:Not a definition marker without whitespace.
+
+!! should keep each term on its own line !!
+Term A
+Term B
+:  Shared definition
+
+[expect]
+Term A
+Term B
+: Shared definition
+
+!! should format a term with inline markup !!
+Term with *emphasis* and `code`
+: Definition with **strong** text
+
+[expect]
+Term with _emphasis_ and `code`
+: Definition with **strong** text
+
+!! should keep a loose definition list loose !!
+Term 1
+
+:   Definition 1 with a paragraph.
+
+    Second paragraph of definition 1.
+
+:   Definition 2
+
+[expect]
+Term 1
+
+: Definition 1 with a paragraph.
+
+  Second paragraph of definition 1.
+
+: Definition 2
+
+!! should format nested blocks within a definition !!
+Term
+: Definition
+
+      indented code block
+
+  ```ts
+  const value = 5;
+  ```
+
+  - a list
+  - another item
+
+[expect]
+Term
+: Definition
+
+      indented code block
+
+  ```ts
+  const value = 5;
+  ```
+
+  - a list
+  - another item
+
+!! should format a definition list within a block quote !!
+> Term
+> : Definition
+
+[expect]
+> Term
+> : Definition
+
+!! should format a definition list within a list !!
+- item
+
+  Term
+  : Definition
+
+[expect]
+- item
+
+  Term
+  : Definition
+
+!! should keep blank lines around a definition list !!
+# Heading
+
+Some paragraph.
+
+Term
+: Definition
+
+Another paragraph.
+
+[expect]
+# Heading
+
+Some paragraph.
+
+Term
+: Definition
+
+Another paragraph.
+
+!! should format a definition without a definition !!
+Term
+:
+
+[expect]
+Term
+:
+
+!! should keep an ignored definition list as-is !!
+<!-- dprint-ignore -->
+Term
+:    ignored   definition
+
+After paragraph.
+
+[expect]
+<!-- dprint-ignore -->
+Term
+:    ignored   definition
+
+After paragraph.
+
+!! should format a definition whose marker is indented !!
+`-manual`
+ : Indicates that a test is a non-automated test.
+
+[expect]
+`-manual`
+: Indicates that a test is a non-automated test.
+
+!! should not treat a `:::note` admonition as a definition !!
+Intro paragraph.
+
+:::note
+
+- a list item
+- another
+
+Trailing text.
+
+:::
+
+After.
+
+[expect]
+Intro paragraph.
+
+:::note
+
+- a list item
+- another
+
+Trailing text.
+
+:::
+
+After.
+
+!! should not treat an emoji shortcode as a definition !!
+Hello
+:smile: world
+
+[expect]
+Hello
+:smile: world
+
+!! should keep the link references after a `:::` admonition !!
+Some paragraph here.
+
+:::{warning}
+Content of the warning.
+:::
+
+[*Mypy*]: http://mypy-lang.org
+[*Pyright*]: https://github.com/microsoft/pyright
+
+[expect]
+Some paragraph here.
+
+:::{warning}
+Content of the warning.
+:::
+
+[*Mypy*]: http://mypy-lang.org
+[*Pyright*]: https://github.com/microsoft/pyright
+
+!! should keep the link references that follow a definition list !!
+Term
+: A [link][ref] definition.
+
+[ref]: https://example.com
+[other]: https://example.org
+
+[expect]
+Term
+: A [link][ref] definition.
+
+[ref]: https://example.com
+[other]: https://example.org
+
+!! should keep the link reference definitions within a definition !!
+Term
+: A [link][ref] definition.
+
+  [ref]: https://example.com
+
+Other
+: text
+
+[expect]
+Term
+: A [link][ref] definition.
+
+  [ref]: https://example.com
+
+Other
+: text
