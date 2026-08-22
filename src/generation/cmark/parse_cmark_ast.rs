@@ -65,7 +65,7 @@ impl<'a> EventIterator<'a> {
       Some((Event::Start(Tag::Table(_)), _)) => self.in_table_count += 1,
       Some((Event::End(TagEnd::Table), _)) => self.in_table_count = self.in_table_count.saturating_sub(1),
       Some((Event::Start(Tag::BlockQuote(_)), _)) => self.in_block_quote_count += 1,
-      Some((Event::End(TagEnd::BlockQuote), _)) => {
+      Some((Event::End(TagEnd::BlockQuote(_)), _)) => {
         self.in_block_quote_count = self.in_block_quote_count.saturating_sub(1)
       }
       _ => {}
@@ -250,6 +250,15 @@ fn parse_start(start_tag: Tag, iterator: &mut EventIterator) -> Result<Node, Par
     Tag::Item => parse_item(iterator).map(|x| x.into()),
     Tag::HtmlBlock => parse_html_block(iterator).map(|x| x.into()),
     Tag::MetadataBlock(metadata_block_kind) => parse_metadata(metadata_block_kind, iterator).map(|x| x.into()),
+    // these tags are only emitted when their corresponding options are enabled, which they aren't
+    Tag::DefinitionList
+    | Tag::DefinitionListTitle
+    | Tag::DefinitionListDefinition
+    | Tag::Superscript
+    | Tag::Subscript => Err(ParseError::new(
+      iterator.get_last_range(),
+      format!("Tag not implemented {:?}", start_tag),
+    )),
   }
 }
 
@@ -310,7 +319,7 @@ fn parse_block_quote(iterator: &mut EventIterator) -> Result<BlockQuote, ParseEr
   let mut last_event_end: Option<usize> = None;
 
   while let Some(event) = iterator.next() {
-    if matches!(event, Event::End(TagEnd::BlockQuote)) {
+    if matches!(event, Event::End(TagEnd::BlockQuote(_))) {
       break;
     }
 
@@ -592,6 +601,11 @@ fn parse_link(
     }
     LinkType::Shortcut | LinkType::ShortcutUnknown => Ok(ShortcutLink { range, children }.into()),
     LinkType::Email | LinkType::Autolink => Ok(AutoLink { range, children }.into()),
+    // only emitted when Options::ENABLE_WIKILINKS is enabled, which it isn't
+    LinkType::WikiLink { .. } => Err(ParseError::new(
+      range,
+      format!("Link type not implemented {:?}", link_type),
+    )),
   }
 }
 
