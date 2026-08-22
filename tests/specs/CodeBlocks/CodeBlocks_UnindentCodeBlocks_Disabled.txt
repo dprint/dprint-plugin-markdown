@@ -1,0 +1,46 @@
+~~ unindentCodeBlocks: false ~~
+!! should keep the leading spaces of a fenced code block !!
+```
+    one
+      two
+```
+
+[expect]
+```
+    one
+      two
+```
+
+!! should keep the leading spaces of a fenced code block in a list !!
+1. Testing
+
+    ```
+        some code
+    ```
+
+[expect]
+1. Testing
+
+   ```
+       some code
+   ```
+
+!! should keep the leading spaces of a fenced code block in a block quote !!
+> ```
+>     some code
+> ```
+
+[expect]
+> ```
+>     some code
+> ```
+
+!! should keep an indented code block indented too much as-is !!
+- List
+
+        Code block indented too much.
+
+[expect]
+- List
+
+        Code block indented too much.

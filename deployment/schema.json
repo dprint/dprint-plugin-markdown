@@ -84,6 +84,18 @@
         "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
       }]
     },
+    "unindentCodeBlocks": {
+      "description": "Whether to unindent the contents of code blocks.",
+      "type": "boolean",
+      "default": true,
+      "oneOf": [{
+        "const": true,
+        "description": "Removes common leading whitespace from code block contents."
+      }, {
+        "const": false,
+        "description": "Preserves the original indentation of code block contents."
+      }]
+    },
     "listIndentKind": {
       "description": "The style of indentation to use for list items. CommonMark aligns to the content column after the marker. PythonMarkdown uses a fixed 4-space indent, required by tools like mkdocs-material.",
       "type": "string",
@@ -136,6 +148,9 @@
     },
     "headingKind": {
       "$ref": "#/definitions/headingKind"
+    },
+    "unindentCodeBlocks": {
+      "$ref": "#/definitions/unindentCodeBlocks"
     },
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"

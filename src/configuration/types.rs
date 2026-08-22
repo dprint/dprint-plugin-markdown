@@ -16,6 +16,7 @@ pub struct Configuration {
   pub strong_kind: StrongKind,
   pub unordered_list_kind: UnorderedListKind,
   pub heading_kind: HeadingKind,
+  pub unindent_code_blocks: bool,
   pub list_indent_kind: ListIndentKind,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
