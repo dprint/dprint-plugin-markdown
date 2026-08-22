@@ -1375,12 +1375,15 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
 
 /// Generates a hard break, which has no representation on a single line, so it
 /// becomes a space where newlines are being forced off (ex. within an ATX
-/// heading). Otherwise the backslash it leaves behind would escape the
-/// character that followed it.
-fn gen_hard_break(_: &mut Context) -> PrintItems {
+/// heading). Otherwise the marker it leaves behind would either escape the
+/// character that followed it or be collapsed as extra whitespace.
+fn gen_hard_break(context: &mut Context) -> PrintItems {
   let hard_break = {
     let mut items = PrintItems::new();
-    items.push_sc(sc!("\\"));
+    match context.configuration.hard_break_kind {
+      HardBreakKind::Backslash => items.push_sc(sc!("\\")),
+      HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
+    }
     items.push_signal(Signal::NewLine);
     items
   };
@@ -1645,7 +1648,13 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
       new_line_text: "\n",
     },
   );
-  rendered.lines().map(UnicodeWidthStr::width).max().unwrap_or(0)
+  // trailing whitespace isn't visible, so ignore it when measuring
+  // (ex. the two spaces of a hard break)
+  rendered
+    .lines()
+    .map(|line| UnicodeWidthStr::width(line.trim_end()))
+    .max()
+    .unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {

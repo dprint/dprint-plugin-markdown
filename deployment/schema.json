@@ -84,6 +84,18 @@
         "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
       }]
     },
+    "hardBreakKind": {
+      "description": "The style of hard line break to use.",
+      "type": "string",
+      "default": "backslash",
+      "oneOf": [{
+        "const": "backslash",
+        "description": "Uses a trailing backslash for hard line breaks."
+      }, {
+        "const": "doubleSpace",
+        "description": "Uses two trailing spaces for hard line breaks. Note that some tools strip trailing whitespace, which would silently remove these hard line breaks."
+      }]
+    },
     "unindentCodeBlocks": {
       "description": "Whether to unindent the contents of code blocks.",
       "type": "boolean",
@@ -148,6 +160,9 @@
     },
     "headingKind": {
       "$ref": "#/definitions/headingKind"
+    },
+    "hardBreakKind": {
+      "$ref": "#/definitions/hardBreakKind"
     },
     "unindentCodeBlocks": {
       "$ref": "#/definitions/unindentCodeBlocks"
