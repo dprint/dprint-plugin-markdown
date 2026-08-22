@@ -302,9 +302,7 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   } else {
     // atx headings apply to all levels.
     items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-    items.extend(with_no_new_lines(
-      context.with_single_line_heading(|context| gen_nodes(&heading.children, context)),
-    ));
+    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
   }
 
   items
@@ -1375,20 +1373,27 @@ fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
   "---".into()
 }
 
+/// Generates a hard break, which has no representation on a single line, so it
+/// becomes a space where newlines are being forced off (ex. within an ATX
+/// heading). Otherwise the marker it leaves behind would either escape the
+/// character that followed it or be collapsed as extra whitespace.
 fn gen_hard_break(context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  // a hard break can't exist within a heading that's on a single line
-  // (ex. an ATX heading), so use a space instead
-  if context.is_in_single_line_heading() {
-    items.push_space();
-    return items;
-  }
-  match context.configuration.hard_break_kind {
-    HardBreakKind::Backslash => items.push_sc(sc!("\\")),
-    HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
-  }
-  items.push_signal(Signal::NewLine);
-  items
+  let hard_break = {
+    let mut items = PrintItems::new();
+    match context.configuration.hard_break_kind {
+      HardBreakKind::Backslash => items.push_sc(sc!("\\")),
+      HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
+    }
+    items.push_signal(Signal::NewLine);
+    items
+  };
+  if_true_or(
+    "hardBreakOrSpaceIfNewlinesDisabled",
+    condition_resolvers::is_forcing_no_newlines(),
+    space(),
+    hard_break,
+  )
+  .into()
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {

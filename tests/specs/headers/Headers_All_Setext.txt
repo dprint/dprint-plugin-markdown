@@ -66,3 +66,13 @@ out](/test) testing
 Testing [this
 out](/test) testing
 ===================
+
+!! should keep a hard break and size the underline to the longest line !!
+Testing a\
+b here
+===
+
+[expect]
+Testing a\
+b here
+==========

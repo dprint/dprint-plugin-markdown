@@ -34,7 +34,6 @@ pub struct Context<'a> {
   /// The start position of the first child of each surrounding block quote.
   block_quote_content_starts: Vec<Option<usize>>,
   text_wrap_disabled_count: u32,
-  single_line_heading_count: u32,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
@@ -60,7 +59,6 @@ impl<'a> Context<'a> {
       block_quote_base_indents: Vec::new(),
       block_quote_content_starts: Vec::new(),
       text_wrap_disabled_count: 0,
-      single_line_heading_count: 0,
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
@@ -163,19 +161,6 @@ impl<'a> Context<'a> {
 
   pub fn is_text_wrap_disabled(&self) -> bool {
     self.text_wrap_disabled_count > 0
-  }
-
-  /// Marks the contents as being within a heading that must stay on a single
-  /// line (ex. an ATX heading).
-  pub fn with_single_line_heading<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
-    self.single_line_heading_count += 1;
-    let items = func(self);
-    self.single_line_heading_count -= 1;
-    items
-  }
-
-  pub fn is_in_single_line_heading(&self) -> bool {
-    self.single_line_heading_count > 0
   }
 
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
