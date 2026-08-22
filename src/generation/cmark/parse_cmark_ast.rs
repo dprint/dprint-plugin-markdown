@@ -698,11 +698,16 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
 
   let range = iterator.get_range_for_start(start);
 
-  let last_range = sub_lists
+  let references_start = sub_lists
     .last()
     .map(|c| c.range())
-    .or_else(|| children.last().map(|c| c.range()));
-  if let Some(references) = parse_references(last_range.map(|r| r.end), range.end, iterator)? {
+    .or_else(|| children.last().map(|c| c.range()))
+    .map(|r| r.end)
+    .or_else(|| marker.as_ref().map(|m| m.range.end))
+    // an item may consist of only link reference definitions, in which case
+    // it has no children, so start searching after the list item marker
+    .or_else(|| get_item_marker_end(iterator.file_text, range.start));
+  if let Some(references) = parse_references(references_start, range.end, iterator)? {
     children.push(references);
   }
 
@@ -712,6 +717,34 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     children,
     sub_lists,
   })
+}
+
+/// Gets the byte position directly after a list item's marker
+/// (ex. after the `-` in `- test` or after the `1.` in `1. test`).
+fn get_item_marker_end(file_text: &str, item_start: usize) -> Option<usize> {
+  let mut chars = file_text[item_start..].char_indices();
+  let (_, first_char) = chars.next()?;
+
+  if matches!(first_char, '-' | '*' | '+') {
+    return Some(item_start + first_char.len_utf8());
+  }
+  if !first_char.is_ascii_digit() {
+    return None;
+  }
+
+  // ordered list marker (ex. `1.` or `1)`)
+  for (index, c) in chars {
+    if c.is_ascii_digit() {
+      continue;
+    }
+    return if matches!(c, '.' | ')') {
+      Some(item_start + index + c.len_utf8())
+    } else {
+      None
+    };
+  }
+
+  None
 }
 
 fn parse_metadata(kind: MetadataBlockKind, iterator: &mut EventIterator) -> Result<MetadataBlock, ParseError> {
