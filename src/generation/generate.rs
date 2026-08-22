@@ -549,12 +549,13 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 }
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
+  let trimmed_text = code.code.trim();
   // a code span that's only whitespace keeps its text because trimming
   // it would cause the code span to disappear entirely
-  let text = if code.code.trim().is_empty() {
+  let text = if trimmed_text.is_empty() {
     code.code.as_str()
   } else {
-    code.code.trim()
+    trimmed_text
   };
   let backtick_text = "`".repeat(get_backtick_count(text));
   let separator = if text.starts_with('`') || text.ends_with('`') {
