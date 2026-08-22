@@ -5,3 +5,15 @@
 Markdown formatting plugin for dprint.
 
 This uses the [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) parser for markdown.
+
+## Install
+
+[Install](https://dprint.dev/install/) and [setup](https://dprint.dev/setup/) dprint.
+
+Then in your project's directory with a dprint.json file, run:
+
+```shellsession
+dprint add markdown
+```
+
+See https://dprint.dev/plugins/markdown/ for more information.

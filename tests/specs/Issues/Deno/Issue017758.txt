@@ -1,0 +1,103 @@
+!! should keep blank lines between paragraphs of a list item in a block quote !!
+> 1. First paragraph.
+>
+>    Second paragraph.
+
+[expect]
+> 1. First paragraph.
+>
+>    Second paragraph.
+
+!! should keep blank lines with multiple paragraphs and an unordered list !!
+> - First paragraph.
+>
+>   Second paragraph.
+>
+>   Third paragraph.
+
+[expect]
+> - First paragraph.
+>
+>   Second paragraph.
+>
+>   Third paragraph.
+
+!! should keep blank lines in a nested block quote list !!
+> > 1. First paragraph.
+> >
+> >    Second paragraph.
+
+[expect]
+>> 1. First paragraph.
+>>
+>>    Second paragraph.
+
+!! should still merge soft wrapped lines without a blank line in a block quote list !!
+> 1. First paragraph
+>    still first paragraph.
+
+[expect]
+> 1. First paragraph
+>    still first paragraph.
+
+!! should keep the blank line between items of a loose list in a block quote !!
+> - a
+>
+> - b
+>
+> - c
+
+[expect]
+> - a
+>
+> - b
+>
+> - c
+
+!! should keep the blank line before a sublist in a block quote !!
+> - a
+>
+>   - sub
+
+[expect]
+> - a
+>
+>   - sub
+
+!! should keep the blank line before a paragraph following a sublist in a block quote !!
+> - first
+>   - sub one
+>   - sub two
+>
+>   Trailing paragraph of the parent item.
+
+[expect]
+> - first
+>   - sub one
+>   - sub two
+>
+>   Trailing paragraph of the parent item.
+
+!! should keep blank lines between items of a nested ordered list in a block quote !!
+> 1. a
+>
+>    1. sub1
+>
+>    2. sub2
+
+[expect]
+> 1. a
+>
+>    1. sub1
+>
+>    2. sub2
+
+!! should not treat a literal greater than sign as a blank line in a block quote !!
+> - a >
+>   b
+> - c
+
+[expect]
+> - a >
+>   b
+> - c

@@ -8,9 +8,9 @@ use regex::Regex;
 use super::utils::*;
 use crate::configuration::Configuration;
 use crate::format_text;
-use anyhow::Result;
+use crate::format_text::FormatError;
 
-type FormatResult = Result<Option<String>>;
+type FormatResult = Result<Option<String>, FormatError>;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -111,6 +111,12 @@ impl<'a> Context<'a> {
 
   pub fn is_in_block_quote(&self) -> bool {
     self.is_in_block_quote_count > 0
+  }
+
+  /// Whether the position at `index` is preceded by a blank line, accounting for
+  /// the block quote markers that prefix a blank line inside a block quote.
+  pub fn has_leading_blankline(&self, index: usize) -> bool {
+    has_leading_blankline(index, self.file_text, self.is_in_block_quote())
   }
 
   pub fn with_no_text_wrap<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {

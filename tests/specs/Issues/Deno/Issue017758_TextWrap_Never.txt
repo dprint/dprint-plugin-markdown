@@ -1,0 +1,10 @@
+~~ textWrap: never ~~
+!! should keep blank lines when text wrap is never !!
+> 1. First paragraph that is somewhat long and would normally be wrapped by the formatter but is kept.
+>
+>    Second paragraph that follows and is also reasonably long for testing purposes here.
+
+[expect]
+> 1. First paragraph that is somewhat long and would normally be wrapped by the formatter but is kept.
+>
+>    Second paragraph that follows and is also reasonably long for testing purposes here.
