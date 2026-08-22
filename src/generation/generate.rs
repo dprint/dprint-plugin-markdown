@@ -317,7 +317,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  context.mark_in_block_quotes(|context, block_quote_count| {
+  context.mark_in_block_quotes(|context, base_indents| {
     let mut items = PrintItems::new();
 
     // add a > for any string that is on the start of a line
@@ -343,22 +343,14 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           items.push_item(PrintItem::String(text));
         }
         PrintItem::String(text) => {
+          // avoid inserting space in nested block quote markers (`> > foo`).
+          let trailing = MarkersTrailing::Text {
+            space: text.text != ">",
+          };
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            {
-              let mut items = PrintItems::new();
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-              items.push_string(">".repeat(block_quote_count));
-              // avoid inserting space in nested block quote markers (`> > foo`).
-              if text.text != ">" {
-                items.push_space();
-              }
-              items.push_optional_path(
-                context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)),
-              );
-              items
-            },
+            gen_block_quote_markers(&base_indents, indent_level, trailing, context),
           ));
           items.push_item(PrintItem::String(text));
         }
@@ -367,13 +359,7 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            {
-              let mut items = PrintItems::new();
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-              items.push_string(">".repeat(block_quote_count));
-              items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(indent_level)));
-              items
-            },
+            gen_block_quote_markers(&base_indents, indent_level, MarkersTrailing::BlankLine, context),
           ));
           items.push_signal(Signal::NewLine);
         }
@@ -397,6 +383,60 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+enum MarkersTrailing {
+  /// Text follows the markers on the same line.
+  Text { space: bool },
+  /// Nothing follows the markers on the line.
+  BlankLine,
+}
+
+/// Generates the `>` markers that prefix a line within a block quote, keeping the
+/// indentation that occurs between the block quote levels (ex. `> - > text`, where
+/// a list within the outer block quote indents the inner block quote).
+fn gen_block_quote_markers(
+  base_indents: &[u32],
+  inner_indent_level: u32,
+  trailing: MarkersTrailing,
+  context: &mut Context,
+) -> PrintItems {
+  let mut items = PrintItems::new();
+  let outermost_indent = *base_indents.first().unwrap();
+  let current_indent = *base_indents.last().unwrap() + inner_indent_level;
+
+  // go back to where the outermost marker belongs, then write each
+  // marker at the indentation its block quote started at
+  items.push_optional_path(
+    context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(current_indent - outermost_indent)),
+  );
+  let mut written_indent = outermost_indent;
+  for base_indent in base_indents {
+    if *base_indent > written_indent {
+      items.push_space();
+      items.push_optional_path(
+        context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(base_indent - written_indent)),
+      );
+      written_indent = *base_indent;
+    }
+    items.push_sc(sc!(">"));
+  }
+
+  let remaining_indent = current_indent - written_indent;
+  match trailing {
+    MarkersTrailing::Text { space } => {
+      if space {
+        items.push_space();
+      }
+      items
+        .push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(remaining_indent)));
+    }
+    MarkersTrailing::BlankLine => {
+      items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartIndent(remaining_indent)));
+    }
+  }
+
+  items
 }
 
 fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
