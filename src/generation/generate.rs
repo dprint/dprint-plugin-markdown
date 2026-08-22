@@ -667,7 +667,9 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     let (generated_children, generated_children_clone) = clone_items(generated_children);
     let single_line_text = get_items_text(ir_helpers::with_no_new_lines(generated_children_clone));
     if single_line_text.len() < (context.configuration.line_width / 2) as usize {
-      items.push_string(single_line_text);
+      // printing the children back out to text flattens any tab signal
+      // they had, so they need breaking up again
+      items.extend(gen_text_with_tabs(single_line_text));
     } else {
       items.extend(generated_children);
     }
@@ -676,7 +678,7 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     items.push_sc(sc!("("));
     // the parser resolves the escapes in an inline link's url, so render it
     // back out with the escapes it needs and no others
-    items.push_string(format_link_destination(link.url.trim()));
+    items.extend(gen_link_destination_text(format_link_destination(link.url.trim())));
     if let Some(title) = &link.title {
       items.push_string(format!(" \"{}\"", title.trim()));
     }
@@ -684,6 +686,39 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 
     ir_helpers::new_line_group(items)
   })
+}
+
+/// Writes out a rendered link destination, handling the characters the printer
+/// can't be handed as part of a string.
+fn gen_link_destination_text(text: String) -> PrintItems {
+  // a destination can't contain a line ending in either of its forms, so keep
+  // one as the character reference it could only have come from
+  let text = if text.contains(['\n', '\r']) {
+    text.replace('\r', "&#13;").replace('\n', "&#10;")
+  } else {
+    text
+  };
+  gen_text_with_tabs(text)
+}
+
+/// Writes out text, sending any tab it has as a signal, since the printer
+/// can't be handed one as part of a string.
+fn gen_text_with_tabs(text: String) -> PrintItems {
+  let mut items = PrintItems::new();
+  if !text.contains('\t') {
+    items.push_string(text);
+    return items;
+  }
+
+  for (i, part) in text.split('\t').enumerate() {
+    if i > 0 {
+      items.push_signal(Signal::Tab);
+    }
+    if !part.is_empty() {
+      items.push_str(part);
+    }
+  }
+  items
 }
 
 /// Renders an unescaped link destination, enclosing it in pointy brackets and
@@ -789,7 +824,7 @@ fn gen_link_reference(link_ref: &LinkReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[{}]: ", link_ref.name.trim()));
 
-  items.push_string(format_raw_link_destination(link_ref.link.trim()));
+  items.extend(gen_link_destination_text(format_raw_link_destination(link_ref.link.trim())));
 
   if let Some(title) = &link_ref.title {
     items.push_string(format!(" \"{}\"", title.trim()));

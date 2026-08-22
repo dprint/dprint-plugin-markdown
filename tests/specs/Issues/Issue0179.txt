@@ -119,3 +119,21 @@
 
 [expect]
 [1]: <a\>b(c>
+
+!! should keep a tab in a destination !!
+[link](<a	b>)
+
+[1]: <a	b>
+
+[expect]
+[link](<a	b>)
+
+[1]: <a	b>
+
+!! should keep a line ending in a destination as a character reference !!
+[link](foo&#10;bar)
+[link](foo&#13;bar)
+
+[expect]
+[link](<foo&#10;bar>)
+[link](<foo&#13;bar>)
