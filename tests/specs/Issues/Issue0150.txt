@@ -1,0 +1,101 @@
+!! should keep a link reference definition before a sublist !!
+- [Click here][example]!
+
+  [example]: https://example.com
+
+  - Sublist
+
+[expect]
+- [Click here][example]!
+
+  [example]: https://example.com
+
+  - Sublist
+
+!! should keep a link reference definition after a sublist !!
+- [Click here][example]!
+
+  - Sublist
+
+  [example]: https://example.com
+
+[expect]
+- [Click here][example]!
+
+  - Sublist
+
+  [example]: https://example.com
+
+!! should keep a link reference definition between two sublists !!
+- [Click here][example]!
+
+  - Sublist
+
+  [example]: https://example.com
+
+  - Other sublist
+
+[expect]
+- [Click here][example]!
+
+  - Sublist
+
+  [example]: https://example.com
+
+  - Other sublist
+
+!! should keep a link reference definition between two paragraphs !!
+- [Click here][example]!
+
+  [example]: https://example.com
+
+  More text.
+
+[expect]
+- [Click here][example]!
+
+  [example]: https://example.com
+
+  More text.
+
+!! should keep a link reference definition at the start of a list item !!
+- [example]: https://example.com
+
+  [Click here][example]!
+
+[expect]
+- [example]: https://example.com
+
+  [Click here][example]!
+
+!! should keep a link reference definition in a task list item !!
+- [x] [Click here][example]!
+
+  [example]: https://example.com
+
+  - [ ] Sublist
+
+[expect]
+- [x] [Click here][example]!
+
+  [example]: https://example.com
+
+  - [ ] Sublist
+
+!! should keep a link reference definition in a nested list item !!
+- Outer
+
+  - [Click here][example]!
+
+    [example]: https://example.com
+
+    - Sublist
+
+[expect]
+- Outer
+
+  - [Click here][example]!
+
+    [example]: https://example.com
+
+    - Sublist

@@ -753,40 +753,58 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
   let mut children = Vec::new();
   let mut sub_lists = Vec::new();
 
+  let mut last_event_end: Option<usize> = None;
   let marker = if let Some((Event::TaskListMarker(is_checked), _)) = iterator.peek() {
     let marker = TaskListMarker {
       range: iterator.get_last_range(),
       is_checked: *is_checked,
     };
     iterator.next();
+    last_event_end = Some(iterator.get_last_range().end);
     Some(marker)
   } else {
     None
   };
 
   while let Some(event) = iterator.next() {
+    if matches!(event, Event::End(TagEnd::Item)) {
+      break;
+    }
+
+    // cmark doesn't raise events for link reference definitions, so look for
+    // them in the text leading up to this event
+    let current_range = iterator.get_last_range();
+    let references = match last_event_end {
+      Some(last_event_end) => parse_references(Some(last_event_end), current_range.start, iterator)?,
+      // the text before the first event contains the list item's marker and
+      // possibly a task list marker, so ignore it when it doesn't parse
+      None => parse_item_start_references(start, current_range.start, iterator),
+    };
+    if let Some(references) = references {
+      children.append(&mut sub_lists); // the sub lists are no longer last
+      children.push(references);
+    }
+
     match event {
-      Event::End(TagEnd::Item) => break,
       Event::Start(Tag::List(_)) => sub_lists.push(parse_event(event, iterator)?),
       _ => {
         children.append(&mut sub_lists); // only add to the sub_lists if it's the last children
         children.push(parse_event(event, iterator)?)
       }
     }
+    // a node may consume multiple events (ex. adjacent text events), so take
+    // whatever the iterator ended up on
+    last_event_end = Some(std::cmp::max(current_range.end, iterator.get_last_range().end));
   }
 
   let range = iterator.get_range_for_start(start);
 
-  let references_start = sub_lists
-    .last()
-    .map(|c| c.range())
-    .or_else(|| children.last().map(|c| c.range()))
-    .map(|r| r.end)
-    .or_else(|| marker.as_ref().map(|m| m.range.end))
+  let references_start = last_event_end
     // an item may consist of only link reference definitions, in which case
     // it has no children, so start searching after the list item marker
     .or_else(|| get_item_marker_end(iterator.file_text, range.start));
   if let Some(references) = parse_references(references_start, range.end, iterator)? {
+    children.append(&mut sub_lists); // the sub lists are no longer last
     children.push(references);
   }
 
@@ -796,6 +814,14 @@ fn parse_item(iterator: &mut EventIterator) -> Result<Item, ParseError> {
     children,
     sub_lists,
   })
+}
+
+/// Parses any link reference definitions that appear before a list item's first
+/// event, ignoring the text when it's not link reference definitions (ex. it
+/// could be a task list marker, which cmark raises an event for later on).
+fn parse_item_start_references(item_start: usize, end: usize, iterator: &mut EventIterator) -> Option<Node> {
+  let start = get_item_marker_end(iterator.file_text, item_start)?;
+  parse_references(Some(start), end, iterator).ok().flatten()
 }
 
 /// Gets the byte position directly after a list item's marker
