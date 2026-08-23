@@ -844,6 +844,8 @@ pub fn starts_block_in_paragraph(text: &str) -> bool {
     Some(_) if is_thematic_break(text) => true,
     // a row of dashes and pipes turns the line above it into a table's header
     Some(_) if is_table_delimiter_shape(text) => true,
+    // a definition marker turns the line above it into a term
+    Some(b':') if is_definition_marker(text) => true,
     Some(_) => match list_marker(text) {
       Some(marker) => {
         !text[marker.len..].trim_matches(SPACES).is_empty() && (!marker.is_ordered || marker.start_index == 1)

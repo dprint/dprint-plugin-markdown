@@ -1,3 +1,4 @@
+use crate::parser::SPACES;
 use std::borrow::Cow;
 
 use regex::Regex;
@@ -88,17 +89,24 @@ pub fn is_list_word(word: &str) -> bool {
 /// blank because of the leading `>` character.
 pub fn has_leading_blankline(index: usize, text: &str, in_block_quote: bool) -> bool {
   let mut newline_count = 0;
+  // whether the character to the right of this one was a newline, which makes
+  // a carriage return here the start of the line ending it already counted
+  let mut after_newline = false;
   for c in text[0..index].chars().rev() {
-    if c == '\n' {
+    let ends_line = c == '\n' || (c == '\r' && !after_newline);
+    after_newline = c == '\n';
+    if ends_line {
       newline_count += 1;
       if newline_count >= 2 {
         return true;
       }
+    } else if c == '\r' {
+      continue;
     } else if in_block_quote && c == '>' {
       // a blank line inside a block quote is written as `>`, so skip the block
       // quote markers while looking for consecutive newlines
       continue;
-    } else if !c.is_whitespace() {
+    } else if !SPACES.contains(&c) {
       break;
     }
   }

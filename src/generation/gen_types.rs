@@ -59,6 +59,10 @@ pub struct Context<'a> {
   text_wrap_disabled_count: u32,
   decorations_preserved_count: u32,
   enclosing_decoration: Option<Span>,
+  /// Where the text that ends an atx heading starts, when the hashes it ends
+  /// with have to be escaped so that they aren't read as the heading's closing
+  /// sequence.
+  escaped_closing_hashes: Option<usize>,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The character the list item being generated is marked with.
@@ -106,6 +110,7 @@ impl<'a> Context<'a> {
       text_wrap_disabled_count: 0,
       decorations_preserved_count: 0,
       enclosing_decoration: None,
+      escaped_closing_hashes: None,
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker_char: None,
       list_marker_lines_up: true,
@@ -284,6 +289,21 @@ impl<'a> Context<'a> {
     result
   }
 
+  /// Generates the content of an atx heading, whose text at `start` ends with
+  /// hashes that would otherwise close the heading.
+  pub fn with_escaped_closing_hashes<T>(&mut self, start: Option<usize>, func: impl FnOnce(&mut Context) -> T) -> T {
+    let previous = std::mem::replace(&mut self.escaped_closing_hashes, start);
+    let result = func(self);
+    self.escaped_closing_hashes = previous;
+    result
+  }
+
+  /// Whether the text starting here ends an atx heading with hashes that have
+  /// to be escaped.
+  pub fn is_escaping_closing_hashes(&self, start: usize) -> bool {
+    self.escaped_closing_hashes == Some(start)
+  }
+
   pub fn enclosing_decoration(&self) -> Option<Span> {
     self.enclosing_decoration
   }
@@ -327,11 +347,16 @@ impl<'a> Context<'a> {
       return 0;
     } // ignore
 
+    // a line ends at a newline, at a carriage return written on its own, and
+    // at a carriage return and the newline that follows it, which is one line
+    // ending rather than two
     let file_bytes = self.file_text.as_bytes();
     let mut count = 0;
-    for byte in &file_bytes[start..end] {
-      if byte == &b'\n' {
-        count += 1;
+    for (index, byte) in file_bytes[start..end].iter().enumerate() {
+      match byte {
+        b'\n' => count += 1,
+        b'\r' if file_bytes.get(start + index + 1) != Some(&b'\n') => count += 1,
+        _ => {}
       }
     }
     count

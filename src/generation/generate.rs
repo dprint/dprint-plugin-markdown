@@ -323,7 +323,29 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   }
 
   // atx headings apply to all levels.
-  gen_atx_heading(heading.level, gen_nodes(&heading.children, context))
+  let escaped = closing_hashes_start(heading);
+  let children = context.with_escaped_closing_hashes(escaped, |context| gen_nodes(&heading.children, context));
+  return gen_atx_heading(heading.level, children);
+
+  /// Where the text an atx heading ends with starts, when it ends with hashes
+  /// that would be read as the sequence that closes the heading rather than as
+  /// the text they are.
+  ///
+  /// A closing sequence is a run of hashes at the end of the line with only
+  /// spaces after it, and either nothing or a space before it.
+  fn closing_hashes_start(heading: &Heading) -> Option<usize> {
+    let Node::Text(text) = heading.children.last()? else {
+      return None;
+    };
+    let before = text.text.trim_end_matches('#');
+    if before.len() == text.text.len() {
+      return None; // it doesn't end with hashes at all
+    }
+    // hashes written against the text before them are read as part of it,
+    // unless there is no text before them for them to be part of
+    let is_closing = before.is_empty() || before.ends_with([' ', '\t']);
+    is_closing.then_some(text.span.start)
+  }
 }
 
 fn gen_atx_heading(level: u8, children: PrintItems) -> PrintItems {
@@ -740,6 +762,17 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  if context.is_escaping_closing_hashes(text.span.start) {
+    // the hashes are escaped where they start, which is enough to keep the
+    // rest of the run from being read as a closing sequence of its own
+    let hashes = text.text.len() - text.text.trim_end_matches('#').len();
+    let escaped = format!(
+      "{}\\{}",
+      &text.text[..text.text.len() - hashes],
+      &text.text[text.text.len() - hashes..]
+    );
+    return gen_str(&escaped, context);
+  }
   gen_str(text.text, context)
 }
 

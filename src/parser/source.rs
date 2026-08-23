@@ -172,23 +172,29 @@ pub fn source_lines(source: &str) -> Vec<ContentLine<'_>> {
   let mut lines = Vec::new();
   let mut start = 0;
   let bytes = source.as_bytes();
+  let mut index = 0;
 
-  for (index, byte) in bytes.iter().enumerate() {
-    if *byte != b'\n' {
-      continue;
-    }
-    let mut end = index;
-    if end > start && bytes[end - 1] == b'\r' {
-      end -= 1;
-    }
+  while index < bytes.len() {
+    // a line ends at a newline, at a carriage return and the newline that
+    // follows it, and at a carriage return written on its own
+    let next = match bytes[index] {
+      b'\n' => index + 1,
+      b'\r' if bytes.get(index + 1) == Some(&b'\n') => index + 2,
+      b'\r' => index + 1,
+      _ => {
+        index += 1;
+        continue;
+      }
+    };
     lines.push(ContentLine {
       start,
-      text: &source[start..end],
+      text: &source[start..index],
       virtual_spaces: 0,
       column: 0,
       is_lazy: false,
     });
-    start = index + 1;
+    start = next;
+    index = next;
   }
 
   // the text after the last line terminator, which is only a line when it

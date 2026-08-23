@@ -84,3 +84,9 @@ foo _\__
 foo **\***
 
 foo _\__
+
+!! should keep a tab that separates two runs of delimiters !!
+**	**foo****
+
+[expect]
+** **foo****

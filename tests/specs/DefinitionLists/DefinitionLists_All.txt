@@ -251,3 +251,12 @@ Term
 
 Other
 : text
+
+!! should not move a definition marker to the start of a line, which would make a definition list of the paragraph !!
++ a
+: b
+c
+
+[expect]
+- a : b
+  c

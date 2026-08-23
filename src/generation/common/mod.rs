@@ -10,9 +10,11 @@ pub trait NodeSurroundings {
 }
 
 impl<T: Ranged> NodeSurroundings for T {
+  /// Whether a space separates this node from what is written before it, which
+  /// a tab is as much as a space.
   fn has_preceding_space(&self, file_text: &str) -> bool {
     let start = self.span().start;
-    start > 0 && file_text.as_bytes()[start - 1] == b' '
+    start > 0 && matches!(file_text.as_bytes()[start - 1], b' ' | b'\t')
   }
 
   /// Whether any whitespace, not only a space, comes before this node.

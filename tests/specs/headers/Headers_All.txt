@@ -72,3 +72,22 @@ places.
 > #
 
 - #
+
+!! should escape the hashes a heading's text ends with !!
+# foo ### 	###
+
+[expect]
+# foo \###
+
+!! should escape the hashes a setext heading's text ends with !!
+foo ###
+===
+
+[expect]
+# foo \###
+
+!! should read the hashes that close a heading as the closing sequence they are !!
+# foo ###
+
+[expect]
+# foo

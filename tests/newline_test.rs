@@ -45,3 +45,39 @@ fn test_non_breaking_spaces_with_whitespace() {
   let result = format_text("<foo>\u{a0} <foo>", &config, |_, _, _| Ok(None)).unwrap();
   assert_eq!(result.unwrap(), "<foo>\u{a0} <foo>\n");
 }
+
+#[test]
+fn test_carriage_return_written_on_its_own_ends_a_line() {
+  // markdown ends a line at a carriage return whether a newline follows it or
+  // not, so one on its own is a line ending rather than text
+  let config = ConfigurationBuilder::new().build();
+  for (input, expected) in [
+    ("a\r", "a\n"),
+    ("a\rb", "a\nb\n"),
+    ("a\r\r\n", "a\n"),
+    ("# a\rb\r", "# a\n\nb\n"),
+    ("- a\r- b\r", "- a\n- b\n"),
+    ("a  \r\r\nb", "a\n\nb\n"),
+  ] {
+    let result = format_text(input, &config, |_, _, _| Ok(None)).unwrap();
+    assert_eq!(result.unwrap(), expected, "for {:?}", input);
+  }
+}
+
+#[test]
+fn test_carriage_returns_settle_in_one_pass() {
+  let config = ConfigurationBuilder::new().build();
+  for input in [
+    "\r",
+    "a\r",
+    "- Foo\r\r\n---\r\r\n",
+    "  - foo\r\r\n\r\r\n    bar\r\n",
+    "``\r\r\nfoo\r\r\nbar  ``\r\r\n",
+  ] {
+    let once = format_text(input, &config, |_, _, _| Ok(None))
+      .unwrap()
+      .unwrap_or_else(|| input.to_string());
+    let twice = format_text(&once, &config, |_, _, _| Ok(None)).unwrap();
+    assert_eq!(twice, None, "for {:?}, which became {:?}", input, once);
+  }
+}
