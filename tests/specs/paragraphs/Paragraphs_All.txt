@@ -38,3 +38,17 @@ e&nbsp;&nbsp;
 &nbsp;&nbsp;&nbsp;c
 d&nbsp;&nbsp;
 e&nbsp;&nbsp;
+
+!! should keep a space that only looks like one !!
+a
+- 
+
+a|b
+-|- 
+
+[expect]
+a
+- 
+
+a|b
+-|- 

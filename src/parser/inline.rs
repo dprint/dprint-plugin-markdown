@@ -1,10 +1,10 @@
-// Inline parsing, the second of the parser's two phases.
-//
-// Block parsing hands each leaf block the lines that make up its content, and
-// this turns those into inline nodes. The content of a block isn't necessarily
-// contiguous in the source (ex. the lines of a paragraph in a block quote are
-// separated by `> ` prefixes), so it's presented to the parser as a flat view
-// by [`InlineText`], which maps back to the absolute positions the nodes need.
+//! Inline parsing, the second of the parser's two phases.
+//!
+//! Block parsing hands each leaf block the lines that make up its content, and
+//! this turns those into inline nodes. The content of a block isn't necessarily
+//! contiguous in the source (ex. the lines of a paragraph in a block quote are
+//! separated by `> ` prefixes), so it's presented to the parser as a flat view
+//! by [`InlineText`], which maps back to the absolute positions the nodes need.
 
 use std::borrow::Cow;
 use std::collections::HashSet;
@@ -871,14 +871,41 @@ fn is_mergeable_text(previous: &Text<'_>, node: &Node<'_>, source: &str) -> bool
 
 /// A code span's content has a space stripped off each end when it has one on
 /// both and isn't all spaces.
+/// Strips the space a code span pads its text with.
+///
+/// A reader takes one space off each end of a span that has one at both, which
+/// is how a span holds a backtick against its delimiter. A line ending counts
+/// as the space it is read as, since a span is written across lines only for
+/// the sake of the width of the file.
 fn strip_code_span_padding(code: Cow<'_, str>) -> Cow<'_, str> {
-  let has_padding = code.starts_with(' ') && code.ends_with(' ') && !code.trim_matches(' ').is_empty();
-  if !has_padding {
+  let (Some(open), Some(close)) = (leading_space_len(&code), trailing_space_len(&code)) else {
+    return code;
+  };
+  // a span of nothing but spaces is read as it is written
+  if code.trim_matches([' ', '\n', '\r']).is_empty() {
     return code;
   }
   match code {
-    Cow::Borrowed(text) => Cow::Borrowed(&text[1..text.len() - 1]),
-    Cow::Owned(text) => Cow::Owned(text[1..text.len() - 1].to_string()),
+    Cow::Borrowed(text) => Cow::Borrowed(&text[open..text.len() - close]),
+    Cow::Owned(text) => Cow::Owned(text[open..text.len() - close].to_string()),
+  }
+}
+
+/// The length of the one space a code span opens with, if it opens with one.
+fn leading_space_len(code: &str) -> Option<usize> {
+  match code {
+    _ if code.starts_with("\r\n") => Some(2),
+    _ if code.starts_with([' ', '\n', '\r']) => Some(1),
+    _ => None,
+  }
+}
+
+/// The length of the one space a code span ends with, if it ends with one.
+fn trailing_space_len(code: &str) -> Option<usize> {
+  match code {
+    _ if code.ends_with("\r\n") => Some(2),
+    _ if code.ends_with([' ', '\n', '\r']) => Some(1),
+    _ => None,
   }
 }
 

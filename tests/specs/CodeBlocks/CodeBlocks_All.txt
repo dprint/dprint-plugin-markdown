@@ -295,3 +295,29 @@ two
 - one
 
       two
+
+!! should keep a tab within a fence's info string !!
+```js	foo
+code
+```
+
+[expect]
+```js	foo
+code
+```
+
+!! should keep the width of a line of spaces within a code block in a list item !!
+1. x
+   ```js
+   a
+     
+   b
+   ```
+
+[expect]
+1. x
+   ```js
+   a
+     
+   b
+   ```

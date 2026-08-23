@@ -1,11 +1,11 @@
-// A markdown parser written for formatting rather than rendering.
-//
-// Unlike a parser that exists to produce html, this one accounts for every
-// byte of the source: nothing is normalized away, every node knows the exact
-// text it came from, and the constructs a renderer has no use for (ex. link
-// reference definitions) are nodes like any other. It borrows from the source
-// text wherever it can, only allocating for content that a container's line
-// prefixes split apart.
+//! A markdown parser written for formatting rather than rendering.
+//!
+//! Unlike a parser that exists to produce html, this one accounts for every
+//! byte of the source: nothing is normalized away, every node knows the exact
+//! text it came from, and the constructs a renderer has no use for (ex. link
+//! reference definitions) are nodes like any other. It borrows from the source
+//! text wherever it can, only allocating for content that a container's line
+//! prefixes split apart.
 
 mod ast;
 mod block;
@@ -25,6 +25,8 @@ use std::collections::HashSet;
 pub use ast::*;
 
 pub use block::starts_block_in_paragraph;
+pub use source::SPACES;
+pub use source::WHITESPACE;
 
 use block::BlockParser;
 use inline::InlineContext;
@@ -66,7 +68,7 @@ fn parse_metadata_block<'a>(source: &'a str, lines: &[ContentLine<'a>]) -> (Opti
   let Some(first) = lines.first() else {
     return (None, 0);
   };
-  let kind = match first.text.trim_end() {
+  let kind = match first.text.trim_end_matches(SPACES) {
     "---" => MetadataBlockKind::YamlStyle,
     "+++" => MetadataBlockKind::PlusesStyle,
     _ => return (None, 0),
@@ -78,13 +80,13 @@ fn parse_metadata_block<'a>(source: &'a str, lines: &[ContentLine<'a>]) -> (Opti
 
   // the block's first line can be neither blank nor its closing delimiter
   match lines.get(1) {
-    Some(line) if !line.is_blank() && !close.contains(&line.text.trim_end()) => {}
+    Some(line) if !line.is_blank() && !close.contains(&line.text.trim_end_matches(SPACES)) => {}
     _ => return (None, 0),
   }
 
   let Some(end) = lines[2..]
     .iter()
-    .position(|line| close.contains(&line.text.trim_end()))
+    .position(|line| close.contains(&line.text.trim_end_matches(SPACES)))
     .map(|index| index + 2)
   else {
     return (None, 0);

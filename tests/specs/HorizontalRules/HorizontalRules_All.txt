@@ -49,3 +49,21 @@ asdf
 - foo
 
   ---
+
+!! should use asterisks for a rule written under an item's paragraph !!
+- a
+  ***
+
+[expect]
+- a
+  ***
+
+!! should use dashes for a rule written under an item's paragraph with a blank line between !!
+- a
+
+  ***
+
+[expect]
+- a
+
+  ---

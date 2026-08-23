@@ -1,10 +1,10 @@
-// Block parsing, the first of the parser's two phases.
-//
-// A markdown document is a tree of blocks whose structure is decided entirely
-// by what prefixes each line, so this works line by line: it recognizes which
-// block a line starts, gathers up the lines that belong to it, strips off the
-// prefix the block contributes and recurses on what's left. Leaf blocks hand
-// the lines they gathered to [`super::inline`] to be turned into inline nodes.
+//! Block parsing, the first of the parser's two phases.
+//!
+//! A markdown document is a tree of blocks whose structure is decided entirely
+//! by what prefixes each line, so this works line by line: it recognizes which
+//! block a line starts, gathers up the lines that belong to it, strips off the
+//! prefix the block contributes and recurses on what's left. Leaf blocks hand
+//! the lines they gathered to [`super::inline`] to be turned into inline nodes.
 
 use std::borrow::Cow;
 
@@ -15,6 +15,7 @@ use super::inline::InlineText;
 use super::links;
 use super::source::join_lines;
 use super::source::ContentLine;
+use super::source::SPACES;
 
 /// The indentation at which a line becomes an indented code block.
 const CODE_INDENT: usize = 4;
@@ -33,7 +34,11 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         index += 1;
         continue;
       }
-      index = self.parse_block(lines, index, &mut nodes);
+      let end = self.parse_block(lines, index, &mut nodes);
+      // every block takes at least the line it starts on, and a block that took
+      // none would leave this reading the same line forever
+      debug_assert!(end > index, "no block was read at line {}", index);
+      index = end.max(index + 1);
     }
     nodes
   }
@@ -105,7 +110,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     let open_line = lines[index];
     let indent = open_line.indent_columns();
     let fence = code_fence(open_line.rest()).unwrap();
-    let info = open_line.rest()[fence.len..].trim();
+    let info = open_line.rest()[fence.len..].trim_matches(SPACES);
 
     let mut end = index + 1;
     let mut content_end = index + 1;
@@ -318,6 +323,9 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         if begins_blank && last_content == index + 1 {
           break;
         }
+        // a blank line carries the item's indentation as much as any other,
+        // and what's left of it is content of whatever block it falls within
+        let line = line.strip_columns(content_indent);
         paragraph.push(line);
         content.push(line);
         end += 1;
@@ -380,6 +388,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     while end < lines.len() {
       let line = lines[end];
       if line.is_blank() {
+        let line = line.strip_columns(CODE_INDENT);
         paragraph.push(line);
         content.push(line);
         end += 1;
@@ -428,14 +437,23 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     // the definitions a paragraph begins with are blocks of their own, and the
     // rest of it carries on as the paragraph they were taken from -- so what
     // follows them only starts a block of its own if it could have interrupted
-    // that paragraph
-    let index = self.push_link_reference_definitions(lines, index, nodes);
-    if index >= lines.len() || lines[index].is_blank() {
-      return index;
-    }
-    if lines[index].indent_columns() < CODE_INDENT && self.interrupts_paragraph(lines, index) {
-      return index;
-    }
+    // that paragraph. Nothing is looked at this way until a definition has been
+    // taken, since the line this was called with has to be read as a paragraph
+    // whatever it looks like -- leaving it for another block to read would
+    // leave it for this to be called with again
+    let after_definitions = self.push_link_reference_definitions(lines, index, nodes);
+    let index = if after_definitions == index {
+      index
+    } else {
+      if after_definitions >= lines.len() || lines[after_definitions].is_blank() {
+        return after_definitions;
+      }
+      if lines[after_definitions].indent_columns() < CODE_INDENT && self.interrupts_paragraph(lines, after_definitions)
+      {
+        return after_definitions;
+      }
+      after_definitions
+    };
 
     let mut content = vec![lines[index]];
     let mut end = index + 1;
@@ -688,6 +706,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     while end < lines.len() {
       let line = lines[end];
       if line.is_blank() {
+        let line = line.strip_columns(content_indent);
         paragraph.push(line);
         content.push(line);
         end += 1;
@@ -774,7 +793,9 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       // a list item only interrupts a paragraph when it isn't empty, and an
       // ordered one has to start at 1
       Some(_) => match list_marker(rest) {
-        Some(marker) => !rest[marker.len..].trim().is_empty() && (!marker.is_ordered || marker.start_index == 1),
+        Some(marker) => {
+          !rest[marker.len..].trim_matches(SPACES).is_empty() && (!marker.is_ordered || marker.start_index == 1)
+        }
         None => false,
       },
     }
@@ -824,7 +845,9 @@ pub fn starts_block_in_paragraph(text: &str) -> bool {
     // a row of dashes and pipes turns the line above it into a table's header
     Some(_) if is_table_delimiter_shape(text) => true,
     Some(_) => match list_marker(text) {
-      Some(marker) => !text[marker.len..].trim().is_empty() && (!marker.is_ordered || marker.start_index == 1),
+      Some(marker) => {
+        !text[marker.len..].trim_matches(SPACES).is_empty() && (!marker.is_ordered || marker.start_index == 1)
+      }
       None => false,
     },
   }
@@ -833,9 +856,7 @@ pub fn starts_block_in_paragraph(text: &str) -> bool {
 /// Whether the text is made of the characters a table's delimiter row is, which
 /// is what it takes for the line above it to become a header.
 fn is_table_delimiter_shape(text: &str) -> bool {
-  text.contains('-')
-    && has_unescaped_pipe(text)
-    && text.bytes().all(|b| matches!(b, b'-' | b':' | b'|' | b' ' | b'\t'))
+  text.contains('-') && has_unescaped_pipe(text) && text.bytes().all(|b| matches!(b, b'-' | b':' | b'|' | b' ' | b'\t'))
 }
 
 // ==== block recognition ====
@@ -847,7 +868,7 @@ fn atx_heading_level(text: &str) -> Option<u8> {
 }
 
 fn setext_heading_level(text: &str) -> Option<u8> {
-  let text = text.trim_end();
+  let text = text.trim_end_matches(SPACES);
   let first = text.as_bytes().first()?;
   if !matches!(first, b'=' | b'-') || !text.bytes().all(|b| b == *first) {
     return None;
@@ -1041,7 +1062,7 @@ fn is_closing_fence(line: ContentLine<'_>, fence: &CodeFenceInfo) -> bool {
   }
   let rest = line.rest();
   let len = rest.bytes().take_while(|b| *b as char == fence.char).count();
-  len >= fence.len && rest[len..].trim().is_empty()
+  len >= fence.len && rest[len..].trim_matches(SPACES).is_empty()
 }
 
 struct ListMarker {
@@ -1169,7 +1190,7 @@ fn html_block_kind(text: &str, interrupting: bool) -> Option<HtmlBlockKind> {
   let end = links::match_html_tag(&line, 0)?;
   line
     .str_between(end, line.len())
-    .trim()
+    .trim_matches(SPACES)
     .is_empty()
     .then_some(HtmlBlockKind::BlankLine)
 }
@@ -1285,7 +1306,7 @@ fn table_cell_ranges(text: &str) -> Vec<(usize, usize)> {
     }
   }
 
-  let trailing = text[start.min(text.len())..].trim();
+  let trailing = text[start.min(text.len())..].trim_matches(SPACES);
   if !trailing.is_empty() {
     ranges.push((start, text.len()));
   }
@@ -1324,7 +1345,7 @@ fn table_delimiter_row(text: &str, header: &str) -> Option<Vec<ColumnAlignment>>
 
   let mut alignments = Vec::with_capacity(cells.len());
   for (start, end) in cells {
-    let cell = text[start..end].trim();
+    let cell = text[start..end].trim_matches(SPACES);
     let left = cell.starts_with(':');
     let right = cell.ends_with(':');
     let dashes = cell.trim_matches(':');

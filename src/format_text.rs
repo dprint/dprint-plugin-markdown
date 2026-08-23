@@ -50,7 +50,7 @@ fn format_text_inner(
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
   let file_text = strip_bom(file_text);
-  let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
+  let (source_file, markdown_text) = match parse_source_file(file_text, config) {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
   };
@@ -73,7 +73,7 @@ pub fn trace_file(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> dprint_core::formatting::TracingResult {
-  let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
+  let (source_file, markdown_text) = match parse_source_file(file_text, config) {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
     ParseFileResult::SourceFile(file) => file,
   };
@@ -98,16 +98,13 @@ enum ParseFileResult<'a> {
   SourceFile((crate::generation::common::SourceFile<'a>, &'a str)),
 }
 
-fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
+fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> ParseFileResult<'a> {
   // check for the presence of a dprint-ignore-file comment before parsing
   if file_has_ignore_file_directive(strip_metadata_header(file_text), &config.ignore_file_directive) {
-    return Ok(ParseFileResult::IgnoreFile);
+    return ParseFileResult::IgnoreFile;
   }
 
-  Ok(ParseFileResult::SourceFile((
-    crate::parser::parse(file_text),
-    file_text,
-  )))
+  ParseFileResult::SourceFile((crate::parser::parse(file_text), file_text))
 }
 
 fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOptions {

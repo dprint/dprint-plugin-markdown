@@ -1,10 +1,10 @@
-// The line oriented view of the source text that block parsing works over.
-//
-// Markdown's block structure is defined by what prefixes a line (ex. the `> `
-// of a block quote or the indentation of a list item), so the parser works
-// with lines that have had the prefixes of their surrounding containers
-// stripped off. A [`ContentLine`] is such a line: it borrows the remainder of
-// a source line and remembers where it came from so that spans stay accurate.
+//! The line oriented view of the source text that block parsing works over.
+//!
+//! Markdown's block structure is defined by what prefixes a line (ex. the `> `
+//! of a block quote or the indentation of a list item), so the parser works
+//! with lines that have had the prefixes of their surrounding containers
+//! stripped off. A [`ContentLine`] is such a line: it borrows the remainder of
+//! a source line and remembers where it came from so that spans stay accurate.
 
 use std::borrow::Cow;
 
@@ -12,6 +12,18 @@ use super::ast::Span;
 
 /// The width of a tab stop, which indentation is measured against.
 const TAB_STOP: usize = 4;
+
+/// The whitespace markdown's blocks are written with.
+///
+/// Only these: a character that merely looks like a space, such as a
+/// non-breaking one, is text of the document rather than whitespace, so
+/// trimming with anything that knows about unicode would eat it.
+pub const SPACES: [char; 2] = [' ', '\t'];
+
+/// The whitespace markdown is written with, line endings included.
+///
+/// Only these, for the reason [`SPACES`] gives.
+pub const WHITESPACE: [char; 4] = [' ', '\t', '\n', '\r'];
 
 /// A line of content with the prefixes of its surrounding containers removed.
 #[derive(Debug, Clone, Copy)]

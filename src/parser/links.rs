@@ -1,15 +1,16 @@
-// The pieces of markdown syntax that both phases of the parser need to match:
-// link labels, destinations and titles, autolinks and raw html.
-//
-// They all work over the flat [`InlineText`] view of a block's content, which
-// is what the inline phase parses and what the block phase builds in order to
-// look for the link reference definitions at the start of a paragraph.
+//! The pieces of markdown syntax that both phases of the parser need to match:
+//! link labels, destinations and titles, autolinks and raw html.
+//!
+//! They all work over the flat [`InlineText`] view of a block's content, which
+//! is what the inline phase parses and what the block phase builds in order to
+//! look for the link reference definitions at the start of a paragraph.
 
 use std::borrow::Cow;
 use std::collections::HashSet;
 
 use super::ast::*;
 use super::inline::InlineText;
+use super::source::WHITESPACE;
 
 /// What a `]` turned out to close.
 pub struct Reference<'a> {
@@ -58,7 +59,7 @@ pub fn match_reference<'a>(
 
   if text.byte(after_close) == Some(b'[') {
     if let Some((end, label)) = match_label(text, after_close) {
-      if label.trim().is_empty() {
+      if label.trim_matches(WHITESPACE).is_empty() {
         // ex. `[name][]`
         let name = text.slice(content_start, close_start);
         return labels.contains(&normalize_label(&name)).then_some(Reference {
@@ -212,7 +213,7 @@ pub fn match_title<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Co
 pub fn match_link_reference_definition<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, LinkReference<'a>)> {
   let start = skip_spaces(text, start);
   let (after_label, label) = match_label(text, start)?;
-  if label.trim().is_empty() || label.starts_with('^') {
+  if label.trim_matches(WHITESPACE).is_empty() || label.starts_with('^') {
     return None;
   }
   if text.byte(after_label) != Some(b':') {
@@ -258,8 +259,8 @@ pub fn match_link_reference_definition<'a>(text: &InlineText<'a>, start: usize) 
 pub fn normalize_label(label: &str) -> String {
   let mut result = String::with_capacity(label.len());
   let mut had_whitespace = false;
-  for c in label.trim().chars() {
-    if c.is_whitespace() {
+  for c in label.trim_matches(WHITESPACE).chars() {
+    if WHITESPACE.contains(&c) {
       had_whitespace = true;
       continue;
     }

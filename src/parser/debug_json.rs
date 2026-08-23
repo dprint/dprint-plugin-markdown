@@ -1,4 +1,4 @@
-// Serializes the AST to json so that the parser's spec tests can assert on it.
+//! Serializes the AST to json so that the parser's spec tests can assert on it.
 
 use super::ast::*;
 

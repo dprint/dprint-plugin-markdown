@@ -74,3 +74,35 @@ Testing `a    b` out.
 
 [expect]
 > `a     > b` c
+
+!! should keep the space a code span opens with !!
+` foo`
+
+[expect]
+` foo`
+
+!! should keep the space a code span ends with !!
+`foo `
+
+[expect]
+`foo `
+
+!! should keep the spaces a code span is written around !!
+`  foo  `
+
+[expect]
+`  foo  `
+
+!! should keep a space that only looks like one within a code span !!
+` b `
+
+[expect]
+` b `
+
+!! should read the line endings a code span is written across as the spaces they stand for !!
+``
+foo
+``
+
+[expect]
+`foo`

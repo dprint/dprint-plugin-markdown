@@ -1,10 +1,10 @@
-// The markdown AST produced by [`crate::parser::parse`].
-//
-// Every node borrows from the source text and carries the exact byte [`Span`]
-// it was parsed from, so the formatter can always fall back to the original
-// text. Nodes only allocate when their content isn't a contiguous slice of the
-// source, which happens when a container's line prefixes (ex. the `> ` of a
-// block quote) had to be stripped out of the middle of it.
+//! The markdown AST produced by [`crate::parser::parse`].
+//!
+//! Every node borrows from the source text and carries the exact byte [`Span`]
+//! it was parsed from, so the formatter can always fall back to the original
+//! text. Nodes only allocate when their content isn't a contiguous slice of the
+//! source, which happens when a container's line prefixes (ex. the `> ` of a
+//! block quote) had to be stripped out of the middle of it.
 
 use std::borrow::Cow;
 
@@ -27,10 +27,6 @@ impl Span {
 
   pub fn len(&self) -> usize {
     self.end - self.start
-  }
-
-  pub fn is_empty(&self) -> bool {
-    self.start == self.end
   }
 }
 

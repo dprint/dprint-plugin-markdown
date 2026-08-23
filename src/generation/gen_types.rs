@@ -59,6 +59,8 @@ pub struct Context<'a> {
   text_wrap_disabled_count: u32,
   decorations_preserved_count: u32,
   enclosing_decoration: Option<Span>,
+  /// The delimiter each text decoration is written with, by where it starts.
+  decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The character the list item being generated is marked with.
   list_marker_char: Option<char>,
   /// Whether the indentation of the list item being generated lines up with
@@ -104,6 +106,7 @@ impl<'a> Context<'a> {
       text_wrap_disabled_count: 0,
       decorations_preserved_count: 0,
       enclosing_decoration: None,
+      decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker_char: None,
       list_marker_lines_up: true,
       next_position: NodePosition::default(),
@@ -142,7 +145,9 @@ impl<'a> Context<'a> {
       let path = items.into_rc_path();
       self.memoized_rc_paths.insert(kind, path);
       if let Some(path) = path {
-        self.memoized_rc_path_indents.insert(path as *const _ as usize, kind.indent_delta());
+        self
+          .memoized_rc_path_indents
+          .insert(path as *const _ as usize, kind.indent_delta());
       }
       path
     }
@@ -281,6 +286,21 @@ impl<'a> Context<'a> {
 
   pub fn enclosing_decoration(&self) -> Option<Span> {
     self.enclosing_decoration
+  }
+
+  /// The delimiter the decoration starting at `start` is written with, worked
+  /// out once and kept.
+  ///
+  /// What one decoration is written with depends on what the ones nested in it
+  /// are, so this is what keeps a deeply nested run of them from being worked
+  /// out over and over.
+  pub fn decoration_delimiter(&self, start: usize, resolve: impl FnOnce() -> &'static str) -> &'static str {
+    if let Some(delimiter) = self.decoration_delimiters.borrow().get(&start) {
+      return delimiter;
+    }
+    let delimiter = resolve();
+    self.decoration_delimiters.borrow_mut().insert(start, delimiter);
+    delimiter
   }
 
   pub fn is_preserving_decorations(&self) -> bool {

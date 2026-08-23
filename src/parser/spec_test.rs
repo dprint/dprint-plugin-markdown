@@ -1,32 +1,40 @@
-// Runs the parser's spec tests, which pair markdown text with the json of the
-// ast it should parse into.
-//
-// The files live under `tests/parser_specs` and hold any number of cases:
-//
-// ```
-// [[test]] a name for the case
-// # some markdown
-// [[ast]]
-// { ...the expected ast... }
-// ```
-//
-// A case written as `[[test:crlf]]` has its line endings turned into `\r\n`
-// before it's parsed, since the files themselves are kept with `\n` endings.
-//
-// Every case is also checked against the invariants an ast holds whatever the
-// expectation says: see [`validate_spans`].
-//
-// Set `UPDATE=1` to rewrite the files with what the parser currently produces,
-// which is how a new case is filled in. Always read the result before
-// committing it.
+//! Runs the parser's spec tests, which pair markdown text with the json of the
+//! ast it should parse into.
+//!
+//! The files live under `tests/parser_specs` and hold any number of cases:
+//!
+//! ```
+//! [[test]] a name for the case
+//! # some markdown
+//! [[ast]]
+//! { ...the expected ast... }
+//! ```
+//!
+//! A case written as `[[test:crlf]]` has its line endings turned into `\r\n`
+//! before it's parsed, since the files themselves are kept with `\n` endings.
+//!
+//! Every case is also checked against the invariants an ast holds whatever the
+//! expectation says: that its nodes sit within one another in order (see
+//! [`validate_spans`]) and that it holds every bit of the text they were parsed
+//! from (see [`validate_text_coverage`]).
+//!
+//! Set `UPDATE=1` to rewrite the files with what the parser currently produces,
+//! which is how a new case is filled in. Always read the result before
+//! committing it.
+//!
+//! Set `COVERAGE_CORPUS=<dir>` to also check the text coverage invariant
+//! against every `.md` file under a directory, which is how a body of real
+//! markdown is swept for text the parser drops.
 
 use std::path::Path;
 use std::path::PathBuf;
 
 use super::ast::Node;
-use super::ast::SourceFile;
 use super::ast::Ranged;
+use super::ast::SourceFile;
 use super::ast::Span;
+use super::ast::TableCell;
+use super::ast::TaskListMarker;
 use super::debug_json::to_json;
 
 #[test]
@@ -86,11 +94,16 @@ fn spec_tests() {
         continue;
       };
       if let Err(message) = validate_text_coverage(&super::parse(&source), &source) {
-        failures.push(format!("{}
-  {}", path.display(), message));
+        failures.push(format!(
+          "{}
+  {}",
+          path.display(),
+          message
+        ));
       }
     }
-    eprintln!("checked {} corpus files", files.len());
+    use std::io::Write;
+    writeln!(std::io::stderr(), "checked {} corpus files", files.len()).unwrap();
   }
 
   assert!(count > 0, "no parser spec tests were found");
@@ -169,101 +182,172 @@ fn validate_spans(nodes: &[&Node<'_>], parent: Span, source: &str) -> Result<(),
 /// Checks that the ast holds every bit of the source that isn't markup, which
 /// is what makes formatting from it lossless.
 ///
-/// Every character a node covers that none of its children do has to be part of
-/// how the node itself is written, and nothing markdown is written with is
-/// alphanumeric -- apart from the few places [`markup_spans`] lists. So an
-/// alphanumeric character in the gap between two children is text that was read
-/// and then dropped.
+/// Markdown is written with punctuation, so the letters and digits of a node's
+/// span are its text and nothing else -- apart from a list item's number, a
+/// task list marker, a fence's info string and a footnote's name, which the
+/// nodes that are written with them report as their own. Reading the text back
+/// out of a node has to give exactly what its span holds: anything missing was
+/// read and then dropped, and anything extra was read twice.
 pub fn validate_text_coverage(file: &SourceFile<'_>, source: &str) -> Result<(), String> {
-  let children: Vec<&Node<'_>> = file.children.iter().collect();
-  check_gaps("SourceFile", file.span, &children, &[], source)?;
-  for child in children {
+  // the file's own span may sit within the source, but only whitespace can be
+  // outside of it
+  let outside = written_letters(&source[..file.span.start]) + &written_letters(&source[file.span.end..]);
+  if !outside.is_empty() {
+    return Err(format!(
+      "SourceFile at {:?} leaves the text {:?} of {:?} outside the ast",
+      file.span, outside, source,
+    ));
+  }
+  let held = children_content(&file.children, source);
+  compare("SourceFile", file.span, &held, source)?;
+  for child in &file.children {
     visit(child, source)?;
   }
   return Ok(());
 
   fn visit(node: &Node<'_>, source: &str) -> Result<(), String> {
-    let children = child_nodes(node);
-    if !children.is_empty() && !holds_its_own_text(node) {
-      let label = format!("{:?}", node.kind());
-      check_gaps(&label, node.span(), &children, &markup_spans(node), source)?;
-    }
-    for child in children {
+    compare(
+      &format!("{:?}", node.kind()),
+      node.span(),
+      &content(node, source),
+      source,
+    )?;
+    for child in child_nodes(node) {
       visit(child, source)?;
     }
     Ok(())
   }
 
-  fn check_gaps(
-    label: &str,
-    span: Span,
-    children: &[&Node<'_>],
-    allowed: &[Span],
-    source: &str,
-  ) -> Result<(), String> {
-    let mut position = span.start;
-    for child in children {
-      check_gap(label, span, position, child.span().start, allowed, source)?;
-      position = child.span().end;
-    }
-    check_gap(label, span, position, span.end, allowed, source)
-  }
-
-  fn check_gap(
-    label: &str,
-    span: Span,
-    from: usize,
-    to: usize,
-    allowed: &[Span],
-    source: &str,
-  ) -> Result<(), String> {
-    if from >= to {
+  fn compare(label: &str, span: Span, held: &str, source: &str) -> Result<(), String> {
+    let written = written_letters(&source[span.start..span.end]);
+    if written == held {
       return Ok(());
     }
-    for (offset, character) in source[from..to].char_indices() {
-      let position = from + offset;
-      if !character.is_alphanumeric() || allowed.iter().any(|span| span.start <= position && position < span.end) {
-        continue;
-      }
-      return Err(format!(
-        "{} at {:?} drops the text at {}: {:?}",
-        label,
-        span,
-        position,
-        &source[from..to],
-      ));
-    }
-    Ok(())
+    Err(format!(
+      "{} at {:?} holds {:?} of the {:?} written at {:?}",
+      label,
+      span,
+      held,
+      written,
+      &source[span.start..span.end],
+    ))
   }
 
-  /// Whether the node keeps text of its own outside of its children, which
-  /// leaves alphanumeric characters between them (ex. the url of an inline
-  /// link, which follows the text it is written under).
-  fn holds_its_own_text(node: &Node<'_>) -> bool {
-    matches!(node, Node::InlineLink(_) | Node::ReferenceLink(_))
-  }
-
-  /// The places within a node where markdown is written with alphanumeric
-  /// characters, which are markup rather than text the ast has to hold.
-  fn markup_spans(node: &Node<'_>) -> Vec<Span> {
+  /// What a node holds of the source, as the letters and digits of it in the
+  /// order they are written.
+  fn content(node: &Node<'_>, source: &str) -> String {
     match node {
-      // a list item is marked with `1.` as much as with `-`, and either may be
-      // followed by the `[x]` of a task list
-      Node::Item(item) => {
-        let mut spans = vec![item.marker_span];
-        spans.extend(item.marker.as_ref().map(|marker| marker.span));
-        spans
+      Node::Text(text) => written_letters(text.text),
+      Node::Code(code) => written_letters(&code.code),
+      Node::Html(html) => written_letters(&html.text),
+      Node::DisplayMath(math) => written_letters(&math.text),
+      Node::InlineMath(math) => written_letters(&math.text),
+      Node::MetadataBlock(block) => written_letters(block.text),
+      // a fenced code block names the language it is written in
+      Node::CodeBlock(block) => {
+        let info = block.fence.as_ref().and_then(|fence| fence.info).unwrap_or("");
+        written_letters(info) + &written_letters(&block.code)
       }
-      // a paragraph carries the task list marker of the item it opens
-      Node::Paragraph(paragraph) => paragraph.marker.as_ref().map(|marker| marker.span).into_iter().collect(),
-      // a footnote definition is written under the name it is referred to by,
-      // which runs from its start up to the content that follows
-      Node::FootnoteDefinition(definition) => match definition.children.first() {
-        Some(child) => vec![Span::new(definition.span.start, child.span().start)],
-        None => vec![definition.span],
-      },
-      _ => Vec::new(),
+      // a footnote is written under the name it is referred to by
+      Node::FootnoteReference(reference) => written_letters(reference.name),
+      Node::FootnoteDefinition(definition) => {
+        written_letters(definition.name) + &children_content(&definition.children, source)
+      }
+      // a link is written as the text it is under, then as where it points
+      Node::InlineLink(link) => {
+        children_content(&link.children, source) + &written_letters(&link.url) + &title_content(&link.title)
+      }
+      Node::ReferenceLink(link) => {
+        children_content(&link.children, source) + &reference_content(&link.reference, link.span, source)
+      }
+      Node::LinkReference(reference) => {
+        written_letters(&reference.name) + &written_letters(&reference.link) + &title_content(&reference.title)
+      }
+      Node::InlineImage(image) => {
+        written_letters(&image.text) + &written_letters(&image.url) + &title_content(&image.title)
+      }
+      Node::ReferenceImage(image) => {
+        written_letters(&image.text) + &reference_content(&image.reference, image.span, source)
+      }
+      Node::ShortcutImage(image) => written_letters(&image.text),
+      // an item is written after a marker that may hold a number, and may open
+      // with the marker of a task list
+      Node::Item(item) => {
+        written_letters(&source[item.marker_span.start..item.marker_span.end])
+          + &marker_content(&item.marker)
+          + &children_content(&item.children, source)
+          + &children_content(&item.sub_lists, source)
+      }
+      Node::Paragraph(paragraph) => marker_content(&paragraph.marker) + &children_content(&paragraph.children, source),
+      Node::TaskListMarker(marker) => checked_content(marker.is_checked),
+      Node::Table(table) => {
+        let cells = |cells: &[TableCell<'_>]| {
+          cells
+            .iter()
+            .map(|cell| children_content(&cell.children, source))
+            .collect::<String>()
+        };
+        cells(&table.header.cells) + &table.rows.iter().map(|row| cells(&row.cells)).collect::<String>()
+      }
+      node => children_content(node.children(), source),
     }
+  }
+
+  fn children_content(nodes: &[Node<'_>], source: &str) -> String {
+    nodes.iter().map(|node| content(node, source)).collect()
+  }
+
+  fn title_content(title: &Option<std::borrow::Cow<'_, str>>) -> String {
+    written_letters(title.as_deref().unwrap_or(""))
+  }
+
+  /// The label a reference link or image points at, which is only written out
+  /// where it isn't the text the link is already under.
+  fn reference_content(reference: &str, span: Span, source: &str) -> String {
+    match has_empty_label(&source[span.start..span.end]) {
+      true => String::new(),
+      false => written_letters(reference),
+    }
+  }
+
+  /// Whether the link or image is written with an empty label, which points it
+  /// at the text it is already under.
+  fn has_empty_label(text: &str) -> bool {
+    let Some(rest) = text.strip_suffix("[]") else {
+      return false;
+    };
+    // a label written as `[a\[]` ends with a bracket of its own rather than an
+    // empty one
+    let backslashes = rest.len() - rest.trim_end_matches('\\').len();
+    backslashes % 2 == 0
+  }
+
+  /// A task list marker is written as `[x]` when it is checked off, and the `x`
+  /// is the only letter markdown's markup is written with.
+  fn marker_content(marker: &Option<TaskListMarker>) -> String {
+    checked_content(marker.as_ref().is_some_and(|marker| marker.is_checked))
+  }
+
+  fn checked_content(is_checked: bool) -> String {
+    match is_checked {
+      true => String::from("x"),
+      false => String::new(),
+    }
+  }
+
+  /// The text of the source that is content rather than markup, in the order it
+  /// is written.
+  ///
+  /// Markdown is written entirely in ascii punctuation, so a letter, a digit or
+  /// anything outside of ascii is content -- including the spaces that only
+  /// look like whitespace, such as a non-breaking one, which markdown reads as
+  /// the text it is.
+  fn written_letters(text: &str) -> String {
+    text
+      .chars()
+      .filter(|c| c.is_alphanumeric() || !c.is_ascii())
+      .flat_map(|c| c.to_lowercase())
+      .collect()
   }
 }
 

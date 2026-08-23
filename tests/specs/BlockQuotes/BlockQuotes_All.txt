@@ -62,3 +62,9 @@
 [expect]
 > <a
 > 	b>
+
+!! should keep indented code within nested block quotes !!
+>>     a
+
+[expect]
+>>     a
