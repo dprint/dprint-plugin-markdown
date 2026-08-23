@@ -144,6 +144,17 @@
         "description": "Removes the blank lines at the start and end of a fenced code block."
       }]
     },
+    "codeBlock.useTabs": {
+      "description": "Whether the plugin that formats the code within a code block should use tabs, overriding that plugin's own `useTabs` configuration. When not specified, that plugin's configuration is left alone.",
+      "type": "boolean",
+      "oneOf": [{
+        "const": true,
+        "description": "Formats the code within a code block using tabs."
+      }, {
+        "const": false,
+        "description": "Formats the code within a code block using spaces."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -199,6 +210,9 @@
     },
     "codeBlock.preserveBlankLines": {
       "$ref": "#/definitions/codeBlock.preserveBlankLines"
+    },
+    "codeBlock.useTabs": {
+      "$ref": "#/definitions/codeBlock.useTabs"
     },
     "deno": {
       "$ref": "#/definitions/deno"

@@ -24,6 +24,10 @@ pub struct Configuration {
   pub code_block_preserve_indentation: bool,
   #[serde(rename = "codeBlock.preserveBlankLines")]
   pub code_block_preserve_blank_lines: bool,
+  /// Whether to override the `useTabs` configuration of the plugin that
+  /// formats the code within a code block. `None` leaves it to that plugin.
+  #[serde(rename = "codeBlock.useTabs")]
+  pub code_block_use_tabs: Option<bool>,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,

@@ -118,6 +118,13 @@ impl ConfigurationBuilder {
     self.insert("codeBlock.preserveBlankLines", value.into())
   }
 
+  /// Whether the plugin that formats the code within a code block should use
+  /// tabs, overriding that plugin's own `useTabs` configuration.
+  /// Default: not overridden
+  pub fn code_block_use_tabs(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.useTabs", value.into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -185,13 +192,14 @@ mod tests {
       .code_block_skip_format(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
+      .code_block_use_tabs(true)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 16);
+    assert_eq!(inner_config.len(), 17);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -216,6 +224,18 @@ mod tests {
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
+  }
+
+  #[test]
+  fn code_block_use_tabs_only_set_when_specified() {
+    let config = ConfigurationBuilder::new().build();
+    assert_eq!(config.code_block_use_tabs, None);
+
+    let config = ConfigurationBuilder::new().code_block_use_tabs(true).build();
+    assert_eq!(config.code_block_use_tabs, Some(true));
+
+    let config = ConfigurationBuilder::new().code_block_use_tabs(false).build();
+    assert_eq!(config.code_block_use_tabs, Some(false));
   }
 
   #[test]
