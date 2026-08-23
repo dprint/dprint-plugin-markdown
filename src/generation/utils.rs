@@ -80,46 +80,35 @@ pub fn forbids_line_break_after(c: char) -> bool {
   )
 }
 
-/// Checks if the provided word would start a new block when it appears at the
-/// start of a line (ex. a list item, block quote, heading, thematic break, or
-/// code fence). Such a word can't be moved to the start of a line by wrapping
-/// without changing the meaning of the document.
-/// Assumes the provided string is one word and doesn't have whitespace.
-pub fn is_block_start_word(word: &str) -> bool {
-  if is_list_word(word) {
-    return true;
-  }
+/// Whether the text would start a block of its own, or turn the line above it
+/// into one, if it were moved to the start of a line. Such text can't be moved
+/// there by wrapping without changing what the document means.
+///
+/// Takes the text from the word that would begin the line through to the end
+/// of it, since what starts a block is decided by the whole line: `1.` opens a
+/// list only when something follows it, and `|-|` turns the line above it into
+/// a table header only in its entirety.
+///
+/// `word_can_be_left_alone` says whether the text after the first word can be
+/// wrapped onto the line below and leave that word by itself, which is what
+/// makes what the word would start on its own count as well. Where text isn't
+/// being wrapped it can't, and holding the word back would only join lines the
+/// document was written with.
+pub fn starts_block_at_line_start(line_text: &str, word_can_be_left_alone: bool) -> bool {
+  let leading_word = line_text.split(' ').next().unwrap_or(line_text);
+  word_can_be_left_alone && crate::parser::starts_block_in_paragraph(leading_word)
+    || crate::parser::starts_block_in_paragraph(line_text)
+}
 
-  // block quote (ex. >, >>, >text)
-  if word.starts_with('>') {
-    return true;
-  }
-
-  // definition list marker, which is a `:` followed by whitespace
-  if word == ":" {
-    return true;
-  }
-
-  // atx heading (ex. #, ###) -- only when nothing follows the hashes,
-  // since #text isn't a heading
-  let hash_count = word.chars().take_while(|c| *c == '#').count();
-  if hash_count > 0 && hash_count <= 6 && word.len() == hash_count {
-    return true;
-  }
-
-  // setext heading underline (ex. =, ===), which would turn the previous
-  // line into a heading
-  if !word.is_empty() && word.chars().all(|c| c == '=') {
-    return true;
-  }
-
-  // thematic break or code fence (ex. ---, ***, ___, ~~~ and three backticks)
-  match word.chars().next() {
-    Some(c) if matches!(c, '-' | '*' | '_' | '`' | '~') => {
-      word.chars().count() >= 3 && word.chars().all(|other| other == c)
-    }
-    _ => false,
-  }
+/// Whether the text would start a block of its own if the word that begins it
+/// were moved to the start of a line by wrapping.
+///
+/// A word that would become a list marker counts as well as what
+/// [`starts_block_at_line_start`] finds, since the text that wraps onto the
+/// line after the marker is what would turn it into a real one.
+pub fn wrapping_word_starts_block(line_text: &str, word_can_be_left_alone: bool) -> bool {
+  let leading_word = line_text.split(' ').next().unwrap_or(line_text);
+  is_list_word(leading_word) || starts_block_at_line_start(line_text, word_can_be_left_alone)
 }
 
 /// Checks if the provided word is a word that could be a list.
@@ -324,27 +313,50 @@ mod test {
   }
 
   #[test]
-  fn it_should_find_block_start_words() {
-    assert_eq!(is_block_start_word("test"), false);
-    assert_eq!(is_block_start_word("-"), true);
-    assert_eq!(is_block_start_word("1."), true);
-    assert_eq!(is_block_start_word(">"), true);
-    assert_eq!(is_block_start_word(">text"), true);
-    assert_eq!(is_block_start_word("#"), true);
-    assert_eq!(is_block_start_word("######"), true);
-    assert_eq!(is_block_start_word("#######"), false);
-    assert_eq!(is_block_start_word("#text"), false);
-    assert_eq!(is_block_start_word("="), true);
-    assert_eq!(is_block_start_word("==="), true);
-    assert_eq!(is_block_start_word("=text"), false);
-    assert_eq!(is_block_start_word("---"), true);
-    assert_eq!(is_block_start_word("***"), true);
-    assert_eq!(is_block_start_word("___"), true);
-    assert_eq!(is_block_start_word("~~~"), true);
-    assert_eq!(is_block_start_word("```"), true);
-    assert_eq!(is_block_start_word("--"), false);
-    assert_eq!(is_block_start_word("~~"), false);
-    assert_eq!(is_block_start_word("---a"), false);
+  fn it_should_find_text_that_starts_a_block_at_a_line_start() {
+    assert_eq!(starts_block_at_line_start("test", true), false);
+    assert_eq!(wrapping_word_starts_block("-", true), true);
+    assert_eq!(wrapping_word_starts_block("1.", true), true);
+    assert_eq!(starts_block_at_line_start(">", true), true);
+    assert_eq!(starts_block_at_line_start(">text", true), true);
+    assert_eq!(starts_block_at_line_start("#", true), true);
+    assert_eq!(starts_block_at_line_start("######", true), true);
+    assert_eq!(starts_block_at_line_start("#######", true), false);
+    assert_eq!(starts_block_at_line_start("#text", true), false);
+    assert_eq!(starts_block_at_line_start("=", true), true);
+    assert_eq!(starts_block_at_line_start("===", true), true);
+    assert_eq!(starts_block_at_line_start("=text", true), false);
+    assert_eq!(starts_block_at_line_start("---", true), true);
+    assert_eq!(starts_block_at_line_start("***", true), true);
+    assert_eq!(starts_block_at_line_start("___", true), true);
+    assert_eq!(starts_block_at_line_start("~~~", true), true);
+    assert_eq!(starts_block_at_line_start("```", true), true);
+    assert_eq!(starts_block_at_line_start("~~", true), false);
+    assert_eq!(starts_block_at_line_start("---a", true), false);
+    // two dashes underline the line above into a heading
+    assert_eq!(starts_block_at_line_start("--", true), true);
+    // html, a footnote definition, and a table's delimiter row
+    assert_eq!(starts_block_at_line_start("<div>", true), true);
+    assert_eq!(starts_block_at_line_start("<!-- x -->", true), true);
+    assert_eq!(starts_block_at_line_start("[^note]:", true), true);
+    assert_eq!(starts_block_at_line_start("|---|", true), true);
+    // the word decides it even where the rest of the line reads as text, since
+    // that text can wrap onto the line below and leave the word alone
+    assert_eq!(starts_block_at_line_start("-- text", true), true);
+    assert_eq!(starts_block_at_line_start("--- text", true), true);
+    assert_eq!(starts_block_at_line_start("text --", true), false);
+    // a list marker is only a marker once text follows it on the line, so it
+    // counts for a word that wrapping would move but not for a node that
+    // already begins a line
+    assert_eq!(starts_block_at_line_start("40.", true), false);
+    assert_eq!(wrapping_word_starts_block("40.", true), true);
+    assert_eq!(starts_block_at_line_start("6. Test", true), false);
+    assert_eq!(wrapping_word_starts_block("6. Test", true), true);
+    // where the text after the word can't be wrapped away the word is never
+    // left alone, so only what the whole line starts counts
+    assert_eq!(starts_block_at_line_start("-- text", false), false);
+    assert_eq!(starts_block_at_line_start("--", false), true);
+    assert_eq!(starts_block_at_line_start("=== not a heading", false), false);
   }
 
   #[test]
