@@ -1895,6 +1895,10 @@ fn gen_hard_break(context: &mut Context) -> PrintItems {
   /// The two spaces a double space hard break leaves behind, measured as zero
   /// columns because trailing whitespace isn't visible.
   const DOUBLE_SPACE: StringContainer = StringContainer::proc_macro_new_with_char_count("  ", 0);
+  /// Stands in for the text a hard break writes, which is otherwise hidden
+  /// within a condition where nothing rewriting the line can see it (ex. a
+  /// block quote, which writes its markers in front of a line's text).
+  const WRITES_TEXT: StringContainer = StringContainer::proc_macro_new_with_char_count("", 0);
 
   let hard_break = {
     let mut items = PrintItems::new();
@@ -1908,13 +1912,15 @@ fn gen_hard_break(context: &mut Context) -> PrintItems {
     items.push_signal(Signal::NewLine);
     items
   };
-  if_true_or(
+  let mut items = PrintItems::new();
+  items.push_sc(&WRITES_TEXT);
+  items.push_condition(if_true_or(
     "hardBreakOrSpaceIfNewlinesDisabled",
     condition_resolvers::is_forcing_no_newlines(),
     space(),
     hard_break,
-  )
-  .into()
+  ));
+  items
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
