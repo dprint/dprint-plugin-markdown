@@ -3,6 +3,37 @@ use std::borrow::Cow;
 
 use regex::Regex;
 
+/// Whether the character belongs to a script written without spaces between
+/// its words, where a line break carries no meaning of its own.
+///
+/// Han, kana, and the punctuation and fullwidth forms written alongside them
+/// qualify. Hangul does not: Korean is written with spaces between its words,
+/// so a line break within it reads as one the way it does in English.
+///
+/// See <https://drafts.csswg.org/css-text-4/#line-break-transform>.
+pub fn is_unspaced_script(c: char) -> bool {
+  matches!(
+    c as u32,
+    // CJK radicals and Kangxi radicals
+    0x2E80..=0x2FDF
+    // CJK symbols and punctuation, hiragana, and katakana
+    | 0x3000..=0x30FF
+    // katakana phonetic extensions
+    | 0x31F0..=0x31FF
+    // CJK unified ideographs, and the extension and compatibility blocks
+    | 0x3400..=0x4DBF
+    | 0x4E00..=0x9FFF
+    | 0xF900..=0xFAFF
+    | 0x20000..=0x3FFFD
+    // vertical forms, CJK compatibility forms, and small form variants
+    | 0xFE10..=0xFE19
+    | 0xFE30..=0xFE6F
+    // fullwidth forms and halfwidth katakana, stopping before halfwidth hangul
+    | 0xFF01..=0xFF9F
+    | 0xFFE0..=0xFFE6
+  )
+}
+
 /// Checks if the provided word would start a new block when it appears at the
 /// start of a line (ex. a list item, block quote, heading, thematic break, or
 /// code fence). Such a word can't be moved to the start of a line by wrapping
@@ -175,6 +206,29 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
 #[cfg(test)]
 mod test {
   use super::*;
+
+  #[test]
+  fn it_should_find_unspaced_scripts() {
+    // han, hiragana, and katakana
+    assert_eq!(is_unspaced_script('漢'), true);
+    assert_eq!(is_unspaced_script('は'), true);
+    assert_eq!(is_unspaced_script('カ'), true);
+    // the punctuation and fullwidth forms written alongside them
+    assert_eq!(is_unspaced_script('。'), true);
+    assert_eq!(is_unspaced_script('，'), true);
+    assert_eq!(is_unspaced_script('）'), true);
+    // and the halfwidth forms of the kana and punctuation written with them
+    assert_eq!(is_unspaced_script('ｶ'), true);
+    assert_eq!(is_unspaced_script('｡'), true);
+    // korean is written with spaces between its words
+    assert_eq!(is_unspaced_script('한'), false);
+    assert_eq!(is_unspaced_script('ᄀ'), false);
+    // and neither is anything else
+    assert_eq!(is_unspaced_script('a'), false);
+    assert_eq!(is_unspaced_script(' '), false);
+    assert_eq!(is_unspaced_script(','), false);
+    assert_eq!(is_unspaced_script('é'), false);
+  }
 
   #[test]
   fn it_should_find_list_words() {

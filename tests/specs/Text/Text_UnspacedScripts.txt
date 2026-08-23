@@ -1,0 +1,17 @@
+!! should keep the line breaks of an unspaced script where text is maintained !!
+這個段落是那麼長，
+在一行寫不行。最好
+用三行寫。
+
+[expect]
+這個段落是那麼長，
+在一行寫不行。最好
+用三行寫。
+
+!! should drop a line break between them where newlines are forced off !!
+日本語
+日本語
+===
+
+[expect]
+# 日本語日本語

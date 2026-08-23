@@ -1,0 +1,16 @@
+~~ textWrap: never ~~
+!! should drop a line break between two characters of an unspaced script !!
+這個段落是那麼長，
+在一行寫不行。最好
+用三行寫。
+
+[expect]
+這個段落是那麼長，在一行寫不行。最好用三行寫。
+
+!! should still turn a line break beside other text into a space !!
+日本語
+English
+は便利
+
+[expect]
+日本語 English は便利
