@@ -36,7 +36,15 @@ use super::debug_json::to_json;
 /// along with whatever it fails of the invariants every ast holds.
 pub fn run_case(case: &SpecCase) -> CaseOutcome {
   let source = case.source();
-  let file = super::parse(&source);
+  let file = match super::parse(&source) {
+    Ok(file) => file,
+    Err(err) => {
+      return CaseOutcome {
+        actual: String::new(),
+        failures: vec![err.to_string()],
+      }
+    }
+  };
   let children: Vec<&Node<'_>> = file.children.iter().collect();
   let mut failures = Vec::new();
   if let Err(message) = validate_spans(&children, file.span, &source) {

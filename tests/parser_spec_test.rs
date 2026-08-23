@@ -56,7 +56,16 @@ fn run_file(test: &file_test_runner::collection::CollectedTest) -> TestResult {
     if std::env::var("UPDATE").is_ok() {
       let updated = cases
         .iter()
-        .map(|case| format!("{}\n{}\n[[ast]]\n{}", case.header(), case.input, run_case(case).actual))
+        .map(|case| {
+          let outcome = run_case(case);
+          assert!(
+            outcome.failures.is_empty(),
+            "{}: {}",
+            case.name,
+            outcome.failures.join("\n")
+          );
+          format!("{}\n{}\n[[ast]]\n{}", case.header(), case.input, outcome.actual)
+        })
         .collect::<String>();
       std::fs::write(&path, updated).unwrap();
       return;
@@ -98,7 +107,8 @@ fn sweep_corpus(directory: &Path) {
     .iter()
     .filter_map(|path| {
       let source = std::fs::read_to_string(path).ok()?;
-      let message = parser::spec_test::validate_text_coverage(&parser::parse(&source), &source).err()?;
+      let file = parser::parse(&source).ok()?;
+      let message = parser::spec_test::validate_text_coverage(&file, &source).err()?;
       Some(format!("{}\n  {}", path.display(), message))
     })
     .collect::<Vec<_>>();

@@ -12,8 +12,9 @@ use super::generation::Context;
 pub enum FormatError {
   /// The text could not be parsed as markdown.
   ///
-  /// No longer produced: the parser accepts any text, treating whatever it
-  /// can't make sense of as the paragraphs it renders as.
+  /// Whatever the parser can't make sense of is read as the paragraphs it
+  /// renders as, so this is only for a document written in a way the parser
+  /// won't follow at all -- blocks nested more deeply than it will go.
   #[error("{0}")]
   Parse(String),
   /// An error occurred while formatting the text of a code block.
@@ -50,7 +51,7 @@ fn format_text_inner(
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
   let file_text = strip_bom(file_text);
-  let (source_file, markdown_text) = match parse_source_file(file_text, config) {
+  let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
   };
@@ -73,7 +74,7 @@ pub fn trace_file(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> dprint_core::formatting::TracingResult {
-  let (source_file, markdown_text) = match parse_source_file(file_text, config) {
+  let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
     ParseFileResult::SourceFile(file) => file,
   };
@@ -112,13 +113,14 @@ enum ParseFileResult<'a> {
   SourceFile((crate::generation::common::SourceFile<'a>, &'a str)),
 }
 
-fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> ParseFileResult<'a> {
+fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
   // check for the presence of a dprint-ignore-file comment before parsing
   if file_has_ignore_file_directive(strip_metadata_header(file_text), &config.ignore_file_directive) {
-    return ParseFileResult::IgnoreFile;
+    return Ok(ParseFileResult::IgnoreFile);
   }
 
-  ParseFileResult::SourceFile((crate::parser::parse(file_text), file_text))
+  let file = crate::parser::parse(file_text).map_err(|err| FormatError::Parse(err.to_string()))?;
+  Ok(ParseFileResult::SourceFile((file, file_text)))
 }
 
 fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOptions {

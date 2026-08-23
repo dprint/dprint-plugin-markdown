@@ -35,8 +35,26 @@ use inline::InlineContext;
 use source::source_lines;
 use source::ContentLine;
 
+/// The document was written in a way the parser won't read.
+#[derive(Debug)]
+pub enum ParseError {
+  /// Containers are written more deeply within one another than the parser
+  /// will follow.
+  TooDeep { limit: usize },
+}
+
+impl std::fmt::Display for ParseError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ParseError::TooDeep { limit } => {
+        write!(f, "the document nests blocks more than {} deep", limit)
+      }
+    }
+  }
+}
+
 /// Parses markdown text into a [`SourceFile`].
-pub fn parse(source: &str) -> SourceFile<'_> {
+pub fn parse(source: &str) -> Result<SourceFile<'_>, ParseError> {
   let lines = source_lines(source);
   let (metadata, body_start) = parse_metadata_block(source, &lines);
 
@@ -50,6 +68,8 @@ pub fn parse(source: &str) -> SourceFile<'_> {
   let parser = BlockParser {
     source,
     context: &context,
+    depth: Default::default(),
+    too_deep: Default::default(),
   };
 
   let mut children: Vec<Node<'_>> = Vec::new();
@@ -57,11 +77,16 @@ pub fn parse(source: &str) -> SourceFile<'_> {
     children.push(metadata.into());
   }
   children.extend(parser.parse_blocks(&lines[body_start..]));
+  if parser.too_deep.get() {
+    return Err(ParseError::TooDeep {
+      limit: block::MAX_NESTING,
+    });
+  }
 
-  SourceFile {
+  Ok(SourceFile {
     span: Span::new(0, source.len()),
     children,
-  }
+  })
 }
 
 /// Parses the front matter at the top of the file, returning the line the rest
@@ -127,6 +152,8 @@ fn collect_labels(source: &str, lines: &[ContentLine<'_>]) -> (HashSet<String>, 
   let parser = BlockParser {
     source,
     context: &context,
+    depth: Default::default(),
+    too_deep: Default::default(),
   };
   collect_node_labels(&parser.parse_blocks(lines), &mut link_labels, &mut footnote_labels);
   (link_labels, footnote_labels)

@@ -20,13 +20,38 @@ use super::source::SPACES;
 /// The indentation at which a line becomes an indented code block.
 const CODE_INDENT: usize = 4;
 
+/// The most containers that may be written one within another.
+///
+/// Nothing written by hand comes near this. The limit is here because reading
+/// a container and writing it back out each take a frame of the stack per
+/// level, so a file made of nothing but markers would otherwise run the stack
+/// out and take the process down with it.
+pub const MAX_NESTING: usize = 64;
+
 pub struct BlockParser<'a, 'c> {
   pub source: &'a str,
   pub context: &'c InlineContext<'a>,
+  /// How many containers the blocks being read are written within.
+  pub depth: std::cell::Cell<usize>,
+  /// Whether a container was written deeper than [`MAX_NESTING`], which leaves
+  /// what was read of the document incomplete.
+  pub too_deep: std::cell::Cell<bool>,
 }
 
 impl<'a, 'c> BlockParser<'a, 'c> {
   pub fn parse_blocks(&self, lines: &[ContentLine<'a>]) -> Vec<Node<'a>> {
+    let depth = self.depth.get() + 1;
+    if depth > MAX_NESTING {
+      self.too_deep.set(true);
+      return Vec::new();
+    }
+    self.depth.set(depth);
+    let nodes = self.parse_blocks_within(lines);
+    self.depth.set(depth - 1);
+    nodes
+  }
+
+  fn parse_blocks_within(&self, lines: &[ContentLine<'a>]) -> Vec<Node<'a>> {
     let mut nodes = Vec::new();
     let mut index = 0;
     while index < lines.len() {
@@ -944,6 +969,9 @@ struct OpenParagraph<'a> {
   /// The container the content ends within, whose own paragraph is the one a
   /// lazy line would reach.
   inner: Option<(Container, Box<OpenParagraph<'a>>)>,
+  /// How many containers this is tracked within, which is held to the same
+  /// limit the parser is.
+  depth: usize,
 }
 
 impl<'a> OpenParagraph<'a> {
@@ -1016,7 +1044,15 @@ impl<'a> OpenParagraph<'a> {
     // what's open within a container is what a lazy line would continue,
     // because laziness reaches through however many containers are in between
     if let Some((container, content)) = Container::open(line) {
-      let mut inner = OpenParagraph::default();
+      // a line written as nothing but markers would nest this as deeply as it
+      // has markers, and each of them is a frame of the stack
+      if self.depth + 1 >= MAX_NESTING {
+        return;
+      }
+      let mut inner = OpenParagraph {
+        depth: self.depth + 1,
+        ..Default::default()
+      };
       inner.push(content);
       self.is_open = inner.is_open();
       self.inner = Some((container, Box::new(inner)));
