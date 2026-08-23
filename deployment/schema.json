@@ -108,6 +108,18 @@
         "description": "Always indents by 4 spaces, regardless of marker width."
       }]
     },
+    "codeBlock.format": {
+      "description": "Whether to format the code within a code block with the plugin that handles the code's language.",
+      "type": "boolean",
+      "default": true,
+      "oneOf": [{
+        "const": true,
+        "description": "Formats the code within a code block."
+      }, {
+        "const": false,
+        "description": "Leaves the code within a code block as it was written."
+      }]
+    },
     "codeBlock.unindent": {
       "description": "Whether to unindent the contents of code blocks.",
       "type": "boolean",
@@ -178,6 +190,9 @@
     },
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"
+    },
+    "codeBlock.format": {
+      "$ref": "#/definitions/codeBlock.format"
     },
     "codeBlock.unindent": {
       "$ref": "#/definitions/codeBlock.unindent"

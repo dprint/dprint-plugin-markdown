@@ -72,6 +72,7 @@ pub fn resolve_config(
       ListIndentKind::CommonMark,
       &mut diagnostics,
     ),
+    code_block_format: get_value(&mut config, "codeBlock.format", true, &mut diagnostics),
     code_block_unindent: get_value(&mut config, "codeBlock.unindent", true, &mut diagnostics),
     code_block_trim_blank_lines: get_value(&mut config, "codeBlock.trimBlankLines", true, &mut diagnostics),
     ignore_directive: get_value(

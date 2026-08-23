@@ -97,6 +97,13 @@ impl ConfigurationBuilder {
     self.insert("listIndentKind", value.to_string().into())
   }
 
+  /// Whether to format the code within a code block with the plugin that
+  /// handles the code's language.
+  /// Default: `true`
+  pub fn code_block_format(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.format", value.into())
+  }
+
   /// Whether to unindent the contents of code blocks.
   /// Default: `true`
   pub fn code_block_unindent(&mut self, value: bool) -> &mut Self {
@@ -173,6 +180,7 @@ mod tests {
       .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
+      .code_block_format(false)
       .code_block_unindent(false)
       .code_block_trim_blank_lines(false)
       .ignore_directive("test")
@@ -181,7 +189,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 15);
+    assert_eq!(inner_config.len(), 16);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

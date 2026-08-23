@@ -18,6 +18,8 @@ pub struct Configuration {
   pub heading_kind: HeadingKind,
   pub hard_break_kind: HardBreakKind,
   pub list_indent_kind: ListIndentKind,
+  #[serde(rename = "codeBlock.format")]
+  pub code_block_format: bool,
   #[serde(rename = "codeBlock.unindent")]
   pub code_block_unindent: bool,
   #[serde(rename = "codeBlock.trimBlankLines")]
