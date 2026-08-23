@@ -1,4 +1,4 @@
-~~ allowFencedBlankLines: true ~~
+~~ codeBlock.preserveBlankLines: true ~~
 !! should format code blocks !!
 Testing:
 ```ts

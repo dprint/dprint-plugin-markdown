@@ -66,14 +66,14 @@ pub fn resolve_config(
     ),
     heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
     hard_break_kind: get_value(&mut config, "hardBreakKind", HardBreakKind::Backslash, &mut diagnostics),
-    unindent_code_blocks: get_value(&mut config, "unindentCodeBlocks", true, &mut diagnostics),
     list_indent_kind: get_value(
       &mut config,
       "listIndentKind",
       ListIndentKind::CommonMark,
       &mut diagnostics,
     ),
-    allow_fenced_blank_lines: get_value(&mut config, "allowFencedBlankLines", false, &mut diagnostics),
+    code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
+    code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",

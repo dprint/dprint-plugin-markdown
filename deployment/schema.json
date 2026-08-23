@@ -96,18 +96,6 @@
         "description": "Uses two trailing spaces for hard line breaks. Note that some tools strip trailing whitespace, which would silently remove these hard line breaks."
       }]
     },
-    "unindentCodeBlocks": {
-      "description": "Whether to unindent the contents of code blocks.",
-      "type": "boolean",
-      "default": true,
-      "oneOf": [{
-        "const": true,
-        "description": "Removes common leading whitespace from code block contents."
-      }, {
-        "const": false,
-        "description": "Preserves the original indentation of code block contents."
-      }]
-    },
     "listIndentKind": {
       "description": "The style of indentation to use for list items. CommonMark aligns to the content column after the marker. PythonMarkdown uses a fixed 4-space indent, required by tools like mkdocs-material.",
       "type": "string",
@@ -120,16 +108,28 @@
         "description": "Always indents by 4 spaces, regardless of marker width."
       }]
     },
-    "allowFencedBlankLines": {
-      "description": "Whether to allow blank lines within fenced code blocks.",
+    "codeBlock.preserveIndentation": {
+      "description": "Whether to keep the indentation the code within a code block was written with, rather than unindenting it.",
       "type": "boolean",
       "default": false,
       "oneOf": [{
         "const": true,
-        "description": "Preserves blank lines within fenced code blocks."
+        "description": "Keeps the original indentation of code block contents."
       }, {
         "const": false,
-        "description": "Removes blank lines within fenced code blocks."
+        "description": "Removes common leading whitespace from code block contents."
+      }]
+    },
+    "codeBlock.preserveBlankLines": {
+      "description": "Whether to keep the blank lines at the start and end of a fenced code block, rather than trimming them.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Keeps the blank lines at the start and end of a fenced code block."
+      }, {
+        "const": false,
+        "description": "Removes the blank lines at the start and end of a fenced code block."
       }]
     },
     "deno": {
@@ -176,14 +176,14 @@
     "hardBreakKind": {
       "$ref": "#/definitions/hardBreakKind"
     },
-    "unindentCodeBlocks": {
-      "$ref": "#/definitions/unindentCodeBlocks"
-    },
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"
     },
-    "allowFencedBlankLines": {
-      "$ref": "#/definitions/allowFencedBlankLines"
+    "codeBlock.preserveIndentation": {
+      "$ref": "#/definitions/codeBlock.preserveIndentation"
+    },
+    "codeBlock.preserveBlankLines": {
+      "$ref": "#/definitions/codeBlock.preserveBlankLines"
     },
     "deno": {
       "$ref": "#/definitions/deno"

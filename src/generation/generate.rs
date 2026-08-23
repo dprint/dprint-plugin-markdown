@@ -578,15 +578,15 @@ fn gen_block_quote_markers(
 fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
-  let code_text = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
+  let code_text = if code_block.is_fenced() && context.configuration.code_block_preserve_blank_lines {
     code_text.as_ref()
   } else {
     code_text.trim_end_matches(WHITESPACE)
   };
-  let code_text = if context.configuration.unindent_code_blocks {
-    utils::unindent(code_text)
-  } else {
+  let code_text = if context.configuration.code_block_preserve_indentation {
     Cow::Borrowed(code_text)
+  } else {
+    utils::unindent(code_text)
   };
   // a backtick fence's info string can't hold a backtick, so a tag with one in
   // it has to be fenced with tildes
@@ -643,7 +643,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
 
   fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
     let code = &code_block.code;
-    let code = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
+    let code = if code_block.is_fenced() && context.configuration.code_block_preserve_blank_lines {
       let code = code.strip_suffix('\n').unwrap_or(code);
       code.strip_suffix('\r').unwrap_or(code)
     } else {

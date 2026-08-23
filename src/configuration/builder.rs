@@ -91,22 +91,24 @@ impl ConfigurationBuilder {
     self.insert("hardBreakKind", value.to_string().into())
   }
 
-  /// Whether to unindent the contents of code blocks.
-  /// Default: `true`
-  pub fn unindent_code_blocks(&mut self, value: bool) -> &mut Self {
-    self.insert("unindentCodeBlocks", value.into())
-  }
-
   /// The style of list indentation to use.
   /// Default: `ListIndentKind::CommonMark`
   pub fn list_indent_kind(&mut self, value: ListIndentKind) -> &mut Self {
     self.insert("listIndentKind", value.to_string().into())
   }
 
-  /// Whether to allow blank lines within fenced code blocks.
-  /// Default: `true`
-  pub fn allow_fenced_blank_lines(&mut self, value: bool) -> &mut Self {
-    self.insert("allowFencedBlankLines", value.into())
+  /// Whether to keep the indentation the code within a code block was
+  /// written with, rather than unindenting it.
+  /// Default: `false`
+  pub fn code_block_preserve_indentation(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.preserveIndentation", value.into())
+  }
+
+  /// Whether to keep the blank lines at the start and end of a fenced code
+  /// block, rather than trimming them.
+  /// Default: `false`
+  pub fn code_block_preserve_blank_lines(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.preserveBlankLines", value.into())
   }
 
   /// The directive used to ignore a line.
@@ -172,9 +174,9 @@ mod tests {
       .unordered_list_kind(UnorderedListKind::Asterisks)
       .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
-      .unindent_code_blocks(false)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
-      .allow_fenced_blank_lines(false)
+      .code_block_preserve_indentation(true)
+      .code_block_preserve_blank_lines(true)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
