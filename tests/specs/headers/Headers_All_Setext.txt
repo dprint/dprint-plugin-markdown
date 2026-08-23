@@ -149,3 +149,9 @@ term
 ###
 
 ######
+
+!! should use an atx heading when the text would start a block of its own !!
+# <!-- c -->
+
+[expect]
+# <!-- c -->

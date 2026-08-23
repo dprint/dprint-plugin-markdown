@@ -299,8 +299,17 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 }
 
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
-  // setext headings only apply to level 1 and level 2.
-  if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
+  // setext headings only apply to level 1 and level 2, and only where the text
+  // they underline reads as the paragraph a heading is made of -- an html
+  // comment at the start of a line is a block of its own, which nothing can
+  // underline
+  if heading.level < 3
+    && context.configuration.heading_kind == HeadingKind::Setext
+    && !heading
+      .children
+      .first()
+      .is_some_and(|child| child.starts_block_in_paragraph())
+  {
     let children = gen_nodes(&heading.children, context);
     let (children, cloned_children) = clone_items(children);
 
