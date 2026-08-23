@@ -1,4 +1,4 @@
-~~ codeBlock.format: false ~~
+~~ codeBlock.skipFormat: true ~~
 !! should leave the code of a tagged code block alone !!
 ```format
 testing

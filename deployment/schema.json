@@ -108,40 +108,40 @@
         "description": "Always indents by 4 spaces, regardless of marker width."
       }]
     },
-    "codeBlock.format": {
-      "description": "Whether to format the code within a code block with the plugin that handles the code's language.",
+    "codeBlock.skipFormat": {
+      "description": "Whether to leave the code within a code block as it was written rather than formatting it with the plugin that handles the code's language.",
       "type": "boolean",
-      "default": true,
+      "default": false,
       "oneOf": [{
         "const": true,
-        "description": "Formats the code within a code block."
-      }, {
-        "const": false,
         "description": "Leaves the code within a code block as it was written."
+      }, {
+        "const": false,
+        "description": "Formats the code within a code block."
       }]
     },
-    "codeBlock.unindent": {
-      "description": "Whether to unindent the contents of code blocks.",
+    "codeBlock.preserveIndentation": {
+      "description": "Whether to keep the indentation the code within a code block was written with, rather than unindenting it.",
       "type": "boolean",
-      "default": true,
+      "default": false,
       "oneOf": [{
         "const": true,
+        "description": "Keeps the original indentation of code block contents."
+      }, {
+        "const": false,
         "description": "Removes common leading whitespace from code block contents."
-      }, {
-        "const": false,
-        "description": "Preserves the original indentation of code block contents."
       }]
     },
-    "codeBlock.trimBlankLines": {
-      "description": "Whether to trim the blank lines at the start and end of a fenced code block.",
+    "codeBlock.preserveBlankLines": {
+      "description": "Whether to keep the blank lines at the start and end of a fenced code block, rather than trimming them.",
       "type": "boolean",
-      "default": true,
+      "default": false,
       "oneOf": [{
         "const": true,
-        "description": "Removes the blank lines at the start and end of a fenced code block."
+        "description": "Keeps the blank lines at the start and end of a fenced code block."
       }, {
         "const": false,
-        "description": "Keeps the blank lines at the start and end of a fenced code block."
+        "description": "Removes the blank lines at the start and end of a fenced code block."
       }]
     },
     "deno": {
@@ -191,14 +191,14 @@
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"
     },
-    "codeBlock.format": {
-      "$ref": "#/definitions/codeBlock.format"
+    "codeBlock.skipFormat": {
+      "$ref": "#/definitions/codeBlock.skipFormat"
     },
-    "codeBlock.unindent": {
-      "$ref": "#/definitions/codeBlock.unindent"
+    "codeBlock.preserveIndentation": {
+      "$ref": "#/definitions/codeBlock.preserveIndentation"
     },
-    "codeBlock.trimBlankLines": {
-      "$ref": "#/definitions/codeBlock.trimBlankLines"
+    "codeBlock.preserveBlankLines": {
+      "$ref": "#/definitions/codeBlock.preserveBlankLines"
     },
     "deno": {
       "$ref": "#/definitions/deno"

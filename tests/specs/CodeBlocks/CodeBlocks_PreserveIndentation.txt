@@ -1,4 +1,4 @@
-~~ codeBlock.unindent: false ~~
+~~ codeBlock.preserveIndentation: true ~~
 !! should keep the leading spaces of a fenced code block !!
 ```
     one
