@@ -1643,15 +1643,13 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       let marker_lines_up = indent_increment == marker_width;
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
-      let after_child = LineAndColumn::new("afterChild");
-      items.push_condition(if_true(
-        "spaceIfHasChild",
-        Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
-        Signal::SpaceIfNotTrailing.into(),
-      ));
+      // the space is dropped where nothing follows it on the line, so an item
+      // with nothing in it is written as the marker alone. Whether anything
+      // does follow is the item's to say, not something to measure: content of
+      // no width is content all the same
+      items.push_signal(Signal::SpaceIfNotTrailing);
       let child_items = context.mark_in_list_item(marker_char, marker_lines_up, |context| generate(child, context));
       items.extend(with_indent_times(child_items, indent_increment));
-      items.push_line_and_column(after_child);
       context.indent_level -= indent_increment;
     }
 
@@ -1744,17 +1742,11 @@ fn gen_definition(definition: &DefinitionListDefinition, context: &mut Context) 
 
   context.indent_level += indent_increment;
   items.push_sc(sc!(":"));
-  let after_child = LineAndColumn::new("afterDefinition");
-  items.push_condition(if_true(
-    "spaceIfHasDefinition",
-    Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
-    Signal::SpaceIfNotTrailing.into(),
-  ));
+  items.push_signal(Signal::SpaceIfNotTrailing);
   items.extend(with_indent_times(
     gen_nodes(&definition.children, context),
     indent_increment,
   ));
-  items.push_line_and_column(after_child);
   context.indent_level -= indent_increment;
 
   items

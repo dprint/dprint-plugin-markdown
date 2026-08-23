@@ -89,16 +89,22 @@ pub fn trace_file(
   )
 }
 
-/// Removes the byte order marks a file begins with.
+/// Removes the byte order marks a file begins with, along with any whitespace
+/// written before them.
 ///
-/// More than one is removed because taking off only the first would leave the
-/// next at the start of the file, for the next run to take off in turn.
+/// More than one is removed, and the whitespace with them, because taking off
+/// only the first would leave another at the start of the file once the
+/// whitespace around it was written out -- for the next run to take off in
+/// turn. Text that begins with no mark at all is left as it is.
 fn strip_bom(text: &str) -> &str {
-  let mut text = text;
-  while let Some(rest) = text.strip_prefix('\u{FEFF}') {
-    text = rest;
+  let mut rest = text;
+  loop {
+    let trimmed = rest.trim_start_matches([' ', '\t', '\n', '\r']);
+    match trimmed.strip_prefix('\u{FEFF}') {
+      Some(after) => rest = after,
+      None => return rest,
+    }
   }
-  text
 }
 
 enum ParseFileResult<'a> {
@@ -131,7 +137,13 @@ mod test {
 
   #[test]
   fn strips_bom() {
-    for input_text in ["\u{FEFF}#  Title", "\u{FEFF}# Title\n", "\u{FEFF}\u{FEFF}# Title\n"] {
+    for input_text in [
+      "\u{FEFF}#  Title",
+      "\u{FEFF}# Title\n",
+      "\u{FEFF}\u{FEFF}# Title\n",
+      "  \u{FEFF}# Title\n",
+      "\u{FEFF}\n\u{FEFF}# Title\n",
+    ] {
       let config = ConfigurationBuilder::new().build();
       let result = format_text(input_text, &config, |_, _, _| Ok(None)).unwrap();
       assert_eq!(result, Some("# Title\n".to_string()));

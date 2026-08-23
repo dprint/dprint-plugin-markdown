@@ -235,3 +235,11 @@ Here is a paragraph
 - one
 
 1.     code
+
+!! should keep the space after a marker whose content has no width !!
+- ​
+- a
+
+[expect]
+- ​
+- a
