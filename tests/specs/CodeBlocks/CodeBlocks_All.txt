@@ -233,3 +233,65 @@ other_formatted_77_formatted_80
 ```format ignore
 other_formatted_77_formatted_80
 ```
+
+!! should fence with tildes when the tag has a backtick in it !!
+~~~ aa ``` ~~~
+foo
+~~~
+
+[expect]
+~~~aa ``` ~~~
+foo
+~~~
+
+!! should keep the escapes and character references of an info string !!
+``` foo\+bar
+foo
+```
+
+``` f&ouml;&ouml;
+foo
+```
+
+[expect]
+```foo\+bar
+foo
+```
+
+```f&ouml;&ouml;
+foo
+```
+
+!! should fence an indented code block that follows a list !!
+ -    one
+
+     two
+
+[expect]
+- one
+
+```
+two
+```
+
+!! should keep the indentation of a code block beside a list marker !!
+-     code
+
+[expect]
+-     code
+
+!! should keep the indentation of a code block a tab put beside a marker !!
+-		foo
+
+[expect]
+-     foo
+
+!! should keep a code block that follows a list within the item it belongs to !!
+- one
+
+      two
+
+[expect]
+- one
+
+      two

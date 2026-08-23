@@ -1,0 +1,216 @@
+[[test]] single paragraph
+Hello world
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "Hello world",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "Hello world",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 11],
+          "text": "Hello world"
+        }
+      ]
+    }
+  ]
+}
+[[test]] two paragraphs
+First one.
+
+Second one.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "First one.\n\nSecond one.",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "First one.",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 10],
+          "text": "First one."
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 23],
+      "text": "Second one.",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 23],
+          "text": "Second one."
+        }
+      ]
+    }
+  ]
+}
+[[test]] paragraph with a soft break
+First line
+second line
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "First line\nsecond line",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 22],
+      "text": "First line\nsecond line",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 10],
+          "text": "First line"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [10, 11],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [11, 22],
+          "text": "second line"
+        }
+      ]
+    }
+  ]
+}
+[[test]] hard break with two spaces
+First line  
+second line
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "First line  \nsecond line",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 24],
+      "text": "First line  \nsecond line",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 10],
+          "text": "First line"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [10, 12],
+          "text": "  "
+        },
+        {
+          "kind": "Text",
+          "span": [13, 24],
+          "text": "second line"
+        }
+      ]
+    }
+  ]
+}
+[[test]] hard break with a backslash
+First line\
+second line
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "First line\\\nsecond line",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 23],
+      "text": "First line\\\nsecond line",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 10],
+          "text": "First line"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [10, 11],
+          "text": "\\"
+        },
+        {
+          "kind": "Text",
+          "span": [12, 23],
+          "text": "second line"
+        }
+      ]
+    }
+  ]
+}
+[[test]] paragraph with leading and trailing spaces
+   Hello   
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "   Hello   ",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [3, 8],
+      "text": "Hello",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 8],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] paragraph interrupted by a heading
+Text
+# Heading
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "Text\n# Heading",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [5, 14],
+      "text": "# Heading",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [7, 14],
+          "text": "Heading"
+        }
+      ]
+    }
+  ]
+}

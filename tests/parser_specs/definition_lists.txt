@@ -1,0 +1,360 @@
+[[test]] definition list
+Apple
+: A fruit.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "Apple\n: A fruit.",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 16],
+      "text": "Apple\n: A fruit.",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 5],
+          "text": "Apple",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 5],
+              "text": "Apple"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [6, 16],
+          "text": ": A fruit.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [8, 16],
+              "text": "A fruit.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [8, 16],
+                  "text": "A fruit."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] definition list with multiple definitions
+Apple
+: A fruit.
+: A company.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "Apple\n: A fruit.\n: A company.",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 29],
+      "text": "Apple\n: A fruit.\n: A company.",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 5],
+          "text": "Apple",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 5],
+              "text": "Apple"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [6, 16],
+          "text": ": A fruit.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [8, 16],
+              "text": "A fruit.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [8, 16],
+                  "text": "A fruit."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [17, 29],
+          "text": ": A company.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [19, 29],
+              "text": "A company.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [19, 29],
+                  "text": "A company."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] definition list with multiple terms
+Term A
+Term B
+: Shared
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "Term A\nTerm B\n: Shared",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 22],
+      "text": "Term A\nTerm B\n: Shared",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 6],
+          "text": "Term A",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 6],
+              "text": "Term A"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListTitle",
+          "span": [7, 13],
+          "text": "Term B",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [7, 13],
+              "text": "Term B"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [14, 22],
+          "text": ": Shared",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [16, 22],
+              "text": "Shared",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [16, 22],
+                  "text": "Shared"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] definition list with two groups
+Apple
+: A fruit.
+
+Orange
+: Another fruit.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 41],
+  "text": "Apple\n: A fruit.\n\nOrange\n: Another fruit.",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 41],
+      "text": "Apple\n: A fruit.\n\nOrange\n: Another fruit.",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 5],
+          "text": "Apple",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 5],
+              "text": "Apple"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [6, 16],
+          "text": ": A fruit.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [8, 16],
+              "text": "A fruit.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [8, 16],
+                  "text": "A fruit."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListTitle",
+          "span": [18, 24],
+          "text": "Orange",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [18, 24],
+              "text": "Orange"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [25, 41],
+          "text": ": Another fruit.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [27, 41],
+              "text": "Another fruit.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [27, 41],
+                  "text": "Another fruit."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] colon without whitespace is not a definition
+Apple
+:not a definition
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "Apple\n:not a definition",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 23],
+      "text": "Apple\n:not a definition",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "Apple"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [5, 6],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [6, 23],
+          "text": ":not a definition"
+        }
+      ]
+    }
+  ]
+}
+[[test]] loose definition list
+Term
+
+:   Definition
+
+    Second paragraph.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 43],
+  "text": "Term\n\n:   Definition\n\n    Second paragraph.",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 43],
+      "text": "Term\n\n:   Definition\n\n    Second paragraph.",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 4],
+          "text": "Term",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 4],
+              "text": "Term"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [6, 43],
+          "text": ":   Definition\n\n    Second paragraph.",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [10, 20],
+              "text": "Definition",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 20],
+                  "text": "Definition"
+                }
+              ]
+            },
+            {
+              "kind": "Paragraph",
+              "span": [26, 43],
+              "text": "Second paragraph.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [26, 43],
+                  "text": "Second paragraph."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

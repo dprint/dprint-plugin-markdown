@@ -45,10 +45,11 @@ pub fn is_block_start_word(word: &str) -> bool {
 }
 
 /// Checks if the provided word is a word that could be a list.
-/// Assumes the provided string is one word and doesn't have whitespace.
+/// Assumes the provided string is one word, which is to say it has no space
+/// or line ending in it. Other whitespace (ex. a tab) may show up within a
+/// word because only those two break one.
 pub fn is_list_word(word: &str) -> bool {
-  const NON_BREAKING_SPACE: char = '\u{a0}';
-  debug_assert!(!word.chars().any(|c| c.is_whitespace() && c != NON_BREAKING_SPACE));
+  debug_assert!(!word.chars().any(|c| c == ' ' || c == '\n'));
 
   if word == "*" || word == "-" || word == "+" {
     true
@@ -159,41 +160,6 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
   } else {
     Cow::Borrowed(text)
   }
-}
-
-///  This trims only document white space characters as defined
-/// in the [Mozilla Developer Network docs](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#what_is_whitespace).
-pub fn trim_document_whitespace<'b>(s: &'b str) -> &'b str {
-  let bytes = s.as_bytes();
-
-  let start = bytes
-    .iter()
-    .position(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
-    .unwrap_or(bytes.len());
-
-  let end = bytes
-    .iter()
-    .rposition(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
-    .map(|i| i + 1)
-    .unwrap_or(0);
-
-  if start <= end {
-    &s[start..end]
-  } else {
-    ""
-  }
-}
-
-pub fn trim_spaces_and_newlines(text: &str) -> &str {
-  text.trim_matches(is_space_tab_or_newline)
-}
-
-pub fn trim_start_spaces_and_newlines(text: &str) -> &str {
-  text.trim_start_matches(is_space_tab_or_newline)
-}
-
-fn is_space_tab_or_newline(c: char) -> bool {
-  matches!(c, ' ' | '\t' | '\r' | '\n')
 }
 
 #[cfg(test)]

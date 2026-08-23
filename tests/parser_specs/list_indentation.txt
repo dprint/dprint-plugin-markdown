@@ -1,0 +1,496 @@
+[[test]] indentation is measured within the container
+> > 1.  one
+>>
+>>     two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "> > 1.  one\n>>\n>>     two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 25],
+      "text": "> > 1.  one\n>>\n>>     two",
+      "children": [
+        {
+          "kind": "BlockQuote",
+          "span": [2, 25],
+          "text": "> 1.  one\n>>\n>>     two",
+          "children": [
+            {
+              "kind": "List",
+              "span": [4, 25],
+              "text": "1.  one\n>>\n>>     two",
+              "markerChar": ".",
+              "startIndex": 1,
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [4, 25],
+                  "text": "1.  one\n>>\n>>     two",
+                  "markerSpan": [4, 6],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [8, 11],
+                      "text": "one",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [8, 11],
+                          "text": "one"
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "Paragraph",
+                      "span": [22, 25],
+                      "text": "two",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [22, 25],
+                          "text": "two"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a marker that isn't indented enough starts a new item
+1. one
+2. two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "1. one\n2. two",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 13],
+      "text": "1. one\n2. two",
+      "markerChar": ".",
+      "startIndex": 1,
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 6],
+          "text": "1. one",
+          "markerSpan": [0, 2],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [3, 6],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [3, 6],
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [7, 13],
+          "text": "2. two",
+          "markerSpan": [7, 9],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [10, 13],
+              "text": "two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 13],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an ordered item that doesn't start at one still ends the one above
+2. one
+6. two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "2. one\n6. two",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 13],
+      "text": "2. one\n6. two",
+      "markerChar": ".",
+      "startIndex": 2,
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 6],
+          "text": "2. one",
+          "markerSpan": [0, 2],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [3, 6],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [3, 6],
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [7, 13],
+          "text": "6. two",
+          "markerSpan": [7, 9],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [10, 13],
+              "text": "two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 13],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a marker indented enough to be code continues the paragraph
+- a
+ - b
+  - c
+   - d
+    - e
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "- a\n - b\n  - c\n   - d\n    - e",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 29],
+      "text": "- a\n - b\n  - c\n   - d\n    - e",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 3],
+          "text": "- a",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 3],
+              "text": "a",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 3],
+                  "text": "a"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [5, 8],
+          "text": "- b",
+          "markerSpan": [5, 6],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [7, 8],
+              "text": "b",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [7, 8],
+                  "text": "b"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [11, 14],
+          "text": "- c",
+          "markerSpan": [11, 12],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [13, 14],
+              "text": "c",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [13, 14],
+                  "text": "c"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [18, 29],
+          "text": "- d\n    - e",
+          "markerSpan": [18, 19],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [20, 29],
+              "text": "d\n    - e",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [20, 21],
+                  "text": "d"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [21, 22],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [26, 29],
+                  "text": "- e"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an item that begins blank holds no more than that
+-
+
+  foo
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "-\n\n  foo",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 1],
+      "text": "-",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 1],
+          "text": "-",
+          "markerSpan": [0, 1]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [5, 8],
+      "text": "foo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 8],
+          "text": "foo"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an item that begins blank keeps content on the next line
+-   
+  foo
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "-   \n  foo",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 10],
+      "text": "-   \n  foo",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 10],
+          "text": "-   \n  foo",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [7, 10],
+              "text": "foo",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [7, 10],
+                  "text": "foo"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a continuation line indented less than the marker's content
+  1.  A paragraph
+    with two lines.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 37],
+  "text": "  1.  A paragraph\n    with two lines.",
+  "children": [
+    {
+      "kind": "List",
+      "span": [2, 37],
+      "text": "1.  A paragraph\n    with two lines.",
+      "markerChar": ".",
+      "startIndex": 1,
+      "children": [
+        {
+          "kind": "Item",
+          "span": [2, 37],
+          "text": "1.  A paragraph\n    with two lines.",
+          "markerSpan": [2, 4],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [6, 37],
+              "text": "A paragraph\n    with two lines.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [6, 17],
+                  "text": "A paragraph"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [17, 18],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [22, 37],
+                  "text": "with two lines."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a nested quote in a nested item
+>>- one
+>>
+  >  > two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": ">>- one\n>>\n  >  > two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 21],
+      "text": ">>- one\n>>\n  >  > two",
+      "children": [
+        {
+          "kind": "BlockQuote",
+          "span": [1, 21],
+          "text": ">- one\n>>\n  >  > two",
+          "children": [
+            {
+              "kind": "List",
+              "span": [2, 7],
+              "text": "- one",
+              "markerChar": "-",
+              "listKind": "Bullet",
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [2, 7],
+                  "text": "- one",
+                  "markerSpan": [2, 3],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [4, 7],
+                      "text": "one",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [4, 7],
+                          "text": "one"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "Paragraph",
+              "span": [18, 21],
+              "text": "two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [18, 21],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

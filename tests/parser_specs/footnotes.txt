@@ -1,0 +1,143 @@
+[[test]] footnote definition
+[^1]: The note.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[^1]: The note.",
+  "children": [
+    {
+      "kind": "FootnoteDefinition",
+      "span": [0, 15],
+      "text": "[^1]: The note.",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [6, 15],
+          "text": "The note.",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 15],
+              "text": "The note."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] footnote reference
+Text[^1]
+
+[^1]: The note.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "Text[^1]\n\n[^1]: The note.",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "Text[^1]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        },
+        {
+          "kind": "FootnoteReference",
+          "span": [4, 8],
+          "text": "[^1]",
+          "name": "1"
+        }
+      ]
+    },
+    {
+      "kind": "FootnoteDefinition",
+      "span": [10, 25],
+      "text": "[^1]: The note.",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [16, 25],
+          "text": "The note.",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [16, 25],
+              "text": "The note."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] footnote reference without a definition
+Text[^1]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "Text[^1]",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "Text[^1]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 8],
+          "text": "Text[^1]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] footnote definition with multiple lines
+[^1]: One
+    two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[^1]: One\n    two",
+  "children": [
+    {
+      "kind": "FootnoteDefinition",
+      "span": [0, 17],
+      "text": "[^1]: One\n    two",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [6, 17],
+          "text": "One\n    two",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 9],
+              "text": "One"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [9, 10],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [14, 17],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

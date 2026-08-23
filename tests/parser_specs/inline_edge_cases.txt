@@ -1,0 +1,431 @@
+[[test]] emphasis inside a word with underscores at the edges
+_a_b_c_
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "_a_b_c_",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "_a_b_c_",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "_a_b_c_",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "a_b_c"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] triple emphasis with mismatched runs
+*a**b*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "*a**b*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "*a**b*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 6],
+          "text": "*a**b*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "a**b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis and strong ending together
+*a **b***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "*a **b***",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "*a **b***",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "*a **b***",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            },
+            {
+              "kind": "TextDecoration",
+              "span": [3, 8],
+              "text": "**b**",
+              "decoration": "Strong",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [5, 6],
+                  "text": "b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] code span beats emphasis
+*a`b*c`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "*a`b*c`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "*a`b*c`",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "*a"
+        },
+        {
+          "kind": "Code",
+          "span": [2, 7],
+          "text": "`b*c`",
+          "content": "b*c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] autolink beats emphasis
+*<https://a.com/*b>*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "*<https://a.com/*b>*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 20],
+      "text": "*<https://a.com/*b>*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 20],
+          "text": "*<https://a.com/*b>*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "AutoLink",
+              "span": [1, 19],
+              "text": "<https://a.com/*b>",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 18],
+                  "text": "https://a.com/*b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] bracket inside a code span
+`[a]`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "`[a]`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "`[a]`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 5],
+          "text": "`[a]`",
+          "content": "[a]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] html tag with attributes
+<a href="x" data-y='z'>t</a>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 28],
+  "text": "<a href=\"x\" data-y='z'>t</a>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 28],
+      "text": "<a href=\"x\" data-y='z'>t</a>",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [0, 23],
+          "text": "<a href=\"x\" data-y='z'>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [23, 24],
+          "text": "t"
+        },
+        {
+          "kind": "Html",
+          "span": [24, 28],
+          "text": "</a>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] html tag spanning lines
+<a
+href="x">t</a>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "<a\nhref=\"x\">t</a>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "<a\nhref=\"x\">t</a>",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [0, 12],
+          "text": "<a\nhref=\"x\">",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "t"
+        },
+        {
+          "kind": "Html",
+          "span": [13, 17],
+          "text": "</a>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] unclosed html tag is text
+a < b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "a < b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "a < b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "a < b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] escaped delimiters around emphasis
+\*a* b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "\\*a* b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "\\*a* b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "\\*a* b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] image with emphasis in its alt text
+![*a*](/u)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "![*a*](/u)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "![*a*](/u)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 10],
+          "text": "![*a*](/u)",
+          "alt": "*a*",
+          "url": "/u"
+        }
+      ]
+    }
+  ]
+}
+[[test]] link title in single quotes
+[a](/u 'title')
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[a](/u 'title')",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "[a](/u 'title')",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 15],
+          "text": "[a](/u 'title')",
+          "url": "/u",
+          "title": "title",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] link title in parens
+[a](/u (title))
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[a](/u (title))",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "[a](/u (title))",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 15],
+          "text": "[a](/u (title))",
+          "url": "/u",
+          "title": "title",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] link spanning lines
+[a
+b](/u)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "[a\nb](/u)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "[a\nb](/u)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 9],
+          "text": "[a\nb](/u)",
+          "url": "/u",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [2, 3],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [3, 4],
+              "text": "b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+[[test]] an escaped destination is kept as written
+[foo](/bar\* "ti\*tle")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "[foo](/bar\\* \"ti\\*tle\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 23],
+      "text": "[foo](/bar\\* \"ti\\*tle\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 23],
+          "text": "[foo](/bar\\* \"ti\\*tle\")",
+          "url": "/bar\\*",
+          "title": "ti\\*tle",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 4],
+              "text": "foo"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a character reference in a destination is kept
+[foo](/f&ouml;&ouml; "f&ouml;&ouml;")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 37],
+  "text": "[foo](/f&ouml;&ouml; \"f&ouml;&ouml;\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 37],
+      "text": "[foo](/f&ouml;&ouml; \"f&ouml;&ouml;\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 37],
+          "text": "[foo](/f&ouml;&ouml; \"f&ouml;&ouml;\")",
+          "url": "/f&ouml;&ouml;",
+          "title": "f&ouml;&ouml;",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 4],
+              "text": "foo"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a character reference in an info string is kept
+``` f&ouml;&ouml;
+foo
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "``` f&ouml;&ouml;\nfoo\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 25],
+      "text": "``` f&ouml;&ouml;\nfoo\n```",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "f&ouml;&ouml;",
+      "content": "foo\n"
+    }
+  ]
+}
+[[test]] an escape in an info string is kept
+``` foo\+bar
+foo
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "``` foo\\+bar\nfoo\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 20],
+      "text": "``` foo\\+bar\nfoo\n```",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "foo\\+bar",
+      "content": "foo\n"
+    }
+  ]
+}
+[[test]] an escaped quote in a title
+[link](/url "title \"&quot;")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "[link](/url \"title \\\"&quot;\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 29],
+      "text": "[link](/url \"title \\\"&quot;\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 29],
+          "text": "[link](/url \"title \\\"&quot;\")",
+          "url": "/url",
+          "title": "title \\\"&quot;",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "link"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] images can nest within each other
+![[[foo](uri1)](uri2)](uri3)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 28],
+  "text": "![[[foo](uri1)](uri2)](uri3)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 28],
+      "text": "![[[foo](uri1)](uri2)](uri3)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 28],
+          "text": "![[[foo](uri1)](uri2)](uri3)",
+          "alt": "[[foo](uri1)](uri2)",
+          "url": "uri3"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an image within an image's text
+![foo ![bar](/url)](/url2)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 26],
+  "text": "![foo ![bar](/url)](/url2)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 26],
+      "text": "![foo ![bar](/url)](/url2)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 26],
+          "text": "![foo ![bar](/url)](/url2)",
+          "alt": "foo ![bar](/url)",
+          "url": "/url2"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a link within an image's text
+![foo [bar](/url)](/url2)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "![foo [bar](/url)](/url2)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 25],
+      "text": "![foo [bar](/url)](/url2)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 25],
+          "text": "![foo [bar](/url)](/url2)",
+          "alt": "foo [bar](/url)",
+          "url": "/url2"
+        }
+      ]
+    }
+  ]
+}

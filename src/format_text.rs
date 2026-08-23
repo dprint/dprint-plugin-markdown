@@ -4,7 +4,6 @@ use dprint_core::formatting::*;
 use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
 use super::generation::generate;
-use super::generation::parse_cmark_ast;
 use super::generation::strip_metadata_header;
 use super::generation::Context;
 
@@ -12,6 +11,9 @@ use super::generation::Context;
 #[derive(Debug, thiserror::Error)]
 pub enum FormatError {
   /// The text could not be parsed as markdown.
+  ///
+  /// No longer produced: the parser accepts any text, treating whatever it
+  /// can't make sense of as the paragraphs it renders as.
   #[error("{0}")]
   Parse(String),
   /// An error occurred while formatting the text of a code block.
@@ -27,7 +29,7 @@ impl From<std::string::FromUtf8Error> for FormatError {
 
 /// Formats a file.
 ///
-/// Returns the file text or an error when it failed to parse.
+/// Returns the formatted text, or `None` when it's the same as what was given.
 pub fn format_text(
   file_text: &str,
   config: &Configuration,
@@ -93,7 +95,7 @@ fn strip_bom(text: &str) -> &str {
 
 enum ParseFileResult<'a> {
   IgnoreFile,
-  SourceFile((crate::generation::common::SourceFile, &'a str)),
+  SourceFile((crate::generation::common::SourceFile<'a>, &'a str)),
 }
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
@@ -102,16 +104,10 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
     return Ok(ParseFileResult::IgnoreFile);
   }
 
-  match parse_cmark_ast(file_text) {
-    Ok(source_file) => Ok(ParseFileResult::SourceFile((source_file, file_text))),
-    Err(error) => Err(FormatError::Parse(
-      dprint_core::formatting::utils::string_utils::format_diagnostic(
-        Some((error.range.start, error.range.end)),
-        &error.message,
-        file_text,
-      ),
-    )),
-  }
+  Ok(ParseFileResult::SourceFile((
+    crate::parser::parse(file_text),
+    file_text,
+  )))
 }
 
 fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOptions {

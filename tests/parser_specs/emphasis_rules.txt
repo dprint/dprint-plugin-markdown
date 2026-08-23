@@ -1,0 +1,327 @@
+[[test]] the rule of three weighs the runs as written
+a****b***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "a****b***",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "a****b***",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "a*"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [2, 9],
+          "text": "***b***",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "TextDecoration",
+              "span": [3, 8],
+              "text": "**b**",
+              "decoration": "Strong",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [5, 6],
+                  "text": "b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a run that opens and closes
+__b**___**__
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "__b**___**__",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 12],
+      "text": "__b**___**__",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "__b**__",
+          "decoration": "Strong",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "b**"
+            }
+          ]
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [7, 11],
+          "text": "_**_",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [8, 10],
+              "text": "**"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [11, 12],
+          "text": "_"
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis reaches across an unmatched bracket
+*foo [bar*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "*foo [bar*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "*foo [bar*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 10],
+          "text": "*foo [bar*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 9],
+              "text": "foo [bar"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis reaches across an unmatched image bracket
+*foo ![bar*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "*foo ![bar*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "*foo ![bar*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 11],
+          "text": "*foo ![bar*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 10],
+              "text": "foo ![bar"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] three tildes are not strikethrough
+a ~~~b~~~ c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "a ~~~b~~~ c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "a ~~~b~~~ c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 11],
+          "text": "a ~~~b~~~ c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] four tildes are not strikethrough
+a ~~~~b~~~~ c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "a ~~~~b~~~~ c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "a ~~~~b~~~~ c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 13],
+          "text": "a ~~~~b~~~~ c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a lone tilde is not used within a word
+b~b~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "b~b~",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "b~b~",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "b~b~"
+        }
+      ]
+    }
+  ]
+}
+[[test]] two tildes are used within a word
+b~~b~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "b~~b~~",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "b~~b~~",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "b"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [1, 6],
+          "text": "~~b~~",
+          "decoration": "Strikethrough",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [3, 4],
+              "text": "b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis within a word with asterisks
+a*b*c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "a*b*c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "a*b*c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [1, 4],
+          "text": "*b*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 3],
+              "text": "b"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [4, 5],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a bracket that becomes a link still stops emphasis
+[foo *bar](/url)*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[foo *bar](/url)*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "[foo *bar](/url)*",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 16],
+          "text": "[foo *bar](/url)",
+          "url": "/url",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 9],
+              "text": "foo *bar"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [16, 17],
+          "text": "*"
+        }
+      ]
+    }
+  ]
+}

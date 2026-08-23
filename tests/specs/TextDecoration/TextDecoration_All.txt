@@ -38,3 +38,49 @@ _word_?
 
 [expect]
 **a** _b_
+
+!! should not let a decoration's delimiter run into the one it wraps !!
+*_foo_*
+
+_*foo*_
+
+[expect]
+*_foo_*
+
+*_foo_*
+
+!! should not let a decoration's delimiter run into its text !!
+foo *_*
+
+foo __*__
+
+[expect]
+foo *_*
+
+foo __*__
+
+!! should not let text within a decoration pair with its delimiter !!
+*foo __bar *baz bim__ bam*
+
+[expect]
+_foo __bar *baz bim__ bam_
+
+!! should keep asterisks for a decoration within a word !!
+foo*bar*
+
+foo***bar***baz
+
+[expect]
+foo*bar*
+
+foo***bar***baz
+
+!! should leave an escaped delimiter out of the reckoning !!
+foo **\***
+
+foo _\__
+
+[expect]
+foo **\***
+
+foo _\__

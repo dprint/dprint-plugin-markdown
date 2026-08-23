@@ -1,0 +1,202 @@
+[[test]] script block
+<script>
+let x = 1;
+</script>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "<script>\nlet x = 1;\n</script>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 29],
+      "text": "<script>\nlet x = 1;\n</script>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] declaration block
+<!DOCTYPE html>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "<!DOCTYPE html>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 15],
+      "text": "<!DOCTYPE html>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] cdata block
+<![CDATA[
+data
+]]>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "<![CDATA[\ndata\n]]>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 18],
+      "text": "<![CDATA[\ndata\n]]>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] processing instruction
+<?php echo 1; ?>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "<?php echo 1; ?>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 16],
+      "text": "<?php echo 1; ?>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] html block interrupting a paragraph
+Text
+<div>
+more
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "Text\n<div>\nmore",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        }
+      ]
+    },
+    {
+      "kind": "Html",
+      "span": [5, 15],
+      "text": "<div>\nmore",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] closing tag starts a block
+</div>
+
+text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "</div>\n\ntext",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 6],
+      "text": "</div>",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 12],
+      "text": "text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 12],
+          "text": "text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] html comment beside a list marker
+- <!-- c -->
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "- <!-- c -->",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 12],
+      "text": "- <!-- c -->",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 12],
+          "text": "- <!-- c -->",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 12],
+              "text": "<!-- c -->",
+              "isBlock": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline html in a heading
+# A <b>B</b>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "# A <b>B</b>",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 12],
+      "text": "# A <b>B</b>",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [2, 3],
+          "text": "A"
+        },
+        {
+          "kind": "Html",
+          "span": [4, 7],
+          "text": "<b>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [7, 8],
+          "text": "B"
+        },
+        {
+          "kind": "Html",
+          "span": [8, 12],
+          "text": "</b>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}

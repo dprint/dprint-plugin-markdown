@@ -1,0 +1,284 @@
+[[test]] inline code
+`code`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "`code`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "`code`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 6],
+          "text": "`code`",
+          "content": "code"
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline code with double backticks
+``a ` b``
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "``a ` b``",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "``a ` b``",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 9],
+          "text": "``a ` b``",
+          "content": "a ` b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline code with padding
+`` `code` ``
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "`` `code` ``",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 12],
+      "text": "`` `code` ``",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 12],
+          "text": "`` `code` ``",
+          "content": "`code`"
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline code across lines
+`one
+two`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "`one\ntwo`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "`one\ntwo`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 9],
+          "text": "`one\ntwo`",
+          "content": "one\ntwo"
+        }
+      ]
+    }
+  ]
+}
+[[test]] unmatched backtick is text
+`hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "`hello",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "`hello",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "`hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] fenced code block
+```
+let x = 1;
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "```\nlet x = 1;\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 18],
+      "text": "```\nlet x = 1;\n```",
+      "isFenced": true,
+      "fence": "```",
+      "content": "let x = 1;\n"
+    }
+  ]
+}
+[[test]] fenced code block with a tag
+```ts
+const x = 1;
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "```ts\nconst x = 1;\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 22],
+      "text": "```ts\nconst x = 1;\n```",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "ts",
+      "content": "const x = 1;\n"
+    }
+  ]
+}
+[[test]] fenced code block with tildes
+~~~
+code
+~~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "~~~\ncode\n~~~",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 12],
+      "text": "~~~\ncode\n~~~",
+      "isFenced": true,
+      "fence": "~~~",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] indented fenced code block
+  ```ts
+  code
+  ```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "  ```ts\n  code\n  ```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [2, 20],
+      "text": "```ts\n  code\n  ```",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "ts",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] unclosed fenced code block
+```ts
+code
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "```ts\ncode",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 10],
+      "text": "```ts\ncode",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "ts",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] indented code block
+    code here
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "    code here",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [4, 13],
+      "text": "code here",
+      "isFenced": false,
+      "content": "code here\n"
+    }
+  ]
+}
+[[test]] indented code block with blank lines
+    one
+
+    two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "    one\n\n    two",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [4, 16],
+      "text": "one\n\n    two",
+      "isFenced": false,
+      "content": "one\n\ntwo\n"
+    }
+  ]
+}
+[[test]] code block after a paragraph
+Text
+
+    code
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "Text\n\n    code",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        }
+      ]
+    },
+    {
+      "kind": "CodeBlock",
+      "span": [10, 14],
+      "text": "code",
+      "isFenced": false,
+      "content": "code\n"
+    }
+  ]
+}

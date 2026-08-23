@@ -33,3 +33,19 @@ test
 ---
 
 asdf
+
+!! should use asterisks for a rule beside a dash list marker !!
+- ___
+
+[expect]
+- ***
+
+!! should use dashes for a rule that isn't beside a marker !!
+- foo
+
+  ___
+
+[expect]
+- foo
+
+  ---

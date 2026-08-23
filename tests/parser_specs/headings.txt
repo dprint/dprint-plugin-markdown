@@ -1,0 +1,361 @@
+[[test]] atx heading
+# Hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "# Hello",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 7],
+      "text": "# Hello",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [2, 7],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] atx headings of every level
+# One
+## Two
+### Three
+#### Four
+##### Five
+###### Six
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 54],
+  "text": "# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 5],
+      "text": "# One",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [2, 5],
+          "text": "One"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [6, 12],
+      "text": "## Two",
+      "level": 2,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [9, 12],
+          "text": "Two"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [13, 22],
+      "text": "### Three",
+      "level": 3,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [17, 22],
+          "text": "Three"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [23, 32],
+      "text": "#### Four",
+      "level": 4,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [28, 32],
+          "text": "Four"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [33, 43],
+      "text": "##### Five",
+      "level": 5,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [39, 43],
+          "text": "Five"
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [44, 54],
+      "text": "###### Six",
+      "level": 6,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [51, 54],
+          "text": "Six"
+        }
+      ]
+    }
+  ]
+}
+[[test]] seven hashes is not a heading
+####### Seven
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "####### Seven",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "####### Seven",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 13],
+          "text": "####### Seven"
+        }
+      ]
+    }
+  ]
+}
+[[test]] atx heading with closing hashes
+## Hello ##
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "## Hello ##",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 11],
+      "text": "## Hello ##",
+      "level": 2,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 8],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] atx heading with inline content
+# Hello *world* and `code`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 26],
+  "text": "# Hello *world* and `code`",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 26],
+      "text": "# Hello *world* and `code`",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [2, 7],
+          "text": "Hello"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [8, 15],
+          "text": "*world*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [9, 14],
+              "text": "world"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [16, 19],
+          "text": "and"
+        },
+        {
+          "kind": "Code",
+          "span": [20, 26],
+          "text": "`code`",
+          "content": "code"
+        }
+      ]
+    }
+  ]
+}
+[[test]] indented atx heading
+   # Hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "   # Hello",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [3, 10],
+      "text": "# Hello",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 10],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] four spaces is code not a heading
+    # Hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "    # Hello",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [4, 11],
+      "text": "# Hello",
+      "isFenced": false,
+      "content": "# Hello\n"
+    }
+  ]
+}
+[[test]] empty atx heading
+#
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 1],
+  "text": "#",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 1],
+      "text": "#",
+      "level": 1,
+      "headingStyle": "Atx"
+    }
+  ]
+}
+[[test]] setext heading level one
+Hello
+=====
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "Hello\n=====",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 11],
+      "text": "Hello\n=====",
+      "level": 1,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] setext heading level two
+Hello
+-----
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "Hello\n-----",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 11],
+      "text": "Hello\n-----",
+      "level": 2,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "Hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] setext heading over multiple lines
+Hello
+there
+===
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "Hello\nthere\n===",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 15],
+      "text": "Hello\nthere\n===",
+      "level": 1,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "Hello"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [5, 6],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [6, 11],
+          "text": "there"
+        }
+      ]
+    }
+  ]
+}
