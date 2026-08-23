@@ -34,3 +34,13 @@
     6. Test
 10. Other
     7. Testing
+
+!! should fence code that cannot keep its indentation beside a marker !!
+-     code
+      more
+
+[expect]
+- ```
+    code
+    more
+    ```

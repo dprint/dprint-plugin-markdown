@@ -1,0 +1,259 @@
+[[test]] a row with fewer cells than the header is filled out
+| a | b | c |
+| - | - | - |
+| 1 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 33],
+  "text": "| a | b | c |\n| - | - | - |\n| 1 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 33],
+      "text": "| a | b | c |\n| - | - | - |\n| 1 |",
+      "columnAlignment": ["None", "None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 13],
+        "text": "| a | b | c |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [10, 11],
+            "text": "c",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [10, 11],
+                "text": "c"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [28, 33],
+          "text": "| 1 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [30, 31],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [30, 31],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [33, 33],
+              "text": ""
+            },
+            {
+              "kind": "TableCell",
+              "span": [33, 33],
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a row with more cells than the header loses them
+| a |
+| - |
+| 1 | 2 | 3 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "| a |\n| - |\n| 1 | 2 | 3 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 25],
+      "text": "| a |\n| - |\n| 1 | 2 | 3 |",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "| a |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 25],
+          "text": "| 1 | 2 | 3 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [14, 15],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [14, 15],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [18, 19],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [18, 19],
+                  "text": "2"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [22, 23],
+              "text": "3",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [22, 23],
+                  "text": "3"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a row of empty cells keeps them all
+| a | b | c |
+| - | - | - |
+|  |  |  |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 38],
+  "text": "| a | b | c |\n| - | - | - |\n|  |  |  |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 38],
+      "text": "| a | b | c |\n| - | - | - |\n|  |  |  |",
+      "columnAlignment": ["None", "None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 13],
+        "text": "| a | b | c |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [10, 11],
+            "text": "c",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [10, 11],
+                "text": "c"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [28, 38],
+          "text": "|  |  |  |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [31, 31],
+              "text": ""
+            },
+            {
+              "kind": "TableCell",
+              "span": [34, 34],
+              "text": ""
+            },
+            {
+              "kind": "TableCell",
+              "span": [37, 37],
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

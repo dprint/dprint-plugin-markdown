@@ -4,7 +4,6 @@ use dprint_core::formatting::*;
 use super::configuration::Configuration;
 use super::generation::file_has_ignore_file_directive;
 use super::generation::generate;
-use super::generation::parse_cmark_ast;
 use super::generation::strip_metadata_header;
 use super::generation::Context;
 
@@ -12,6 +11,10 @@ use super::generation::Context;
 #[derive(Debug, thiserror::Error)]
 pub enum FormatError {
   /// The text could not be parsed as markdown.
+  ///
+  /// Whatever the parser can't make sense of is read as the paragraphs it
+  /// renders as, so this is only for a document written in a way the parser
+  /// won't follow at all -- blocks nested more deeply than it will go.
   #[error("{0}")]
   Parse(String),
   /// An error occurred while formatting the text of a code block.
@@ -27,7 +30,7 @@ impl From<std::string::FromUtf8Error> for FormatError {
 
 /// Formats a file.
 ///
-/// Returns the file text or an error when it failed to parse.
+/// Returns the formatted text, or `None` when it's the same as what was given.
 pub fn format_text(
   file_text: &str,
   config: &Configuration,
@@ -87,13 +90,27 @@ pub fn trace_file(
   )
 }
 
+/// Removes the byte order marks a file begins with, along with any whitespace
+/// written before them.
+///
+/// More than one is removed, and the whitespace with them, because taking off
+/// only the first would leave another at the start of the file once the
+/// whitespace around it was written out -- for the next run to take off in
+/// turn. Text that begins with no mark at all is left as it is.
 fn strip_bom(text: &str) -> &str {
-  text.strip_prefix("\u{FEFF}").unwrap_or(text)
+  let mut rest = text;
+  loop {
+    let trimmed = rest.trim_start_matches([' ', '\t', '\n', '\r']);
+    match trimmed.strip_prefix('\u{FEFF}') {
+      Some(after) => rest = after,
+      None => return rest,
+    }
+  }
 }
 
 enum ParseFileResult<'a> {
   IgnoreFile,
-  SourceFile((crate::generation::common::SourceFile, &'a str)),
+  SourceFile((crate::generation::common::SourceFile<'a>, &'a str)),
 }
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
@@ -102,16 +119,8 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
     return Ok(ParseFileResult::IgnoreFile);
   }
 
-  match parse_cmark_ast(file_text) {
-    Ok(source_file) => Ok(ParseFileResult::SourceFile((source_file, file_text))),
-    Err(error) => Err(FormatError::Parse(
-      dprint_core::formatting::utils::string_utils::format_diagnostic(
-        Some((error.range.start, error.range.end)),
-        &error.message,
-        file_text,
-      ),
-    )),
-  }
+  let file = crate::parser::parse(file_text).map_err(|err| FormatError::Parse(err.to_string()))?;
+  Ok(ParseFileResult::SourceFile((file, file_text)))
 }
 
 fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOptions {
@@ -130,7 +139,13 @@ mod test {
 
   #[test]
   fn strips_bom() {
-    for input_text in ["\u{FEFF}#  Title", "\u{FEFF}# Title\n"] {
+    for input_text in [
+      "\u{FEFF}#  Title",
+      "\u{FEFF}# Title\n",
+      "\u{FEFF}\u{FEFF}# Title\n",
+      "  \u{FEFF}# Title\n",
+      "\u{FEFF}\n\u{FEFF}# Title\n",
+    ] {
       let config = ConfigurationBuilder::new().build();
       let result = format_text(input_text, &config, |_, _, _| Ok(None)).unwrap();
       assert_eq!(result, Some("# Title\n".to_string()));

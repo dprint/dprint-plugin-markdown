@@ -1,0 +1,539 @@
+[[test]] item with no content
+-
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 1],
+  "text": "-",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 1],
+      "text": "-",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 1],
+          "text": "-",
+          "markerSpan": [0, 1]
+        }
+      ]
+    }
+  ]
+}
+[[test]] item with only a marker followed by an item
+-
+- two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "-\n- two",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 7],
+      "text": "-\n- two",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 1],
+          "text": "-",
+          "markerSpan": [0, 1]
+        },
+        {
+          "kind": "Item",
+          "span": [2, 7],
+          "text": "- two",
+          "markerSpan": [2, 3],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [4, 7],
+              "text": "two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [4, 7],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] item content indented far past its marker
+-     code beside the marker
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 28],
+  "text": "-     code beside the marker",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 28],
+      "text": "-     code beside the marker",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 28],
+          "text": "-     code beside the marker",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "CodeBlock",
+              "span": [6, 28],
+              "text": "code beside the marker",
+              "isFenced": false,
+              "content": "code beside the marker\n"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] ordered list with a large start
+999999999. one
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "999999999. one",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 14],
+      "text": "999999999. one",
+      "markerChar": ".",
+      "startIndex": 999999999,
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 14],
+          "text": "999999999. one",
+          "markerSpan": [0, 10],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [11, 14],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [11, 14],
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] ten digits is not a list marker
+1234567890. one
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "1234567890. one",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "1234567890. one",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 15],
+          "text": "1234567890. one"
+        }
+      ]
+    }
+  ]
+}
+[[test]] list interrupted by a thematic break
+- one
+
+***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "- one\n\n***",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 5],
+      "text": "- one",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 5],
+          "text": "- one",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [7, 10],
+      "text": "***"
+    }
+  ]
+}
+[[test]] nested list under a paragraph continuation
+- one
+  two
+  - three
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "- one\n  two\n  - three",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 21],
+      "text": "- one\n  two\n  - three",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 21],
+          "text": "- one\n  two\n  - three",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 11],
+              "text": "one\n  two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [5, 6],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [8, 11],
+                  "text": "two"
+                }
+              ]
+            }
+          ],
+          "subLists": [
+            {
+              "kind": "List",
+              "span": [14, 21],
+              "text": "- three",
+              "markerChar": "-",
+              "listKind": "Bullet",
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [14, 21],
+                  "text": "- three",
+                  "markerSpan": [14, 15],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [16, 21],
+                      "text": "three",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [16, 21],
+                          "text": "three"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] item holding a block quote and a list
+- > quote
+  - sub
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "- > quote\n  - sub",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 17],
+      "text": "- > quote\n  - sub",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 17],
+          "text": "- > quote\n  - sub",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "BlockQuote",
+              "span": [2, 9],
+              "text": "> quote",
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [4, 9],
+                  "text": "quote",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [4, 9],
+                      "text": "quote"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "subLists": [
+            {
+              "kind": "List",
+              "span": [12, 17],
+              "text": "- sub",
+              "markerChar": "-",
+              "listKind": "Bullet",
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [12, 17],
+                  "text": "- sub",
+                  "markerSpan": [12, 13],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [14, 17],
+                      "text": "sub",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [14, 17],
+                          "text": "sub"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] sub lists at the end of an item
+- one
+  - a
+  - b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "- one\n  - a\n  - b",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 17],
+      "text": "- one\n  - a\n  - b",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 17],
+          "text": "- one\n  - a\n  - b",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                }
+              ]
+            }
+          ],
+          "subLists": [
+            {
+              "kind": "List",
+              "span": [8, 17],
+              "text": "- a\n  - b",
+              "markerChar": "-",
+              "listKind": "Bullet",
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [8, 11],
+                  "text": "- a",
+                  "markerSpan": [8, 9],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [10, 11],
+                      "text": "a",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [10, 11],
+                          "text": "a"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "kind": "Item",
+                  "span": [14, 17],
+                  "text": "- b",
+                  "markerSpan": [14, 15],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [16, 17],
+                      "text": "b",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [16, 17],
+                          "text": "b"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] list separated by a blank line then text
+- one
+
+  para
+
+- two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "- one\n\n  para\n\n- two",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 20],
+      "text": "- one\n\n  para\n\n- two",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 13],
+          "text": "- one\n\n  para",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                }
+              ]
+            },
+            {
+              "kind": "Paragraph",
+              "span": [9, 13],
+              "text": "para",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [9, 13],
+                  "text": "para"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "Item",
+          "span": [15, 20],
+          "text": "- two",
+          "markerSpan": [15, 16],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [17, 20],
+              "text": "two",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [17, 20],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

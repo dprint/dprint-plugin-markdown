@@ -1,0 +1,399 @@
+[[test]] emphasis with asterisks
+*hello*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "*hello*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "*hello*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "*hello*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis with underscores
+_hello_
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "_hello_",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "_hello_",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "_hello_",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] strong
+**hello**
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "**hello**",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "**hello**",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "**hello**",
+          "decoration": "Strong",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 7],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] strong and emphasis
+***hello***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "***hello***",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "***hello***",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 11],
+          "text": "***hello***",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "TextDecoration",
+              "span": [1, 10],
+              "text": "**hello**",
+              "decoration": "Strong",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [3, 8],
+                  "text": "hello"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] nested emphasis
+**a *b* c**
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "**a *b* c**",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "**a *b* c**",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 11],
+          "text": "**a *b* c**",
+          "decoration": "Strong",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 3],
+              "text": "a"
+            },
+            {
+              "kind": "TextDecoration",
+              "span": [4, 7],
+              "text": "*b*",
+              "decoration": "Emphasis",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [5, 6],
+                  "text": "b"
+                }
+              ]
+            },
+            {
+              "kind": "Text",
+              "span": [8, 9],
+              "text": "c"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] strikethrough
+~~hello~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "~~hello~~",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "~~hello~~",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "~~hello~~",
+          "decoration": "Strikethrough",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 7],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] single tilde strikethrough
+~hello~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "~hello~",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "~hello~",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "~hello~",
+          "decoration": "Strikethrough",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] intraword underscore is not emphasis
+snake_case_word
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "snake_case_word",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "snake_case_word",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 15],
+          "text": "snake_case_word"
+        }
+      ]
+    }
+  ]
+}
+[[test]] intraword asterisk is emphasis
+a*b*c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "a*b*c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "a*b*c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [1, 4],
+          "text": "*b*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 3],
+              "text": "b"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [4, 5],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] unmatched delimiter stays text
+*hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "*hello",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "*hello",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "*hello"
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis across a line break
+*hello
+world*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "*hello\nworld*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "*hello\nworld*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 13],
+          "text": "*hello\nworld*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "hello"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [6, 7],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [7, 12],
+              "text": "world"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis containing a link
+*[text](/url)*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "*[text](/url)*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "*[text](/url)*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 14],
+          "text": "*[text](/url)*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "InlineLink",
+              "span": [1, 13],
+              "text": "[text](/url)",
+              "url": "/url",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 6],
+                  "text": "text"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,520 @@
+[[test]] a paragraph continues without the block quote marker
+> one
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> one\ntwo",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> one\ntwo",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 9],
+          "text": "one\ntwo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 6],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [6, 9],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a blank quote line ends the paragraph it could continue
+> bar
+>
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "> bar\n>\nbaz",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 7],
+      "text": "> bar\n>",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "bar",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "bar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 11],
+      "text": "baz",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 11],
+          "text": "baz"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a setext underline is never a lazy continuation
+> foo
+bar
+===
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> foo\nbar\n===",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> foo\nbar\n===",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 13],
+          "text": "foo\nbar\n===",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "foo"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 6],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [6, 9],
+              "text": "bar"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [9, 10],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [10, 13],
+              "text": "==="
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a fenced code block is never continued lazily
+> ```
+foo
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> ```\nfoo\n```",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 5],
+      "text": "> ```",
+      "children": [
+        {
+          "kind": "CodeBlock",
+          "span": [2, 5],
+          "text": "```",
+          "isFenced": true,
+          "fence": "```",
+          "content": ""
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [6, 9],
+      "text": "foo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [6, 9],
+          "text": "foo"
+        }
+      ]
+    },
+    {
+      "kind": "CodeBlock",
+      "span": [10, 13],
+      "text": "```",
+      "isFenced": true,
+      "fence": "```",
+      "content": ""
+    }
+  ]
+}
+[[test]] an indented line continues a paragraph rather than starting code
+> foo
+    - bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "> foo\n    - bar",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 15],
+      "text": "> foo\n    - bar",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 15],
+          "text": "foo\n    - bar",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "foo"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 6],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [10, 15],
+              "text": "- bar"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an indented code block is not continued lazily
+>     foo
+    bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": ">     foo\n    bar",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": ">     foo",
+      "children": [
+        {
+          "kind": "CodeBlock",
+          "span": [6, 9],
+          "text": "foo",
+          "isFenced": false,
+          "content": "foo\n"
+        }
+      ]
+    },
+    {
+      "kind": "CodeBlock",
+      "span": [14, 17],
+      "text": "bar",
+      "isFenced": false,
+      "content": "bar\n"
+    }
+  ]
+}
+[[test]] a heading in a quote leaves nothing to continue
+> # foo
+bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "> # foo\nbar",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 7],
+      "text": "> # foo",
+      "children": [
+        {
+          "kind": "Heading",
+          "span": [2, 7],
+          "text": "# foo",
+          "level": 1,
+          "headingStyle": "Atx",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [4, 7],
+              "text": "foo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 11],
+      "text": "bar",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 11],
+          "text": "bar"
+        }
+      ]
+    }
+  ]
+}
+[[test]] laziness reaches through the containers in between
+> - > foo
+bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> - > foo\nbar",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> - > foo\nbar",
+      "children": [
+        {
+          "kind": "List",
+          "span": [2, 13],
+          "text": "- > foo\nbar",
+          "markerChar": "-",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [2, 13],
+              "text": "- > foo\nbar",
+              "markerSpan": [2, 3],
+              "children": [
+                {
+                  "kind": "BlockQuote",
+                  "span": [4, 13],
+                  "text": "> foo\nbar",
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [6, 13],
+                      "text": "foo\nbar",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [6, 9],
+                          "text": "foo"
+                        },
+                        {
+                          "kind": "SoftBreak",
+                          "span": [9, 10],
+                          "text": "\n"
+                        },
+                        {
+                          "kind": "Text",
+                          "span": [10, 13],
+                          "text": "bar"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a list item's paragraph continues without its indentation
+- one
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "- one\ntwo",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 9],
+      "text": "- one\ntwo",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 9],
+          "text": "- one\ntwo",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 9],
+              "text": "one\ntwo",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [5, 6],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [6, 9],
+                  "text": "two"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a footnote definition's paragraph continues without its indentation
+[^1]: one
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "[^1]: one\ntwo",
+  "children": [
+    {
+      "kind": "FootnoteDefinition",
+      "span": [0, 13],
+      "text": "[^1]: one\ntwo",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [6, 13],
+          "text": "one\ntwo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 9],
+              "text": "one"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [9, 10],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [10, 13],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a table row is never a lazy continuation
+> a | b
+> - | -
+c | d
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "> a | b\n> - | -\nc | d",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 15],
+      "text": "> a | b\n> - | -",
+      "children": [
+        {
+          "kind": "Table",
+          "span": [2, 15],
+          "text": "a | b\n> - | -",
+          "columnAlignment": ["None", "None"],
+          "header": {
+            "kind": "TableHead",
+            "span": [2, 7],
+            "text": "a | b",
+            "cells": [
+              {
+                "kind": "TableCell",
+                "span": [2, 3],
+                "text": "a",
+                "children": [
+                  {
+                    "kind": "Text",
+                    "span": [2, 3],
+                    "text": "a"
+                  }
+                ]
+              },
+              {
+                "kind": "TableCell",
+                "span": [6, 7],
+                "text": "b",
+                "children": [
+                  {
+                    "kind": "Text",
+                    "span": [6, 7],
+                    "text": "b"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [16, 21],
+      "text": "c | d",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [16, 21],
+          "text": "c | d"
+        }
+      ]
+    }
+  ]
+}

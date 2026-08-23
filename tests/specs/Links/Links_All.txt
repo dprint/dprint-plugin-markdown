@@ -214,3 +214,43 @@ title"
 [expect]
 [a]: https://dprint.dev/q"z
 [b]: https://dprint.dev
+
+!! should escape the double quotes within a title !!
+[link](/url 'title "and" title')
+
+[a]: /url (a "quoted" title)
+
+[expect]
+[link](/url "title \"and\" title")
+
+[a]: /url "a \"quoted\" title"
+
+!! should keep the escapes of a destination as they were written !!
+[foo](/bar\* "ti\*tle")
+
+[foo](/f&ouml;&ouml; "f&ouml;&ouml;")
+
+[expect]
+[foo](/bar\* "ti\*tle")
+
+[foo](/f&ouml;&ouml; "f&ouml;&ouml;")
+
+!! should keep a collapsed reference collapsed !!
+[foo][]
+
+[foo]: /url
+
+[expect]
+[foo][]
+
+[foo]: /url
+
+!! should keep the name of a reference with an escaped bracket !!
+[foo][ref\[]
+
+[ref\[]: /uri
+
+[expect]
+[foo][ref\[]
+
+[ref\[]: /uri

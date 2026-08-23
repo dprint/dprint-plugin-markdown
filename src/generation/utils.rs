@@ -1,3 +1,4 @@
+use crate::parser::SPACES;
 use std::borrow::Cow;
 
 use regex::Regex;
@@ -45,10 +46,11 @@ pub fn is_block_start_word(word: &str) -> bool {
 }
 
 /// Checks if the provided word is a word that could be a list.
-/// Assumes the provided string is one word and doesn't have whitespace.
+/// Assumes the provided string is one word, which is to say it has no space
+/// or line ending in it. Other whitespace (ex. a tab) may show up within a
+/// word because only those two break one.
 pub fn is_list_word(word: &str) -> bool {
-  const NON_BREAKING_SPACE: char = '\u{a0}';
-  debug_assert!(!word.chars().any(|c| c.is_whitespace() && c != NON_BREAKING_SPACE));
+  debug_assert!(!word.chars().any(|c| c == ' ' || c == '\n'));
 
   if word == "*" || word == "-" || word == "+" {
     true
@@ -87,17 +89,24 @@ pub fn is_list_word(word: &str) -> bool {
 /// blank because of the leading `>` character.
 pub fn has_leading_blankline(index: usize, text: &str, in_block_quote: bool) -> bool {
   let mut newline_count = 0;
+  // whether the character to the right of this one was a newline, which makes
+  // a carriage return here the start of the line ending it already counted
+  let mut after_newline = false;
   for c in text[0..index].chars().rev() {
-    if c == '\n' {
+    let ends_line = c == '\n' || (c == '\r' && !after_newline);
+    after_newline = c == '\n';
+    if ends_line {
       newline_count += 1;
       if newline_count >= 2 {
         return true;
       }
+    } else if c == '\r' {
+      continue;
     } else if in_block_quote && c == '>' {
       // a blank line inside a block quote is written as `>`, so skip the block
       // quote markers while looking for consecutive newlines
       continue;
-    } else if !c.is_whitespace() {
+    } else if !SPACES.contains(&c) {
       break;
     }
   }
@@ -131,7 +140,9 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
   let lines = text.split('\n').collect::<Vec<_>>();
   let mut lines_with_indent = Vec::with_capacity(lines.len());
   for line in lines.into_iter() {
-    let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+    // a character that only looks like a space, such as a non-breaking one, is
+    // text of the code rather than the indentation written before it
+    let line_indent = line.chars().take_while(|c| SPACES.contains(c)).count();
     if line_indent == 0 {
       return Cow::Borrowed(text);
     }
@@ -159,41 +170,6 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
   } else {
     Cow::Borrowed(text)
   }
-}
-
-///  This trims only document white space characters as defined
-/// in the [Mozilla Developer Network docs](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Text/Whitespace#what_is_whitespace).
-pub fn trim_document_whitespace<'b>(s: &'b str) -> &'b str {
-  let bytes = s.as_bytes();
-
-  let start = bytes
-    .iter()
-    .position(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
-    .unwrap_or(bytes.len());
-
-  let end = bytes
-    .iter()
-    .rposition(|&b| !matches!(b, b' ' | b'\t' | b'\r' | b'\n'))
-    .map(|i| i + 1)
-    .unwrap_or(0);
-
-  if start <= end {
-    &s[start..end]
-  } else {
-    ""
-  }
-}
-
-pub fn trim_spaces_and_newlines(text: &str) -> &str {
-  text.trim_matches(is_space_tab_or_newline)
-}
-
-pub fn trim_start_spaces_and_newlines(text: &str) -> &str {
-  text.trim_start_matches(is_space_tab_or_newline)
-}
-
-fn is_space_tab_or_newline(c: char) -> bool {
-  matches!(c, ' ' | '\t' | '\r' | '\n')
 }
 
 #[cfg(test)]
@@ -243,6 +219,9 @@ mod test {
     assert_eq!(unindent("  1\n 2"), " 1\n2");
     assert_eq!(unindent(" 1\n  2"), "1\n 2");
     assert_eq!(unindent("1\n2"), "1\n2");
-    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "1\n\u{3000}2");
+    // a character that only looks like a space is text of the code rather than
+    // the indentation written before it
+    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "\u{3000}1\n\u{3000}\u{3000}2");
+    assert_eq!(unindent("  \u{3000}1\n  \u{3000}2"), "\u{3000}1\n\u{3000}2");
   }
 }

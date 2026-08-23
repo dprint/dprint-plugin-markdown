@@ -1,0 +1,212 @@
+[[test]] fence closed by a longer fence
+```
+a
+`````
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "```\na\n`````",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 11],
+      "text": "```\na\n`````",
+      "isFenced": true,
+      "fence": "```",
+      "content": "a\n"
+    }
+  ]
+}
+[[test]] fence not closed by a shorter fence
+````
+a
+```
+b
+````
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "````\na\n```\nb\n````",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 17],
+      "text": "````\na\n```\nb\n````",
+      "isFenced": true,
+      "fence": "````",
+      "content": "a\n```\nb\n"
+    }
+  ]
+}
+[[test]] backtick fence with an info string containing a backtick
+```a`b
+code
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "```a`b\ncode",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "```a`b\ncode",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "```a`b"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [6, 7],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [7, 11],
+          "text": "code"
+        }
+      ]
+    }
+  ]
+}
+[[test]] tilde fence with an info string containing a backtick
+~~~a`b
+code
+~~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "~~~a`b\ncode\n~~~",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 15],
+      "text": "~~~a`b\ncode\n~~~",
+      "isFenced": true,
+      "fence": "~~~",
+      "tag": "a`b",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] fence with a language and extra info
+```ts twoslash
+code
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "```ts twoslash\ncode\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 23],
+      "text": "```ts twoslash\ncode\n```",
+      "isFenced": true,
+      "fence": "```",
+      "tag": "ts twoslash",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] empty fenced code block
+```
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "```\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 7],
+      "text": "```\n```",
+      "isFenced": true,
+      "fence": "```",
+      "content": ""
+    }
+  ]
+}
+[[test]] indented code block ending with blank lines
+    code
+
+
+text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "    code\n\n\ntext",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [4, 8],
+      "text": "code",
+      "isFenced": false,
+      "content": "code\n"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [11, 15],
+      "text": "text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [11, 15],
+          "text": "text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] code block in a block quote in a list
+- > ```
+  > code
+  > ```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "- > ```\n  > code\n  > ```",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 24],
+      "text": "- > ```\n  > code\n  > ```",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 24],
+          "text": "- > ```\n  > code\n  > ```",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "BlockQuote",
+              "span": [2, 24],
+              "text": "> ```\n  > code\n  > ```",
+              "children": [
+                {
+                  "kind": "CodeBlock",
+                  "span": [4, 24],
+                  "text": "```\n  > code\n  > ```",
+                  "isFenced": true,
+                  "fence": "```",
+                  "content": "code\n"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+[[test]] thematic break with dashes
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 3],
+  "text": "---",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "---"
+    }
+  ]
+}
+[[test]] thematic break with asterisks
+***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 3],
+  "text": "***",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "***"
+    }
+  ]
+}
+[[test]] thematic break with underscores
+___
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 3],
+  "text": "___",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "___"
+    }
+  ]
+}
+[[test]] thematic break with spaces
+- - -
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "- - -",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 5],
+      "text": "- - -"
+    }
+  ]
+}
+[[test]] thematic break after a paragraph is a setext heading
+Text
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "Text\n---",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 8],
+      "text": "Text\n---",
+      "level": 2,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] thematic break between paragraphs
+One
+
+***
+
+Two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "One\n\n***\n\nTwo",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 3],
+      "text": "One",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "One"
+        }
+      ]
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [5, 8],
+      "text": "***"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [10, 13],
+      "text": "Two",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 13],
+          "text": "Two"
+        }
+      ]
+    }
+  ]
+}

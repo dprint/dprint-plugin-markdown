@@ -1,0 +1,142 @@
+[[test]] yaml front matter
+---
+title: Test
+---
+
+Text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "---\ntitle: Test\n---\n\nText",
+  "children": [
+    {
+      "kind": "MetadataBlock",
+      "span": [0, 19],
+      "text": "---\ntitle: Test\n---",
+      "metadataKind": "YamlStyle",
+      "content": "title: Test"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [21, 25],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [21, 25],
+          "text": "Text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] toml front matter
++++
+title = "Test"
++++
+
+Text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 28],
+  "text": "+++\ntitle = \"Test\"\n+++\n\nText",
+  "children": [
+    {
+      "kind": "MetadataBlock",
+      "span": [0, 22],
+      "text": "+++\ntitle = \"Test\"\n+++",
+      "metadataKind": "PlusesStyle",
+      "content": "title = \"Test\""
+    },
+    {
+      "kind": "Paragraph",
+      "span": [24, 28],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [24, 28],
+          "text": "Text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] front matter only
+---
+title: Test
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "---\ntitle: Test\n---",
+  "children": [
+    {
+      "kind": "MetadataBlock",
+      "span": [0, 19],
+      "text": "---\ntitle: Test\n---",
+      "metadataKind": "YamlStyle",
+      "content": "title: Test"
+    }
+  ]
+}
+[[test]] thematic break is not front matter when not at the top
+Text
+
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "Text\n\n---",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "Text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        }
+      ]
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [6, 9],
+      "text": "---"
+    }
+  ]
+}
+[[test]] unterminated front matter
+---
+title: Test
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "---\ntitle: Test",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "---"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [4, 15],
+      "text": "title: Test",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [4, 15],
+          "text": "title: Test"
+        }
+      ]
+    }
+  ]
+}

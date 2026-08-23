@@ -1,0 +1,446 @@
+[[test]] a dollar with no closer and a multi byte character
+Costs $5 today, café
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "Costs $5 today, café",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 21],
+      "text": "Costs $5 today, café",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 21],
+          "text": "Costs $5 today, café"
+        }
+      ]
+    }
+  ]
+}
+[[test]] math holding a multi byte character
+a $é$ b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "a $é$ b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "a $é$ b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "InlineMath",
+          "span": [2, 6],
+          "text": "$é$",
+          "content": "é"
+        },
+        {
+          "kind": "Text",
+          "span": [7, 8],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] display math holding a multi byte character
+$$é$$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "$$é$$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "$$é$$",
+      "children": [
+        {
+          "kind": "DisplayMath",
+          "span": [0, 6],
+          "text": "$$é$$",
+          "content": "é"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an escape before a multi byte character in math
+a $\é$ b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "a $\\é$ b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "a $\\é$ b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "InlineMath",
+          "span": [2, 7],
+          "text": "$\\é$",
+          "content": "\\é"
+        },
+        {
+          "kind": "Text",
+          "span": [8, 9],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an html comment holding a multi byte character
+text <!--é--> more
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "text <!--é--> more",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 19],
+      "text": "text <!--é--> more",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "text"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 14],
+          "text": "<!--é-->",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [15, 19],
+          "text": "more"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an unclosed html comment before a multi byte character
+x <!--é
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "x <!--é",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "x <!--é",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 8],
+          "text": "x <!--é"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a processing instruction holding a multi byte character
+text <?é?> more
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "text <?é?> more",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 16],
+      "text": "text <?é?> more",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "text"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 11],
+          "text": "<?é?>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [12, 16],
+          "text": "more"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a declaration holding a multi byte character
+text <!Aé> more
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "text <!Aé> more",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 16],
+      "text": "text <!Aé> more",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "text"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 11],
+          "text": "<!Aé>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [12, 16],
+          "text": "more"
+        }
+      ]
+    }
+  ]
+}
+[[test]] cdata holding a multi byte character
+text <![CDATA[é]]> more
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "text <![CDATA[é]]> more",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 24],
+      "text": "text <![CDATA[é]]> more",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "text"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 19],
+          "text": "<![CDATA[é]]>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [20, 24],
+          "text": "more"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a tag name beside a non breaking space
+<foo>  <foo>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "<foo>  <foo>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "<foo>  <foo>",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [0, 5],
+          "text": "<foo>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [5, 7],
+          "text": " "
+        },
+        {
+          "kind": "Html",
+          "span": [8, 13],
+          "text": "<foo>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] a link whose parts hold multi byte characters
+[café](/café "café")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "[café](/café \"café\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 23],
+      "text": "[café](/café \"café\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 23],
+          "text": "[café](/café \"café\")",
+          "url": "/café",
+          "title": "café",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "café"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] emphasis around multi byte characters
+*café* and 你好
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "*café* and 你好",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 18],
+      "text": "*café* and 你好",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 7],
+          "text": "*café*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "café"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [8, 18],
+          "text": "and 你好"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a code span holding multi byte characters
+`café 你好`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "`café 你好`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "`café 你好`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 14],
+          "text": "`café 你好`",
+          "content": "café 你好"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a table cell holding multi byte characters
+| café |
+| --- |
+| 你好 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 28],
+  "text": "| café |\n| --- |\n| 你好 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 28],
+      "text": "| café |\n| --- |\n| 你好 |",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| café |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 7],
+            "text": "café",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 7],
+                "text": "café"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [18, 28],
+          "text": "| 你好 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [20, 26],
+              "text": "你好",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [20, 26],
+                  "text": "你好"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

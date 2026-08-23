@@ -1,0 +1,88 @@
+[[test]] escaped asterisk
+\*not emphasis\*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "\\*not emphasis\\*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 16],
+      "text": "\\*not emphasis\\*",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 16],
+          "text": "\\*not emphasis\\*"
+        }
+      ]
+    }
+  ]
+}
+[[test]] escaped bracket
+\[not a link\]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "\\[not a link\\]",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "\\[not a link\\]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 14],
+          "text": "\\[not a link\\]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] escaped backslash
+a \\ b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "a \\\\ b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "a \\\\ b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "a \\\\ b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] backslash before a non punctuation character
+a \b c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "a \\b c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "a \\b c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "a \\b c"
+        }
+      ]
+    }
+  ]
+}

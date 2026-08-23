@@ -128,14 +128,17 @@ term
 : #
 
 !! should use an atx heading when the heading has no visible width !!
-#  
-
 # ​
 
 [expect]
+# ​
+
+!! should underline a heading whose text only looks like whitespace !!
 #  
 
-# ​
+[expect]
+ 
+=
 
 !! should not leave a trailing space for an empty level 3 or higher heading !!
 ###
@@ -146,3 +149,9 @@ term
 ###
 
 ######
+
+!! should use an atx heading when the text would start a block of its own !!
+# <!-- c -->
+
+[expect]
+# <!-- c -->

@@ -1,0 +1,103 @@
+[[test]] inline math
+The $x + y$ value
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "The $x + y$ value",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "The $x + y$ value",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "The"
+        },
+        {
+          "kind": "InlineMath",
+          "span": [4, 11],
+          "text": "$x + y$",
+          "content": "x + y"
+        },
+        {
+          "kind": "Text",
+          "span": [12, 17],
+          "text": "value"
+        }
+      ]
+    }
+  ]
+}
+[[test]] display math
+$$x + y$$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "$$x + y$$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "$$x + y$$",
+      "children": [
+        {
+          "kind": "DisplayMath",
+          "span": [0, 9],
+          "text": "$$x + y$$",
+          "content": "x + y"
+        }
+      ]
+    }
+  ]
+}
+[[test]] display math over multiple lines
+$$
+x + y
+$$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "$$\nx + y\n$$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "$$\nx + y\n$$",
+      "children": [
+        {
+          "kind": "DisplayMath",
+          "span": [0, 11],
+          "text": "$$\nx + y\n$$",
+          "content": "\nx + y\n"
+        }
+      ]
+    }
+  ]
+}
+[[test]] dollar without a closer is text
+Costs $5 today
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "Costs $5 today",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "Costs $5 today",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 14],
+          "text": "Costs $5 today"
+        }
+      ]
+    }
+  ]
+}

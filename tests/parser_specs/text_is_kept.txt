@@ -1,0 +1,758 @@
+[[test]] a space that only looks like one doesn't end a fence's info string
+~~~ rust
+code
+~~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "~~~ rust\ncode\n~~~",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 18],
+      "text": "~~~ rust\ncode\n~~~",
+      "isFenced": true,
+      "fence": "~~~",
+      "tag": " rust",
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps a line from closing a fence
+```
+code
+``` 
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "```\ncode\n``` ",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 14],
+      "text": "```\ncode\n``` ",
+      "isFenced": true,
+      "fence": "```",
+      "content": "code\n``` \n"
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps a line from underlining a heading
+a
+- 
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "a\n- ",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "a\n- ",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [1, 2],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [2, 5],
+          "text": "- "
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps a line from underlining with dashes
+a
+--- 
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "a\n--- ",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "a\n--- ",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [1, 2],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [2, 7],
+          "text": "--- "
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps a row from delimiting a table
+a|b
+-|- 
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "a|b\n-|- ",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "a|b\n-|- ",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "a|b"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [3, 4],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [4, 9],
+          "text": "-|- "
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one is part of a link's label
+[foo][bar ]
+
+[bar ]: /u
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 27],
+  "text": "[foo][bar ]\n\n[bar ]: /u",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "[foo][bar ]",
+      "children": [
+        {
+          "kind": "ReferenceLink",
+          "span": [0, 13],
+          "text": "[foo][bar ]",
+          "reference": "bar ",
+          "isCollapsed": false,
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 4],
+              "text": "foo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [15, 27],
+      "text": "[bar ]: /u",
+      "name": "bar ",
+      "link": "/u"
+    }
+  ]
+}
+[[test]] a space that only looks like one is part of a link's title
+[a]: /u "t "
+
+[a]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "[a]: /u \"t \"\n\n[a]",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 13],
+      "text": "[a]: /u \"t \"",
+      "name": "a",
+      "link": "/u",
+      "title": "t "
+    },
+    {
+      "kind": "Paragraph",
+      "span": [15, 18],
+      "text": "[a]",
+      "children": [
+        {
+          "kind": "ShortcutLink",
+          "span": [15, 18],
+          "text": "[a]",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [16, 17],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps a line from closing the front matter
+---
+title: x
+--- 
+
+body
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "---\ntitle: x\n--- \n\nbody",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "---"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [4, 18],
+      "text": "title: x\n--- ",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [4, 12],
+          "text": "title: x"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [12, 13],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [13, 18],
+          "text": "--- "
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [20, 24],
+      "text": "body",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [20, 24],
+          "text": "body"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one keeps an item from being empty
+a
+- 　
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "a\n- 　",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 1],
+      "text": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        }
+      ]
+    },
+    {
+      "kind": "List",
+      "span": [2, 7],
+      "text": "- 　",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [2, 7],
+          "text": "- 　",
+          "markerSpan": [2, 3],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [4, 7],
+              "text": "　",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [4, 7],
+                  "text": "　"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a space that only looks like one is part of a table's cell
+| a | b |
+| - | - |
+|   | 2 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 30],
+  "text": "| a | b |\n| - | - |\n|   | 2 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 30],
+      "text": "| a | b |\n| - | - |\n|   | 2 |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [20, 30],
+          "text": "|   | 2 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [22, 24],
+              "text": " ",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [22, 24],
+                  "text": " "
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [27, 28],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [27, 28],
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a row keeps the cells it holds past the last column
+| a | b |
+| - | - |
+| 1 | 2 | 3 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 33],
+  "text": "| a | b |\n| - | - |\n| 1 | 2 | 3 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 33],
+      "text": "| a | b |\n| - | - |\n| 1 | 2 | 3 |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [20, 33],
+          "text": "| 1 | 2 | 3 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [22, 23],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [22, 23],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [26, 27],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [26, 27],
+                  "text": "2"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [30, 31],
+              "text": "3",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [30, 31],
+                  "text": "3"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a row is filled out to the last column
+| a | b |
+| - | - |
+| 1 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "| a | b |\n| - | - |\n| 1 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 25],
+      "text": "| a | b |\n| - | - |\n| 1 |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [20, 25],
+          "text": "| 1 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [22, 23],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [22, 23],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [25, 25],
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a pipe within a code span still divides a row's cells
+| name | description |
+| --- | --- |
+| `get(key): string | null` | Gets it. |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 77],
+  "text": "| name | description |\n| --- | --- |\n| `get(key): string | null` | Gets it. |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 77],
+      "text": "| name | description |\n| --- | --- |\n| `get(key): string | null` | Gets it. |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 22],
+        "text": "| name | description |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 6],
+            "text": "name",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 6],
+                "text": "name"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [9, 20],
+            "text": "description",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [9, 20],
+                "text": "description"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [37, 77],
+          "text": "| `get(key): string | null` | Gets it. |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [39, 56],
+              "text": "`get(key): string",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [39, 56],
+                  "text": "`get(key): string"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [59, 64],
+              "text": "null`",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [59, 64],
+                  "text": "null`"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [67, 75],
+              "text": "Gets it.",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [67, 75],
+                  "text": "Gets it."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition followed by a block that could not interrupt it
+> > w0
+  =
+[r1]: w1 '```rust'
+>+
+    - ()
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 41],
+  "text": "> > w0\n  =\n[r1]: w1 '```rust'\n>+\n    - ()",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 41],
+      "text": "> > w0\n  =\n[r1]: w1 '```rust'\n>+\n    - ()",
+      "children": [
+        {
+          "kind": "BlockQuote",
+          "span": [2, 29],
+          "text": "> w0\n  =\n[r1]: w1 '```rust'",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [4, 29],
+              "text": "w0\n  =\n[r1]: w1 '```rust'",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [4, 6],
+                  "text": "w0"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [6, 7],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [9, 10],
+                  "text": "="
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [10, 11],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [11, 29],
+                  "text": "[r1]: w1 '```rust'"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "List",
+          "span": [31, 41],
+          "text": "+\n    - ()",
+          "markerChar": "+",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [31, 41],
+              "text": "+\n    - ()",
+              "markerSpan": [31, 32],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [37, 41],
+                  "text": "- ()",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [37, 41],
+                      "text": "- ()"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
