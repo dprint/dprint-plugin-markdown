@@ -97,16 +97,18 @@ impl ConfigurationBuilder {
     self.insert("listIndentKind", value.to_string().into())
   }
 
-  /// Whether to unindent the contents of code blocks.
-  /// Default: `true`
-  pub fn code_block_unindent(&mut self, value: bool) -> &mut Self {
-    self.insert("codeBlock.unindent", value.into())
+  /// Whether to keep the indentation the code within a code block was
+  /// written with, rather than unindenting it.
+  /// Default: `false`
+  pub fn code_block_preserve_indentation(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.preserveIndentation", value.into())
   }
 
-  /// Whether to trim the blank lines at the start and end of a fenced code block.
-  /// Default: `true`
-  pub fn code_block_trim_blank_lines(&mut self, value: bool) -> &mut Self {
-    self.insert("codeBlock.trimBlankLines", value.into())
+  /// Whether to keep the blank lines at the start and end of a fenced code
+  /// block, rather than trimming them.
+  /// Default: `false`
+  pub fn code_block_preserve_blank_lines(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.preserveBlankLines", value.into())
   }
 
   /// The directive used to ignore a line.
@@ -173,8 +175,8 @@ mod tests {
       .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
-      .code_block_unindent(false)
-      .code_block_trim_blank_lines(false)
+      .code_block_preserve_indentation(true)
+      .code_block_preserve_blank_lines(true)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")

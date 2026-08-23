@@ -1,4 +1,4 @@
-~~ codeBlock.trimBlankLines: false ~~
+~~ codeBlock.preserveBlankLines: true ~~
 !! should format code blocks !!
 Testing:
 ```ts
