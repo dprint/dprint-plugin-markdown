@@ -89,8 +89,16 @@ pub fn trace_file(
   )
 }
 
+/// Removes the byte order marks a file begins with.
+///
+/// More than one is removed because taking off only the first would leave the
+/// next at the start of the file, for the next run to take off in turn.
 fn strip_bom(text: &str) -> &str {
-  text.strip_prefix("\u{FEFF}").unwrap_or(text)
+  let mut text = text;
+  while let Some(rest) = text.strip_prefix('\u{FEFF}') {
+    text = rest;
+  }
+  text
 }
 
 enum ParseFileResult<'a> {
@@ -123,7 +131,7 @@ mod test {
 
   #[test]
   fn strips_bom() {
-    for input_text in ["\u{FEFF}#  Title", "\u{FEFF}# Title\n"] {
+    for input_text in ["\u{FEFF}#  Title", "\u{FEFF}# Title\n", "\u{FEFF}\u{FEFF}# Title\n"] {
       let config = ConfigurationBuilder::new().build();
       let result = format_text(input_text, &config, |_, _, _| Ok(None)).unwrap();
       assert_eq!(result, Some("# Title\n".to_string()));
