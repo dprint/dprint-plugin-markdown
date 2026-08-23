@@ -19,6 +19,7 @@ pub struct Configuration {
   pub hard_break_kind: HardBreakKind,
   pub unindent_code_blocks: bool,
   pub list_indent_kind: ListIndentKind,
+  pub allow_fenced_blank_lines: bool,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,

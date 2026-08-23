@@ -32,7 +32,7 @@ fn main() {
         format_text(file_text, &config_result.config, |tag, file_text, line_width| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
-            Ok(Some(format!("{}{}\n\n", file_text, end)))
+            Ok(Some(format!("{}{}", file_text, end)))
           } else {
             Ok(None)
           }

@@ -73,6 +73,7 @@ pub fn resolve_config(
       ListIndentKind::CommonMark,
       &mut diagnostics,
     ),
+    allow_fenced_blank_lines: get_value(&mut config, "allowFencedBlankLines", false, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",

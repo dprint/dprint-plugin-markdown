@@ -578,7 +578,11 @@ fn gen_block_quote_markers(
 fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
-  let code_text = code_text.trim_end_matches(WHITESPACE);
+  let code_text = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
+    code_text.as_ref()
+  } else {
+    code_text.trim_end_matches(WHITESPACE)
+  };
   let code_text = if context.configuration.unindent_code_blocks {
     utils::unindent(code_text)
   } else {
@@ -639,16 +643,23 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
 
   fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
     let code = &code_block.code;
-    if code.trim_matches(WHITESPACE).is_empty() {
-      return Cow::Borrowed("");
-    }
-    let start_pos = get_code_block_start_pos(code);
-    let code = code[start_pos..].trim_end_matches(WHITESPACE);
+    let code = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
+      let code = code.strip_suffix('\n').unwrap_or(code);
+      code.strip_suffix('\r').unwrap_or(code)
+    } else {
+      if code.trim_matches(WHITESPACE).is_empty() {
+        return Cow::Borrowed("");
+      }
+      let start_pos = get_code_block_start_pos(code);
+      code[start_pos..].trim_end_matches(WHITESPACE)
+    };
     if let Some(tag) = code_block.tag() {
       // allow situations like ```rust,ignore
       let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
       if let Ok(Some(text)) = context.format_text(&tag, code) {
-        return Cow::Owned(text);
+        // Formatters produce a string with a trailing newline, which must be removed.
+        let text = text.strip_suffix("\n").unwrap_or(&text);
+        return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
       }
     }
     Cow::Borrowed(code)

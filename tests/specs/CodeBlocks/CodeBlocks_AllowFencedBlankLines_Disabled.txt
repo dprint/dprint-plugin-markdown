@@ -1,0 +1,120 @@
+~~ allowFencedBlankLines: true ~~
+!! should format code blocks !!
+Testing:
+```ts
+
+const t = 5;
+
+test;
+
+```
+```
+other
+```
+
+
+
+
+[expect]
+Testing:
+
+```ts
+
+const t = 5;
+
+test;
+
+```
+
+```
+other
+```
+
+!! should keep first line indentation !!
+```
+
+
+                    │
+                  HTTP            ┌───────────────┐
+┌───────────────────┼─────────────┤   component   ├─┐
+│                   │             └───────────────┘ │
+│                   ▼                               │
+│         ┌───────────────────┐                     │
+│         │                   │                     │
+│         │    Some Text      │                     │
+│         │                   │                     │
+│         └───────────────────┘                     │
+│                   │                               │
+└───────────────────┼───────────────────────────────┘
+                    ▼
+
+
+```
+
+[expect]
+```
+
+
+                    │
+                  HTTP            ┌───────────────┐
+┌───────────────────┼─────────────┤   component   ├─┐
+│                   │             └───────────────┘ │
+│                   ▼                               │
+│         ┌───────────────────┐                     │
+│         │                   │                     │
+│         │    Some Text      │                     │
+│         │                   │                     │
+│         └───────────────────┘                     │
+│                   │                               │
+└───────────────────┼───────────────────────────────┘
+                    ▼
+
+
+```
+
+!! should format markdown in `md` code blocks !!
+
+```md
+# Testing
+
+
+>this is a blockquote
+
+ Never mind
+
+```
+
+
+[expect]
+```md
+# Testing
+
+> this is a blockquote
+
+Never mind
+```
+
+!! should format markdown in `markdown` code blocks !!
+
+```md
+# Testing
+
+
+>this is a blockquote
+
+ Never mind
+
+[  testing  ](  https://dprint.dev  "Dprint homepage"  )
+```
+
+
+[expect]
+```md
+# Testing
+
+> this is a blockquote
+
+Never mind
+
+[testing](https://dprint.dev "Dprint homepage")
+```
