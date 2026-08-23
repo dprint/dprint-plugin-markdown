@@ -49,3 +49,13 @@ Testing <b>test</b>.
 [expect]
 > <div>
 > foo
+
+!! should keep a space that only looks like one at the end of a line of html !!
+<div>
+a 
+</div>
+
+[expect]
+<div>
+a 
+</div>

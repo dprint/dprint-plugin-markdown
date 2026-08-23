@@ -1190,10 +1190,26 @@ fn gen_range(span: Span, ctx: &mut Context) -> PrintItems {
   }
   let mut items = PrintItems::new();
   items.push_sc(sc!("")); // force first line indentation
-  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(
+  items.extend(ir_helpers::gen_from_raw_string(&trim_line_ends(
     &strip_raw_block_quote_markers(text, ctx),
-  ));
+  )));
   items
+}
+
+/// Trims the whitespace written at the end of each line, which is only a space
+/// or a tab -- a character that merely looks like one is text of the line.
+fn trim_line_ends(text: &str) -> Cow<'_, str> {
+  if !text.split('\n').any(|line| line.ends_with(SPACES)) {
+    return Cow::Borrowed(text);
+  }
+  let mut result = String::with_capacity(text.len());
+  for (index, line) in text.split('\n').enumerate() {
+    if index > 0 {
+      result.push('\n');
+    }
+    result.push_str(line.trim_end_matches(SPACES));
+  }
+  Cow::Owned(result)
 }
 
 /// Removes the block quote markers that the continued lines of raw text picked
@@ -1984,14 +2000,14 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
         .flatten()
         .map(Cow::from)
         .unwrap_or_else(|| Cow::from(node.text));
-      items.extend(ir_helpers::gen_from_string_trim_line_ends(
+      items.extend(ir_helpers::gen_from_string(&trim_line_ends(
         text.trim_end_matches(WHITESPACE),
-      ));
+      )));
     }
     MetadataBlockKind::PlusesStyle => {
-      items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(
+      items.extend(ir_helpers::gen_from_raw_string(&trim_line_ends(
         node.text.trim_end_matches(WHITESPACE),
-      ));
+      )));
     }
   }
   items.push_signal(Signal::NewLine);
