@@ -97,6 +97,13 @@ impl ConfigurationBuilder {
     self.insert("listIndentKind", value.to_string().into())
   }
 
+  /// Whether to leave the code within a code block as it was written rather
+  /// than formatting it with the plugin that handles the code's language.
+  /// Default: `false`
+  pub fn code_block_skip_format(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.skipFormat", value.into())
+  }
+
   /// Whether to keep the indentation the code within a code block was
   /// written with, rather than unindenting it.
   /// Default: `false`
@@ -175,6 +182,7 @@ mod tests {
       .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
+      .code_block_skip_format(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
       .ignore_directive("test")
@@ -183,7 +191,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 15);
+    assert_eq!(inner_config.len(), 16);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

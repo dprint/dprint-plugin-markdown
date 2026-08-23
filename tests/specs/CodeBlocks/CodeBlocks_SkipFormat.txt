@@ -1,0 +1,50 @@
+~~ codeBlock.skipFormat: true ~~
+!! should leave the code of a tagged code block alone !!
+```format
+testing
+```
+
+Then indented:
+
+1. Testing
+   ```format
+   other
+   ```
+
+[expect]
+```format
+testing
+```
+
+Then indented:
+
+1. Testing
+   ```format
+   other
+   ```
+
+!! should leave the code of a markdown code block alone !!
+```md
+# Testing
+
+
+>this is a blockquote
+```
+
+[expect]
+```md
+# Testing
+
+
+>this is a blockquote
+```
+
+!! should still unindent the code and normalize the fence !!
+~~~~~format
+    testing
+~~~~~
+
+[expect]
+```format
+testing
+```

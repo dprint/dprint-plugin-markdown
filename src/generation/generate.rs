@@ -653,13 +653,15 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
       let start_pos = get_code_block_start_pos(code);
       code[start_pos..].trim_end_matches(WHITESPACE)
     };
-    if let Some(tag) = code_block.tag() {
-      // allow situations like ```rust,ignore
-      let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
-      if let Ok(Some(text)) = context.format_text(&tag, code) {
-        // Formatters produce a string with a trailing newline, which must be removed.
-        let text = text.strip_suffix("\n").unwrap_or(&text);
-        return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
+    if !context.configuration.code_block_skip_format {
+      if let Some(tag) = code_block.tag() {
+        // allow situations like ```rust,ignore
+        let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
+        if let Ok(Some(text)) = context.format_text(&tag, code) {
+          // Formatters produce a string with a trailing newline, which must be removed.
+          let text = text.strip_suffix("\n").unwrap_or(&text);
+          return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
+        }
       }
     }
     Cow::Borrowed(code)
