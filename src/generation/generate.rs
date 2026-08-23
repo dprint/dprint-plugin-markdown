@@ -906,8 +906,9 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
         }
 
         self.last_char = current_word.chars().last();
-        // the word may hold a tab, which the printer measures itself
-        self.items.extend(gen_text_with_tabs(current_word));
+        self
+          .items
+          .extend(gen_word_with_unspaced_script_breaks(current_word, self.context));
       }
     }
 
@@ -1444,6 +1445,44 @@ fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
     }
   }
   line
+}
+
+/// Writes the word, breaking it up where a line can be broken within a script
+/// written without spaces between its words.
+///
+/// A run of such a script holds no spaces for the line to be broken at, so
+/// without this it would be written on one line however long it ran. Only a
+/// break with one of its characters on either side can be written: anywhere
+/// else the break would be read back as a space that wasn't written.
+fn gen_word_with_unspaced_script_breaks(word: String, context: &Context) -> PrintItems {
+  if context.configuration.text_wrap != TextWrap::Always || context.is_text_wrap_disabled() {
+    return gen_text_with_tabs(word);
+  }
+
+  let mut items = PrintItems::new();
+  let mut segment_start = 0;
+  let mut last_char: Option<char> = None;
+  for (index, character) in word.char_indices() {
+    if matches!(last_char, Some(last) if breaks_between(last, character)) {
+      items.extend(gen_text_with_tabs(word[segment_start..index].to_string()));
+      items.push_signal(Signal::PossibleNewLine);
+      segment_start = index;
+    }
+    last_char = Some(character);
+  }
+  items.extend(gen_text_with_tabs(word[segment_start..].to_string()));
+
+  return items;
+
+  /// Whether a line can be broken between the two characters, which needs both
+  /// to belong to a script written without spaces, and neither to be a mark
+  /// that has to stay with the character beside it.
+  fn breaks_between(last: char, next: char) -> bool {
+    utils::is_unspaced_script(last)
+      && utils::is_unspaced_script(next)
+      && !utils::forbids_line_break_after(last)
+      && !utils::forbids_line_break_before(next)
+  }
 }
 
 /// Writes out text, sending any tab it has as a signal, since the printer

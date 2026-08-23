@@ -6,20 +6,21 @@
 [expect]
 日本語日本語
 
-!! should break where one was rather than writing a space there !!
+!! should break to fit the line rather than writing a space where one was !!
 這個段落是那麼長，
 在一行寫不行。最好
 用三行寫。
 
 [expect]
-這個段落是那麼長，
-在一行寫不行。最好用三行寫。
+這個段落是那麼長，在一行寫不
+行。最好用三行寫。
 
-!! should keep a space between them rather than breaking the line there !!
+!! should break within a run rather than at a space between them !!
 日本語 日本語 日本語 日本語 日本語
 
 [expect]
-日本語 日本語 日本語 日本語 日本語
+日本語 日本語 日本語 日本語 日
+本語
 
 !! should still turn a line break beside other text into a space !!
 日本語

@@ -34,6 +34,52 @@ pub fn is_unspaced_script(c: char) -> bool {
   )
 }
 
+/// Whether a line can't be broken before the character, which is what keeps
+/// the marks that close or trail a phrase off the start of a line.
+///
+/// This is the part of Japanese line breaking (kinsoku shori) that every
+/// renderer applies. See <https://www.w3.org/TR/jlreq/#characters_not_starting_a_line>.
+pub fn forbids_line_break_before(c: char) -> bool {
+  matches!(
+    c,
+    // marks that close or trail a phrase
+    '、' | '。' | '，' | '．' | '：' | '；' | '？' | '！' | '‼' | '⁇' | '⁈' | '⁉'
+    | '〕' | '〉' | '》' | '」' | '』' | '】' | '〙' | '〛' | '〞' | '〟' | '）'
+    | '｝' | '］' | '｠' | '＞' | '»' | '›'
+    // the middle dot, which separates the words within a phrase
+    | '・'
+    // the halfwidth forms of the same
+    | '｡' | '｣' | '､' | '･'
+    // iteration marks, which stand for the character before them
+    | '々' | '〻' | 'ゝ' | 'ゞ' | 'ヽ' | 'ヾ'
+    // the marks that voice the character before them, combining or not
+    | '゛' | '゜' | 'ﾞ' | 'ﾟ' | '\u{3099}' | '\u{309A}'
+    // the prolonged sound marks and the small kana, which belong to the
+    // syllable written before them
+    | 'ー' | 'ｰ' | '〜' | '～'
+    | 'ぁ' | 'ぃ' | 'ぅ' | 'ぇ' | 'ぉ' | 'っ' | 'ゃ' | 'ゅ' | 'ょ' | 'ゎ' | 'ゕ' | 'ゖ'
+    | 'ァ' | 'ィ' | 'ゥ' | 'ェ' | 'ォ' | 'ッ' | 'ャ' | 'ュ' | 'ョ' | 'ヮ' | 'ヵ' | 'ヶ'
+    // the small katakana written for the sounds of other languages
+    | '\u{31F0}'..='\u{31FF}'
+    // the halfwidth small kana
+    | '\u{FF67}'..='\u{FF6F}'
+  )
+}
+
+/// Whether a line can't be broken after the character, which is what keeps the
+/// marks that open a phrase off the end of a line.
+///
+/// See <https://www.w3.org/TR/jlreq/#characters_not_ending_a_line>.
+pub fn forbids_line_break_after(c: char) -> bool {
+  matches!(
+    c,
+    '〔' | '〈' | '《' | '「' | '『' | '【' | '〘' | '〚' | '〝' | '（'
+    | '｛' | '［' | '｟' | '＜' | '«' | '‹'
+    // the halfwidth form of the same
+    | '｢'
+  )
+}
+
 /// Checks if the provided word would start a new block when it appears at the
 /// start of a line (ex. a list item, block quote, heading, thematic break, or
 /// code fence). Such a word can't be moved to the start of a line by wrapping
@@ -228,6 +274,40 @@ mod test {
     assert_eq!(is_unspaced_script(' '), false);
     assert_eq!(is_unspaced_script(','), false);
     assert_eq!(is_unspaced_script('é'), false);
+  }
+
+  #[test]
+  fn it_should_find_characters_that_cant_start_a_line() {
+    // marks that close or trail a phrase
+    assert_eq!(forbids_line_break_before('。'), true);
+    assert_eq!(forbids_line_break_before('、'), true);
+    assert_eq!(forbids_line_break_before('」'), true);
+    assert_eq!(forbids_line_break_before('）'), true);
+    assert_eq!(forbids_line_break_before('・'), true);
+    // the small kana and the marks that belong to the syllable before them
+    assert_eq!(forbids_line_break_before('っ'), true);
+    assert_eq!(forbids_line_break_before('ョ'), true);
+    assert_eq!(forbids_line_break_before('ー'), true);
+    assert_eq!(forbids_line_break_before('\u{3099}'), true);
+    assert_eq!(forbids_line_break_before('\u{FF6F}'), true);
+    // a line can start with anything else
+    assert_eq!(forbids_line_break_before('あ'), false);
+    assert_eq!(forbids_line_break_before('漢'), false);
+    assert_eq!(forbids_line_break_before('「'), false);
+    assert_eq!(forbids_line_break_before('a'), false);
+  }
+
+  #[test]
+  fn it_should_find_characters_that_cant_end_a_line() {
+    assert_eq!(forbids_line_break_after('「'), true);
+    assert_eq!(forbids_line_break_after('（'), true);
+    assert_eq!(forbids_line_break_after('【'), true);
+    assert_eq!(forbids_line_break_after('｢'), true);
+    // a line can end with anything else
+    assert_eq!(forbids_line_break_after('」'), false);
+    assert_eq!(forbids_line_break_after('。'), false);
+    assert_eq!(forbids_line_break_after('漢'), false);
+    assert_eq!(forbids_line_break_after('a'), false);
   }
 
   #[test]
