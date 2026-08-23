@@ -1841,11 +1841,18 @@ fn gen_horizontal_rule(_: &HorizontalRule, position: NodePosition) -> PrintItems
 /// heading). Otherwise the marker it leaves behind would either escape the
 /// character that followed it or be collapsed as extra whitespace.
 fn gen_hard_break(context: &mut Context) -> PrintItems {
+  /// The two spaces a double space hard break leaves behind, measured as zero
+  /// columns because trailing whitespace isn't visible.
+  const DOUBLE_SPACE: StringContainer = StringContainer::proc_macro_new_with_char_count("  ", 0);
+
   let hard_break = {
     let mut items = PrintItems::new();
     match context.configuration.hard_break_kind {
       HardBreakKind::Backslash => items.push_sc(sc!("\\")),
-      HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
+      // the two spaces sit at the end of the line, where they take no visible
+      // width, so they're written as zero columns to keep them out of the
+      // decision of where the text before them wraps
+      HardBreakKind::DoubleSpace => items.push_sc(&DOUBLE_SPACE),
     }
     items.push_signal(Signal::NewLine);
     items
