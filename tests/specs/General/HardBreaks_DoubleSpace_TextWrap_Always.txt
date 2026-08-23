@@ -8,3 +8,11 @@ this is some text
 that will wrap  
 and this is more
 text that will wrap
+
+!! should not count the trailing spaces toward the line width !!
+aaaa bbbb cccc dddd\
+next line here
+
+[expect]
+aaaa bbbb cccc dddd  
+next line here

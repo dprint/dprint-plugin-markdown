@@ -1,0 +1,8 @@
+~~ textWrap: always, lineWidth: 20 ~~
+!! should wrap at the same place as a double space hard break !!
+aaaa bbbb cccc dddd\
+next line here
+
+[expect]
+aaaa bbbb cccc dddd\
+next line here
