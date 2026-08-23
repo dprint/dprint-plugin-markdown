@@ -28,8 +28,8 @@ pub fn is_unspaced_script(c: char) -> bool {
     // vertical forms, CJK compatibility forms, and small form variants
     | 0xFE10..=0xFE19
     | 0xFE30..=0xFE6F
-    // fullwidth forms, less the halfwidth katakana and hangul between them
-    | 0xFF01..=0xFF60
+    // fullwidth forms and halfwidth katakana, stopping before halfwidth hangul
+    | 0xFF01..=0xFF9F
     | 0xFFE0..=0xFFE6
   )
 }
@@ -217,6 +217,9 @@ mod test {
     assert_eq!(is_unspaced_script('。'), true);
     assert_eq!(is_unspaced_script('，'), true);
     assert_eq!(is_unspaced_script('）'), true);
+    // and the halfwidth forms of the kana and punctuation written with them
+    assert_eq!(is_unspaced_script('ｶ'), true);
+    assert_eq!(is_unspaced_script('｡'), true);
     // korean is written with spaces between its words
     assert_eq!(is_unspaced_script('한'), false);
     assert_eq!(is_unspaced_script('ᄀ'), false);

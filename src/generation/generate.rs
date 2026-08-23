@@ -860,11 +860,8 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
 
   struct TextBuilder<'a> {
     items: PrintItems,
-    /// Whether the whitespace waiting to be written held a line break, which
-    /// is what tells it apart from a space where the difference matters.
-    was_last_newline: bool,
-    /// The last character written, which decides how the whitespace that
-    /// follows it reads.
+    /// The last character written, which decides how the space that follows it
+    /// reads.
     last_char: Option<char>,
     current_word: Option<String>,
     context: &'a Context<'a>,
@@ -874,7 +871,6 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     pub fn new(context: &'a Context) -> TextBuilder<'a> {
       TextBuilder {
         items: PrintItems::new(),
-        was_last_newline: false,
         last_char: None,
         current_word: None,
         context,
@@ -887,9 +883,10 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     }
 
     pub fn add_char(&mut self, character: char) {
-      if character == '\n' || character == ' ' {
+      // a line break within a block reaches the formatter as a soft break of
+      // its own, so a space is the only whitespace that gets here
+      if character == ' ' {
         self.flush_current_word();
-        self.was_last_newline |= character == '\n';
         return;
       }
 
@@ -905,53 +902,36 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     fn flush_current_word(&mut self) {
       if let Some(current_word) = self.current_word.take() {
         if !self.items.is_empty() {
-          self.items.extend(self.whitespace_items(&current_word));
+          self.items.extend(self.space_items(&current_word));
         }
 
         self.last_char = current_word.chars().last();
         // the word may hold a tab, which the printer measures itself
         self.items.extend(gen_text_with_tabs(current_word));
-        self.was_last_newline = false;
       }
     }
 
-    /// What to write in place of the whitespace that ran up to the next word.
-    fn whitespace_items(&self, next_word: &str) -> PrintItems {
+    /// What to write in place of the space that ran up to the next word.
+    fn space_items(&self, next_word: &str) -> PrintItems {
       if utils::is_block_start_word(next_word) {
         // the word would start a block of its own at the start of a line, so
         // it has to be kept off one
         return space();
       }
-      if self.was_last_newline && self.context.configuration.text_wrap == TextWrap::Maintain {
-        return Signal::NewLine.into();
-      }
       if self.is_between_unspaced_scripts(next_word) {
-        return self.unspaced_script_items();
+        // a space between two characters of a script written without spaces is
+        // rendered, so it's kept as one rather than being written as the line
+        // break that would read as nothing
+        return space();
       }
       get_space_or_newline_based_on_config(self.context)
     }
 
-    /// Whether the whitespace sits between two characters of a script written
-    /// without spaces, where a line break within it isn't rendered as a space
-    /// and a space within it can't be written as a line break.
+    /// Whether the space sits between two characters of a script written
+    /// without spaces between its words.
     fn is_between_unspaced_scripts(&self, next_word: &str) -> bool {
       matches!((self.last_char, next_word.chars().next()),
         (Some(last), Some(next)) if utils::is_unspaced_script(last) && utils::is_unspaced_script(next))
-    }
-
-    fn unspaced_script_items(&self) -> PrintItems {
-      if !self.was_last_newline {
-        // a space between the two characters is rendered, so it's kept as one
-        // rather than being turned into a line break
-        return space();
-      }
-      // a line break between them isn't rendered, so it's dropped rather than
-      // turned into a space, though the line may still be broken where it was
-      if self.context.is_text_wrap_disabled() || self.context.configuration.text_wrap != TextWrap::Always {
-        PrintItems::new()
-      } else {
-        Signal::PossibleNewLine.into()
-      }
     }
   }
 }
@@ -2175,15 +2155,10 @@ fn get_unspaced_script_newline_wrapping(context: &Context) -> PrintItems {
     // as anything either way
     TextWrap::Always if !context.is_text_wrap_disabled() => Signal::PossibleNewLine.into(),
     TextWrap::Always | TextWrap::Never => PrintItems::new(),
-    // a line break can't be written where newlines are being forced off (ex.
-    // within a heading), and it stood for nothing, so nothing replaces it
-    TextWrap::Maintain => if_true_or(
-      "newLineIfNewlinesEnabled",
-      condition_resolvers::is_forcing_no_newlines(),
-      PrintItems::new(),
-      Signal::NewLine.into(),
-    )
-    .into(),
+    // where newlines are being forced off (ex. within a heading) the printer
+    // drops this one, which is what should take the place of a break that read
+    // as nothing anyway
+    TextWrap::Maintain => Signal::NewLine.into(),
   }
 }
 
