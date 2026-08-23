@@ -16,7 +16,7 @@ mod source;
 #[cfg(test)]
 mod debug_json;
 #[cfg(test)]
-mod spec_test;
+pub mod spec_test;
 #[cfg(test)]
 mod text_fuzz;
 

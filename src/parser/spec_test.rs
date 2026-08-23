@@ -1,5 +1,5 @@
-//! Runs the parser's spec tests, which pair markdown text with the json of the
-//! ast it should parse into.
+//! The parser's spec tests, which pair markdown text with the json of the ast
+//! it should parse into.
 //!
 //! The files live under `tests/parser_specs` and hold any number of cases:
 //!
@@ -18,16 +18,11 @@
 //! [`validate_spans`]) and that it holds every bit of the text they were parsed
 //! from (see [`validate_text_coverage`]).
 //!
-//! Set `UPDATE=1` to rewrite the files with what the parser currently produces,
-//! which is how a new case is filled in. Always read the result before
-//! committing it.
-//!
-//! Set `COVERAGE_CORPUS=<dir>` to also check the text coverage invariant
-//! against every `.md` file under a directory, which is how a body of real
-//! markdown is swept for text the parser drops.
+//! `tests/parser_spec_test.rs` is what runs these; this is the reading and
+//! checking of a case, which the fuzzer next door shares.
+#![allow(dead_code)]
 
 use std::path::Path;
-use std::path::PathBuf;
 
 use super::ast::Node;
 use super::ast::Ranged;
@@ -37,99 +32,42 @@ use super::ast::TableCell;
 use super::ast::TaskListMarker;
 use super::debug_json::to_json;
 
-#[test]
-fn spec_tests() {
-  let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/parser_specs");
-  let update = std::env::var("UPDATE").is_ok();
+/// Reads the case through the parser, giving back the json of the ast it holds
+/// along with whatever it fails of the invariants every ast holds.
+pub fn run_case(case: &SpecCase) -> CaseOutcome {
+  let source = case.source();
+  let file = super::parse(&source);
+  let children: Vec<&Node<'_>> = file.children.iter().collect();
   let mut failures = Vec::new();
-  let mut count = 0;
-
-  let filter = std::env::var("SPEC_FILTER").unwrap_or_default();
-  for path in spec_files(&directory) {
-    if !filter.is_empty() && !path.to_string_lossy().contains(&filter) {
-      continue;
-    }
-    let file_text = std::fs::read_to_string(&path).unwrap().replace("\r\n", "\n");
-    let cases = parse_spec_file(&file_text, &path);
-    let mut updated = String::new();
-
-    for case in &cases {
-      count += 1;
-      if std::env::var("SPEC_TRACE").is_ok() {
-        use std::io::Write;
-        writeln!(std::io::stderr(), "{}: {}", path.display(), case.name).unwrap();
-      }
-      let source = case.source();
-      let file = super::parse(&source);
-      let children: Vec<&Node<'_>> = file.children.iter().collect();
-      if let Err(message) = validate_spans(&children, file.span, &source) {
-        failures.push(format!("{}\n  case: {}\n  {}", path.display(), case.name, message));
-      }
-      if let Err(message) = validate_text_coverage(&file, &source) {
-        failures.push(format!("{}\n  case: {}\n  {}", path.display(), case.name, message));
-      }
-      let actual = to_json(&file, &source);
-      updated.push_str(&format!("{}\n{}\n[[ast]]\n{}", case.header(), case.input, actual));
-      if actual != case.expected {
-        failures.push(format!(
-          "{}\n  case: {}\n  --- expected ---\n{}\n  --- actual ---\n{}",
-          path.display(),
-          case.name,
-          case.expected,
-          actual,
-        ));
-      }
-    }
-
-    if update && !cases.is_empty() {
-      std::fs::write(&path, updated).unwrap();
-    }
+  if let Err(message) = validate_spans(&children, file.span, &source) {
+    failures.push(message);
   }
-
-  if let Ok(corpus) = std::env::var("COVERAGE_CORPUS") {
-    let mut files = Vec::new();
-    collect_markdown(std::path::Path::new(&corpus), &mut files);
-    for path in &files {
-      let Ok(source) = std::fs::read_to_string(path) else {
-        continue;
-      };
-      if let Err(message) = validate_text_coverage(&super::parse(&source), &source) {
-        failures.push(format!(
-          "{}
-  {}",
-          path.display(),
-          message
-        ));
-      }
-    }
-    use std::io::Write;
-    writeln!(std::io::stderr(), "checked {} corpus files", files.len()).unwrap();
+  if let Err(message) = validate_text_coverage(&file, &source) {
+    failures.push(message);
   }
-
-  assert!(count > 0, "no parser spec tests were found");
-  if update {
-    return;
-  }
-  if !failures.is_empty() {
-    panic!(
-      "{} of {} parser spec tests failed:\n\n{}\n\nRe-run with UPDATE=1 to accept the new output.",
-      failures.len(),
-      count,
-      failures.join("\n\n"),
-    );
+  CaseOutcome {
+    actual: to_json(&file, &source),
+    failures,
   }
 }
 
-struct SpecCase {
-  name: String,
-  input: String,
-  expected: String,
+pub struct CaseOutcome {
+  /// The json of the ast the case parsed into.
+  pub actual: String,
+  /// What the ast failed of the invariants every one of them holds.
+  pub failures: Vec<String>,
+}
+
+pub struct SpecCase {
+  pub name: String,
+  pub input: String,
+  pub expected: String,
   /// Whether the input is fed to the parser with `\r\n` line endings.
-  crlf: bool,
+  pub crlf: bool,
 }
 
 impl SpecCase {
-  fn source(&self) -> String {
+  pub fn source(&self) -> String {
     if self.crlf {
       self.input.replace('\n', "\r\n")
     } else {
@@ -137,7 +75,7 @@ impl SpecCase {
     }
   }
 
-  fn header(&self) -> String {
+  pub fn header(&self) -> String {
     let marker = if self.crlf { "[[test:crlf]]" } else { "[[test]]" };
     format!("{} {}", marker, self.name)
   }
@@ -374,21 +312,7 @@ fn child_nodes<'a, 'b>(node: &'b Node<'a>) -> Vec<&'b Node<'a>> {
   nodes
 }
 
-fn collect_markdown(directory: &Path, files: &mut Vec<PathBuf>) {
-  let Ok(entries) = std::fs::read_dir(directory) else {
-    return;
-  };
-  for entry in entries.flatten() {
-    let path = entry.path();
-    if path.is_dir() {
-      collect_markdown(&path, files);
-    } else if path.extension().is_some_and(|extension| extension == "md") {
-      files.push(path);
-    }
-  }
-}
-
-fn parse_spec_file(file_text: &str, path: &Path) -> Vec<SpecCase> {
+pub fn parse_spec_file(file_text: &str, path: &Path) -> Vec<SpecCase> {
   let mut cases = Vec::new();
   let mut lines = file_text.lines().peekable();
 
@@ -439,21 +363,4 @@ fn parse_spec_file(file_text: &str, path: &Path) -> Vec<SpecCase> {
   }
 
   cases
-}
-
-fn spec_files(directory: &Path) -> Vec<PathBuf> {
-  let mut files = Vec::new();
-  let Ok(entries) = std::fs::read_dir(directory) else {
-    return files;
-  };
-  for entry in entries.flatten() {
-    let path = entry.path();
-    if path.is_dir() {
-      files.extend(spec_files(&path));
-    } else if path.extension().is_some_and(|extension| extension == "txt") {
-      files.push(path);
-    }
-  }
-  files.sort();
-  files
 }
