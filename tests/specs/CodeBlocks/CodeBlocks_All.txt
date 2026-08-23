@@ -321,3 +321,15 @@ code
      
    b
    ```
+
+!! should not take a space that only looks like one for indentation !!
+```js
+   a
+   b
+```
+
+[expect]
+```js
+ a
+ b
+```

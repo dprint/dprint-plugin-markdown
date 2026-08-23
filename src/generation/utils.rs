@@ -140,7 +140,9 @@ pub fn unindent(text: &str) -> Cow<'_, str> {
   let lines = text.split('\n').collect::<Vec<_>>();
   let mut lines_with_indent = Vec::with_capacity(lines.len());
   for line in lines.into_iter() {
-    let line_indent = line.chars().take_while(|c| c.is_whitespace()).count();
+    // a character that only looks like a space, such as a non-breaking one, is
+    // text of the code rather than the indentation written before it
+    let line_indent = line.chars().take_while(|c| SPACES.contains(c)).count();
     if line_indent == 0 {
       return Cow::Borrowed(text);
     }
@@ -217,6 +219,9 @@ mod test {
     assert_eq!(unindent("  1\n 2"), " 1\n2");
     assert_eq!(unindent(" 1\n  2"), "1\n 2");
     assert_eq!(unindent("1\n2"), "1\n2");
-    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "1\n\u{3000}2");
+    // a character that only looks like a space is text of the code rather than
+    // the indentation written before it
+    assert_eq!(unindent("\u{3000}1\n\u{3000}\u{3000}2"), "\u{3000}1\n\u{3000}\u{3000}2");
+    assert_eq!(unindent("  \u{3000}1\n  \u{3000}2"), "\u{3000}1\n\u{3000}2");
   }
 }

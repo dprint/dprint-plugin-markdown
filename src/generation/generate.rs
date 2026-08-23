@@ -937,7 +937,7 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     }
 
     for candidate in [preferred, other] {
-      if !collides(decoration, candidate, context) {
+      if delimits(decoration, candidate, before, after, context) && !collides(decoration, candidate, context) {
         return candidate;
       }
     }
@@ -973,6 +973,23 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
 
   fn is_delimiter(c: Option<char>) -> bool {
     matches!(c, Some('*') | Some('_'))
+  }
+
+  /// Whether the character reads as a delimiter at all where the decoration is
+  /// written, which the text on either side of it decides -- an underscore
+  /// between two letters is one of them rather than a delimiter.
+  fn delimits(
+    decoration: &TextDecoration,
+    delimiter: &str,
+    before: Option<char>,
+    after: Option<char>,
+    context: &Context,
+  ) -> bool {
+    let character = delimiter.chars().next().unwrap();
+    let content = content_span(&decoration.children);
+    let first = written_first_char(decoration.children.first(), content, context);
+    let last = written_last_char(decoration.children.last(), content, context);
+    run_can_open(before, first, character) && run_can_close(last, after, character)
   }
 
   /// Whether the delimiter would run into the content it is written around,
@@ -1069,17 +1086,51 @@ fn can_pair_with_delimiter(text: &str, delimiter: char) -> bool {
 /// Whether a run of the character surrounded by those two can open or close
 /// emphasis, which is the "flanking" rule of the CommonMark spec.
 fn run_can_pair(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
-  let before_whitespace = before.is_none_or(char::is_whitespace);
-  let after_whitespace = after.is_none_or(char::is_whitespace);
-  let before_punctuation = before.is_some_and(|c| c.is_ascii_punctuation());
-  let after_punctuation = after.is_some_and(|c| c.is_ascii_punctuation());
-  let left = !after_whitespace && (!after_punctuation || before_whitespace || before_punctuation);
-  let right = !before_whitespace && (!before_punctuation || after_whitespace || after_punctuation);
+  run_can_open(before, after, delimiter) || run_can_close(before, after, delimiter)
+}
+
+/// Whether a run of the character surrounded by those two opens emphasis.
+fn run_can_open(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
+  let flanking = Flanking::new(before, after);
   if delimiter == '_' {
     // `_` can't be used within a word
-    left && (!right || before_punctuation) || right && (!left || after_punctuation)
+    flanking.left && (!flanking.right || flanking.before_punctuation)
   } else {
-    left || right
+    flanking.left
+  }
+}
+
+/// Whether a run of the character surrounded by those two closes emphasis.
+fn run_can_close(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
+  let flanking = Flanking::new(before, after);
+  if delimiter == '_' {
+    flanking.right && (!flanking.left || flanking.after_punctuation)
+  } else {
+    flanking.right
+  }
+}
+
+/// Which sides of a run of delimiters have text against them, which is what
+/// decides whether the run opens emphasis, closes it, or does neither.
+struct Flanking {
+  left: bool,
+  right: bool,
+  before_punctuation: bool,
+  after_punctuation: bool,
+}
+
+impl Flanking {
+  fn new(before: Option<char>, after: Option<char>) -> Flanking {
+    let before_whitespace = before.is_none_or(char::is_whitespace);
+    let after_whitespace = after.is_none_or(char::is_whitespace);
+    let before_punctuation = before.is_some_and(|c| c.is_ascii_punctuation());
+    let after_punctuation = after.is_some_and(|c| c.is_ascii_punctuation());
+    Flanking {
+      left: !after_whitespace && (!after_punctuation || before_whitespace || before_punctuation),
+      right: !before_whitespace && (!before_punctuation || after_whitespace || after_punctuation),
+      before_punctuation,
+      after_punctuation,
+    }
   }
 }
 

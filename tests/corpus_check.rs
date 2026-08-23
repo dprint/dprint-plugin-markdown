@@ -34,6 +34,12 @@ fn checks_a_corpus() {
       Ok(Err(err)) => report(format_args!("ERROR2 {} {}", path.display(), err)),
       Err(_) => report(format_args!("PANIC2 {}", path.display())),
     }
+    // formatting decides how the text is written, never what it says, so every
+    // letter that went in comes back out
+    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
+    if written_letters(text) != written_letters(&once) {
+      report(format_args!("LOSTTEXT {}", path.display()));
+    }
     let elapsed = started.elapsed();
     if elapsed.as_millis() > 200 {
       report(format_args!(
@@ -70,6 +76,19 @@ fn collect(directory: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
       files.push(path);
     }
   }
+}
+
+/// The letters of the text in the order they are written, which is what
+/// survives however the markup around them is written.
+///
+/// Digits are left out because a list's numbers are markup, which formatting
+/// is free to write again from one.
+fn written_letters(text: &str) -> String {
+  text
+    .chars()
+    .filter(|c| c.is_alphabetic() || !c.is_ascii())
+    .flat_map(|c| c.to_lowercase())
+    .collect()
 }
 
 fn report(message: std::fmt::Arguments) {

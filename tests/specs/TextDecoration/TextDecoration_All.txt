@@ -90,3 +90,9 @@ foo _\__
 
 [expect]
 ** **foo****
+
+!! should keep asterisks where an underscore would not read as a delimiter !!
+*a [*b*​](u)*
+
+[expect]
+_a [*b*​](u)_
