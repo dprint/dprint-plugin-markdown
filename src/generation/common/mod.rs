@@ -7,6 +7,8 @@ pub trait NodeSurroundings {
   fn has_preceding_whitespace(&self, file_text: &str) -> bool;
   fn starts_with_punctuation(&self, file_text: &str) -> bool;
   fn ends_with_punctuation(&self, file_text: &str) -> bool;
+  fn starts_with_unspaced_script(&self, file_text: &str) -> bool;
+  fn ends_with_unspaced_script(&self, file_text: &str) -> bool;
 }
 
 impl<T: Ranged> NodeSurroundings for T {
@@ -28,6 +30,18 @@ impl<T: Ranged> NodeSurroundings for T {
 
   fn ends_with_punctuation(&self, file_text: &str) -> bool {
     matches!(self.span().text(file_text).chars().last(), Some(c) if c.is_ascii_punctuation())
+  }
+
+  /// Whether the node begins with a character of a script written without
+  /// spaces between its words.
+  fn starts_with_unspaced_script(&self, file_text: &str) -> bool {
+    matches!(self.span().text(file_text).chars().next(), Some(c) if crate::generation::utils::is_unspaced_script(c))
+  }
+
+  /// Whether the node ends with a character of a script written without spaces
+  /// between its words.
+  fn ends_with_unspaced_script(&self, file_text: &str) -> bool {
+    matches!(self.span().text(file_text).chars().last(), Some(c) if crate::generation::utils::is_unspaced_script(c))
   }
 }
 
