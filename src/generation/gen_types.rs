@@ -63,6 +63,10 @@ pub struct Context<'a> {
   /// with have to be escaped so that they aren't read as the heading's closing
   /// sequence.
   escaped_closing_hashes: Option<usize>,
+  /// Where each bit of text a paragraph writes at the start of a line starts,
+  /// when it has to be escaped so that it isn't read as the start of a block
+  /// of its own.
+  escaped_block_starts: Vec<(usize, usize)>,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The character the list item being generated is marked with.
@@ -111,6 +115,7 @@ impl<'a> Context<'a> {
       decorations_preserved_count: 0,
       enclosing_decoration: None,
       escaped_closing_hashes: None,
+      escaped_block_starts: Vec::new(),
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker_char: None,
       list_marker_lines_up: true,
@@ -302,6 +307,29 @@ impl<'a> Context<'a> {
   /// to be escaped.
   pub fn is_escaping_closing_hashes(&self, start: usize) -> bool {
     self.escaped_closing_hashes == Some(start)
+  }
+
+  /// Generates the content of a paragraph, whose text at each of `starts` would
+  /// be read as the start of a block of its own.
+  pub fn with_escaped_block_starts<T>(
+    &mut self,
+    starts: Vec<(usize, usize)>,
+    func: impl FnOnce(&mut Context) -> T,
+  ) -> T {
+    let previous = std::mem::replace(&mut self.escaped_block_starts, starts);
+    let result = func(self);
+    self.escaped_block_starts = previous;
+    result
+  }
+
+  /// Where a backslash goes in the text starting here, when it is written
+  /// where a block would start and has to be escaped.
+  pub fn block_start_escape_at(&self, start: usize) -> Option<usize> {
+    self
+      .escaped_block_starts
+      .iter()
+      .find(|(text_start, _)| *text_start == start)
+      .map(|(_, position)| *position)
   }
 
   pub fn enclosing_decoration(&self) -> Option<Span> {

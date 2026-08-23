@@ -52,3 +52,50 @@ a
 
 a|b
 -|- 
+
+!! should escape a marker a paragraph begins with, which would start a list of its own !!
+[r1]: /u
+1.
+w0
+
+[expect]
+[r1]: /u
+
+1\.
+w0
+
+!! should escape an ordered marker that does not begin at one !!
+[r1]: /u
+2. x
+
+[expect]
+[r1]: /u
+
+2\. x
+
+!! should escape an empty bullet marker a paragraph begins with !!
+[r1]: /u
+-
+w0
+
+[expect]
+[r1]: /u
+
+\-
+w0
+
+!! should escape what a hard break leaves at the start of a line !!
+a  
+2. b
+
+[expect]
+a\
+2\. b
+
+!! should escape a row of pipes a hard break leaves at the start of a line !!
+a  
+| - |
+
+[expect]
+a\
+\| - |

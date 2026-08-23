@@ -24,6 +24,8 @@ use std::collections::HashSet;
 
 pub use ast::*;
 
+pub use block::block_start_escape;
+pub use block::line_start_escape;
 pub use block::starts_block_in_paragraph;
 pub use source::SPACES;
 pub use source::WHITESPACE;

@@ -855,6 +855,41 @@ pub fn starts_block_in_paragraph(text: &str) -> bool {
   }
 }
 
+/// Where a backslash has to be written for the text not to start a block of its
+/// own, when the text is written where a block starts.
+///
+/// More starts a block there than can interrupt a paragraph: an item with
+/// nothing in it and an ordered list that doesn't begin at 1 are read as the
+/// text they are in the middle of a paragraph, and as a list at the start of
+/// one.
+pub fn block_start_escape(text: &str) -> Option<usize> {
+  escape_position(text, list_marker(text).is_some())
+}
+
+/// Where a backslash has to be written for the text not to be read together
+/// with the line above it, when the text is written at the start of a line
+/// within a paragraph.
+///
+/// More is read that way than starts a block: a row of dashes underlines the
+/// line above into a heading, and a row of dashes and pipes makes a table of
+/// it.
+pub fn line_start_escape(text: &str) -> Option<usize> {
+  escape_position(text, list_marker(text).is_some() || starts_block_in_paragraph(text))
+}
+
+fn escape_position(text: &str, is_markup: bool) -> Option<usize> {
+  if !is_markup {
+    return None;
+  }
+  // an ordered marker is escaped at the character that ends it, since a digit
+  // isn't something a backslash can be written before. Everything else is
+  // written with the character that makes it markup first
+  Some(match list_marker(text) {
+    Some(marker) if marker.is_ordered => marker.len - 1,
+    _ => 0,
+  })
+}
+
 /// Whether the text is made of the characters a table's delimiter row is, which
 /// is what it takes for the line above it to become a header.
 fn is_table_delimiter_shape(text: &str) -> bool {

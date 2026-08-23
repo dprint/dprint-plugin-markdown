@@ -367,12 +367,38 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     }
   }
 
-  items.extend(gen_task_list_marker_children(
-    &paragraph.children,
-    paragraph.marker.as_ref(),
-    context,
-  ));
-  items
+  // a paragraph begins where a block does, and a hard break puts what follows
+  // it at the start of a line too, so neither can be left to read as the start
+  // of a block of its own
+  let escaped = escaped_block_starts(&paragraph.children);
+  items.extend(context.with_escaped_block_starts(escaped, |context| {
+    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+  }));
+  return items;
+
+  /// Where each bit of the paragraph's text that is written at the start of a
+  /// line starts, when it would be read as the start of a block.
+  fn escaped_block_starts(children: &[Node]) -> Vec<(usize, usize)> {
+    let mut starts = Vec::new();
+    // the first line of a paragraph has nothing above it to be read together
+    // with, so less of what it holds is markup than on the lines after it
+    let mut escape: fn(&str) -> Option<usize> = block_start_escape;
+    let mut at_line_start = true;
+    for child in children {
+      if at_line_start {
+        if let Node::Text(text) = child {
+          if let Some(position) = escape(text.text) {
+            starts.push((text.span.start, position));
+          }
+        }
+      }
+      at_line_start = matches!(child, Node::HardBreak(_));
+      if at_line_start {
+        escape = line_start_escape;
+      }
+    }
+    starts
+  }
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
@@ -762,6 +788,10 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  if let Some(position) = context.block_start_escape_at(text.span.start) {
+    let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
+    return gen_str(&escaped, context);
+  }
   if context.is_escaping_closing_hashes(text.span.start) {
     // the hashes are escaped where they start, which is enough to keep the
     // rest of the run from being read as a closing sequence of its own
