@@ -81,3 +81,31 @@ fn test_carriage_returns_settle_in_one_pass() {
     assert_eq!(twice, None, "for {:?}, which became {:?}", input, once);
   }
 }
+
+#[test]
+fn test_keeps_the_whitespace_that_is_text_of_the_line() {
+  // markdown counts only a space or a tab as the whitespace written around its
+  // markup, so everything else is text of the document
+  let config = ConfigurationBuilder::new().build();
+  for input in [
+    "a\u{b}\n",
+    "a\n\u{b}\nb\n",
+    "\t\u{b}\t\n",
+    "<div>\n*foo*\n\u{b}\n*bar*\n",
+    "a\u{c}\n",
+    "a\u{a0}\n",
+    "a\u{2003}\n",
+    "a\u{3000}\n",
+  ] {
+    let once = format_text(input, &config, |_, _, _| Ok(None))
+      .unwrap()
+      .unwrap_or_else(|| input.to_string());
+    let kept = |text: &str| {
+      text
+        .chars()
+        .filter(|c| !matches!(c, ' ' | '\t' | '\n' | '\r'))
+        .collect::<String>()
+    };
+    assert_eq!(kept(&once), kept(input), "for {:?}, which became {:?}", input, once);
+  }
+}
