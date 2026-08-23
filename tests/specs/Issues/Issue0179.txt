@@ -139,5 +139,5 @@
 [link](foo&#13;bar)
 
 [expect]
-[link](<foo&#10;bar>)
-[link](<foo&#13;bar>)
+[link](foo&#10;bar)
+[link](foo&#13;bar)

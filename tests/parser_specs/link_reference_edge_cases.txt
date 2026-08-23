@@ -1,0 +1,310 @@
+[[test]] a definition with the destination on the next line
+   [foo]: 
+      /url  
+           'the title'  
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 48],
+  "text": "   [foo]: \n      /url  \n           'the title'  ",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [3, 46],
+      "text": "[foo]: \n      /url  \n           'the title'",
+      "name": "foo",
+      "link": "/url",
+      "title": "the title"
+    }
+  ]
+}
+[[test]] a definition with a single quoted title
+[a]: /url 'title'
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[a]: /url 'title'",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 17],
+      "text": "[a]: /url 'title'",
+      "name": "a",
+      "link": "/url",
+      "title": "title"
+    }
+  ]
+}
+[[test]] a definition with a parenthesised title
+[a]: /url (title)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[a]: /url (title)",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 17],
+      "text": "[a]: /url (title)",
+      "name": "a",
+      "link": "/url",
+      "title": "title"
+    }
+  ]
+}
+[[test]] a definition with a multi line title
+[foo]: /url '
+title
+line1
+'
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 27],
+  "text": "[foo]: /url '\ntitle\nline1\n'",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 27],
+      "text": "[foo]: /url '\ntitle\nline1\n'",
+      "name": "foo",
+      "link": "/url",
+      "title": "\ntitle\nline1\n"
+    }
+  ]
+}
+[[test]] a definition whose title holds a quote
+[a]: /url 'the "title"'
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "[a]: /url 'the \"title\"'",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 23],
+      "text": "[a]: /url 'the \"title\"'",
+      "name": "a",
+      "link": "/url",
+      "title": "the \"title\""
+    }
+  ]
+}
+[[test]] a trailing backslash does not escape the line ending
+[a]: u\
+foo
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "[a]: u\\\nfoo",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: u\\",
+      "name": "a",
+      "link": "u\\"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 11],
+      "text": "foo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 11],
+          "text": "foo"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition before a setext heading
+[foo]: /url
+bar
+===
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "[foo]: /url\nbar\n===",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 11],
+      "text": "[foo]: /url",
+      "name": "foo",
+      "link": "/url"
+    },
+    {
+      "kind": "Heading",
+      "span": [12, 19],
+      "text": "bar\n===",
+      "level": 1,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 15],
+          "text": "bar"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition followed only by an underline
+[foo]: /url
+===
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[foo]: /url\n===",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 11],
+      "text": "[foo]: /url",
+      "name": "foo",
+      "link": "/url"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 15],
+      "text": "===",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 15],
+          "text": "==="
+        }
+      ]
+    }
+  ]
+}
+[[test]] definitions stop at the block that follows them
+[a
+> b]: /foo
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "[a\n> b]: /foo",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 2],
+      "text": "[a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "[a"
+        }
+      ]
+    },
+    {
+      "kind": "BlockQuote",
+      "span": [3, 13],
+      "text": "> b]: /foo",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [5, 13],
+          "text": "b]: /foo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [5, 13],
+              "text": "b]: /foo"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a label with an escaped bracket
+[foo][ref\[]
+
+[ref\[]: /uri
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 27],
+  "text": "[foo][ref\\[]\n\n[ref\\[]: /uri",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 12],
+      "text": "[foo][ref\\[]",
+      "children": [
+        {
+          "kind": "ReferenceLink",
+          "span": [0, 12],
+          "text": "[foo][ref\\[]",
+          "reference": "ref\\[",
+          "isCollapsed": false,
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 4],
+              "text": "foo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [14, 27],
+      "text": "[ref\\[]: /uri",
+      "name": "ref\\[",
+      "link": "/uri"
+    }
+  ]
+}
+[[test]] an escaped destination keeps its escapes
+[foo]: /url\bar\*baz "foo\"bar\baz"
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 35],
+  "text": "[foo]: /url\\bar\\*baz \"foo\\\"bar\\baz\"",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 35],
+      "text": "[foo]: /url\\bar\\*baz \"foo\\\"bar\\baz\"",
+      "name": "foo",
+      "link": "/url\\bar\\*baz",
+      "title": "foo\\\"bar\\baz"
+    }
+  ]
+}
+[[test]] a definition that isn't one because of what follows it
+[a]: /url not a title
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "[a]: /url not a title",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 21],
+      "text": "[a]: /url not a title",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 21],
+          "text": "[a]: /url not a title"
+        }
+      ]
+    }
+  ]
+}

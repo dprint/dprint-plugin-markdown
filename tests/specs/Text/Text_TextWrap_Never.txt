@@ -11,3 +11,10 @@ some other paragraph
 Testing this out with some text testing testing test
 
 some other paragraph
+
+!! should not move text that would start a block to the start of a line !!
+Foo
+    ***
+
+[expect]
+Foo ***

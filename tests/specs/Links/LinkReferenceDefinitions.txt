@@ -88,3 +88,86 @@ that spans lines"
 - [a]: https://example.com
 
   Text [a]
+
+!! should keep the blank lines between definitions !!
+[foo]: /url1
+
+[foo]: /url2
+[bar]: /url3
+
+[bar][foo]
+
+[expect]
+[foo]: /url1
+
+[foo]: /url2
+[bar]: /url3
+
+[bar][foo]
+
+!! should keep a definition out of the setext heading that follows it !!
+[foo]: /url
+bar
+===
+
+[foo]
+
+[expect]
+[foo]: /url
+
+# bar
+
+[foo]
+
+!! should leave an underline alone when the definition is all there is !!
+[foo]: /url
+===
+
+[foo]
+
+[expect]
+[foo]: /url
+
+===
+
+[foo]
+
+!! should stop looking for definitions at the block that follows them !!
+[a
+> b]: /foo
+
+[expect]
+[a
+
+> b]: /foo
+
+!! should keep a trailing backslash from swallowing the next line !!
+[a]: u\
+foo
+
+[expect]
+[a]: u\\
+
+foo
+
+!! should keep the text of a link that is named by it !!
+[*tox*] and [*foo* bar][]
+
+[*tox*]: /a
+[*foo* bar]: /b
+
+[expect]
+[*tox*] and [*foo* bar][]
+
+[*tox*]: /a
+[*foo* bar]: /b
+
+!! should still normalize the text of a link that isn't named by it !!
+[*a*][ref]
+
+[ref]: /url
+
+[expect]
+[_a_][ref]
+
+[ref]: /url

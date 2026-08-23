@@ -1,0 +1,475 @@
+[[test]] table
+| a | b |
+| - | - |
+| 1 | 2 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "| a | b |\n| - | - |\n| 1 | 2 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 29],
+      "text": "| a | b |\n| - | - |\n| 1 | 2 |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [20, 29],
+          "text": "| 1 | 2 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [22, 23],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [22, 23],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [26, 27],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [26, 27],
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] table with alignment
+| a | b | c |
+| :- | :-: | -: |
+| 1 | 2 | 3 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 45],
+  "text": "| a | b | c |\n| :- | :-: | -: |\n| 1 | 2 | 3 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 45],
+      "text": "| a | b | c |\n| :- | :-: | -: |\n| 1 | 2 | 3 |",
+      "columnAlignment": ["Left", "Center", "Right"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 13],
+        "text": "| a | b | c |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [10, 11],
+            "text": "c",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [10, 11],
+                "text": "c"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [32, 45],
+          "text": "| 1 | 2 | 3 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [34, 35],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [34, 35],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [38, 39],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [38, 39],
+                  "text": "2"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [42, 43],
+              "text": "3",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [42, 43],
+                  "text": "3"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] table without outer pipes
+a | b
+- | -
+1 | 2
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "a | b\n- | -\n1 | 2",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 17],
+      "text": "a | b\n- | -\n1 | 2",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "a | b",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [0, 1],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [0, 1],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [4, 5],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [4, 5],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 17],
+          "text": "1 | 2",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [12, 13],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [12, 13],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [16, 17],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [16, 17],
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] table with inline content
+| a |
+| - |
+| *b* |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "| a |\n| - |\n| *b* |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 19],
+      "text": "| a |\n| - |\n| *b* |",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "| a |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 19],
+          "text": "| *b* |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [14, 17],
+              "text": "*b*",
+              "children": [
+                {
+                  "kind": "TextDecoration",
+                  "span": [14, 17],
+                  "text": "*b*",
+                  "decoration": "Emphasis",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [15, 16],
+                      "text": "b"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] table with an escaped pipe
+| a |
+| - |
+| x \| y |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "| a |\n| - |\n| x \\| y |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 22],
+      "text": "| a |\n| - |\n| x \\| y |",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "| a |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 22],
+          "text": "| x \\| y |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [14, 20],
+              "text": "x \\| y",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [14, 20],
+                  "text": "x \\| y"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] table with no rows
+| a | b |
+| - | - |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "| a | b |\n| - | - |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 19],
+      "text": "| a | b |\n| - | - |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+[[test]] mismatched delimiter count is not a table
+| a | b |
+| - |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "| a | b |\n| - |",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "| a | b |\n| - |",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 9],
+          "text": "| a | b |"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [9, 10],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [10, 15],
+          "text": "| - |"
+        }
+      ]
+    }
+  ]
+}

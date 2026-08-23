@@ -13,6 +13,7 @@
 pub mod configuration;
 mod format_text;
 mod generation;
+mod parser;
 
 pub use format_text::format_text;
 pub use format_text::FormatError;

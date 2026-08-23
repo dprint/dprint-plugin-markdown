@@ -31,3 +31,31 @@ Testing <b>test</b>.
 Some inline html <em>Testing</em> testing this out.
 
 Testing <b>test</b>.
+
+!! should keep the block quote markers out of html that spans lines !!
+> > a <a href
+> > ="yo
+> > lo">
+
+[expect]
+>> a <a href
+>> ="yo
+>> lo">
+
+!! should not put a marker in front of an html block's continued lines !!
+> <div>
+> foo
+
+[expect]
+> <div>
+> foo
+
+!! should keep a space that only looks like one at the end of a line of html !!
+<div>
+a 
+</div>
+
+[expect]
+<div>
+a 
+</div>

@@ -22,7 +22,7 @@ Apple
 : A fruit.
 : A seed bearing structure.
 
-!! should not treat anything in the file as a definition when a marker has no whitespace after it !!
+!! should not treat a marker with no whitespace after it as a definition !!
 Apple
 :   A fruit.
 :Not a definition marker without whitespace.
@@ -30,7 +30,7 @@ Apple
 [expect]
 Apple
 : A fruit.
-:Not a definition marker without whitespace.
+  :Not a definition marker without whitespace.
 
 !! should keep each term on its own line !!
 Term A
@@ -251,3 +251,12 @@ Term
 
 Other
 : text
+
+!! should not move a definition marker to the start of a line, which would make a definition list of the paragraph !!
++ a
+: b
+c
+
+[expect]
+- a : b
+  c

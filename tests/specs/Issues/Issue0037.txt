@@ -1,0 +1,29 @@
+!! should keep the cells a row holds past the table's last column !!
+| name                                 |                   description                              |
+| ------------------------ | ------------------------------ |
+| `get(key: name): string | null` | Get the value of the string.             |
+
+[expect]
+| name                    | description |
+| ----------------------- | ----------- |
+| `get(key: name): string | null`       | Get the value of the string. |
+
+!! should keep a row's extra cells !!
+| a | b |
+| - | - |
+| 1 | 2 | 3 |
+
+[expect]
+| a | b |
+| - | - |
+| 1 | 2 | 3 |
+
+!! should fill out a row that is short of cells !!
+| a | b |
+| - | - |
+| 1 |
+
+[expect]
+| a | b |
+| - | - |
+| 1 |   |

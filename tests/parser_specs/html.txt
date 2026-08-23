@@ -1,0 +1,216 @@
+[[test]] html block
+<div>
+  <p>hello</p>
+</div>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 27],
+  "text": "<div>\n  <p>hello</p>\n</div>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 27],
+      "text": "<div>\n  <p>hello</p>\n</div>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] html comment
+<!-- comment -->
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "<!-- comment -->",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 16],
+      "text": "<!-- comment -->",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] html comment over multiple lines
+<!--
+comment
+-->
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "<!--\ncomment\n-->",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 16],
+      "text": "<!--\ncomment\n-->",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] html block ended by a blank line
+<div>
+hello
+
+After
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "<div>\nhello\n\nAfter",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 11],
+      "text": "<div>\nhello",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [13, 18],
+      "text": "After",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [13, 18],
+          "text": "After"
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline html
+Some <b>bold</b> text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "Some <b>bold</b> text",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 21],
+      "text": "Some <b>bold</b> text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Some"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 8],
+          "text": "<b>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [8, 12],
+          "text": "bold"
+        },
+        {
+          "kind": "Html",
+          "span": [12, 16],
+          "text": "</b>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [17, 21],
+          "text": "text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] html block in a block quote
+> <div>
+> hello
+> </div>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "> <div>\n> hello\n> </div>",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 24],
+      "text": "> <div>\n> hello\n> </div>",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [2, 24],
+          "text": "<div>\n> hello\n> </div>",
+          "isBlock": true,
+          "content": "<div>\nhello\n</div>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] pre block
+<pre>
+code
+</pre>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "<pre>\ncode\n</pre>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 17],
+      "text": "<pre>\ncode\n</pre>",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] bare tag cannot interrupt a paragraph
+Text
+<b>bold</b>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "Text\n<b>bold</b>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 16],
+      "text": "Text\n<b>bold</b>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "Text"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [4, 5],
+          "text": "\n"
+        },
+        {
+          "kind": "Html",
+          "span": [5, 8],
+          "text": "<b>",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [8, 12],
+          "text": "bold"
+        },
+        {
+          "kind": "Html",
+          "span": [12, 16],
+          "text": "</b>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}

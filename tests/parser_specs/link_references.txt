@@ -1,0 +1,198 @@
+[[test]] link reference definition
+[name]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "[name]: /url",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 12],
+      "text": "[name]: /url",
+      "name": "name",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] link reference definition with a title
+[name]: /url "title"
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[name]: /url \"title\"",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 20],
+      "text": "[name]: /url \"title\"",
+      "name": "name",
+      "link": "/url",
+      "title": "title"
+    }
+  ]
+}
+[[test]] link reference definition with the title on the next line
+[name]: /url
+"title"
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[name]: /url\n\"title\"",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 20],
+      "text": "[name]: /url\n\"title\"",
+      "name": "name",
+      "link": "/url",
+      "title": "title"
+    }
+  ]
+}
+[[test]] multiple link reference definitions
+[a]: /a
+[b]: /b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[a]: /a\n[b]: /b",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /a",
+      "name": "a",
+      "link": "/a"
+    },
+    {
+      "kind": "LinkReference",
+      "span": [8, 15],
+      "text": "[b]: /b",
+      "name": "b",
+      "link": "/b"
+    }
+  ]
+}
+[[test]] link reference definition before a paragraph
+[a]: /a
+Some text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[a]: /a\nSome text",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /a",
+      "name": "a",
+      "link": "/a"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 17],
+      "text": "Some text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 17],
+          "text": "Some text"
+        }
+      ]
+    }
+  ]
+}
+[[test]] link reference definition after a paragraph
+Some text
+
+[a]: /a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "Some text\n\n[a]: /a",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "Some text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 9],
+          "text": "Some text"
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [11, 18],
+      "text": "[a]: /a",
+      "name": "a",
+      "link": "/a"
+    }
+  ]
+}
+[[test]] link reference definition in a block quote
+> [a]: /a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> [a]: /a",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> [a]: /a",
+      "children": [
+        {
+          "kind": "LinkReference",
+          "span": [2, 9],
+          "text": "[a]: /a",
+          "name": "a",
+          "link": "/a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] link reference definition in a list item
+- [a]: /a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "- [a]: /a",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 9],
+      "text": "- [a]: /a",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 9],
+          "text": "- [a]: /a",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "LinkReference",
+              "span": [2, 9],
+              "text": "[a]: /a",
+              "name": "a",
+              "link": "/a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

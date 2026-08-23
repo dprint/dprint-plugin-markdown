@@ -4,7 +4,7 @@
 
 Markdown formatting plugin for dprint.
 
-This uses the [pulldown-cmark](https://github.com/raphlinus/pulldown-cmark) parser for markdown.
+This uses its own markdown parser, written for formatting rather than rendering: every node knows the exact text it was parsed from and nothing in the file is discarded along the way.
 
 ## Install
 

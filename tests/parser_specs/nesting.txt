@@ -1,0 +1,650 @@
+[[test]] list in a block quote in a list
+- > - one
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "- > - one",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 9],
+      "text": "- > - one",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 9],
+          "text": "- > - one",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "BlockQuote",
+              "span": [2, 9],
+              "text": "> - one",
+              "children": [
+                {
+                  "kind": "List",
+                  "span": [4, 9],
+                  "text": "- one",
+                  "markerChar": "-",
+                  "listKind": "Bullet",
+                  "children": [
+                    {
+                      "kind": "Item",
+                      "span": [4, 9],
+                      "text": "- one",
+                      "markerSpan": [4, 5],
+                      "children": [
+                        {
+                          "kind": "Paragraph",
+                          "span": [6, 9],
+                          "text": "one",
+                          "children": [
+                            {
+                              "kind": "Text",
+                              "span": [6, 9],
+                              "text": "one"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote in a list item
+- > quoted
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "- > quoted",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 10],
+      "text": "- > quoted",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 10],
+          "text": "- > quoted",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "BlockQuote",
+              "span": [2, 10],
+              "text": "> quoted",
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [4, 10],
+                  "text": "quoted",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [4, 10],
+                      "text": "quoted"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] list in a block quote with a lazy line
+> - one
+> two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> - one\n> two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> - one\n> two",
+      "children": [
+        {
+          "kind": "List",
+          "span": [2, 13],
+          "text": "- one\n> two",
+          "markerChar": "-",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [2, 13],
+              "text": "- one\n> two",
+              "markerSpan": [2, 3],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [4, 13],
+                  "text": "one\n> two",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [4, 7],
+                      "text": "one"
+                    },
+                    {
+                      "kind": "SoftBreak",
+                      "span": [7, 8],
+                      "text": "\n"
+                    },
+                    {
+                      "kind": "Text",
+                      "span": [10, 13],
+                      "text": "two"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] deeply nested lists
+- a
+  - b
+    - c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "- a\n  - b\n    - c",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 17],
+      "text": "- a\n  - b\n    - c",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 17],
+          "text": "- a\n  - b\n    - c",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 3],
+              "text": "a",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 3],
+                  "text": "a"
+                }
+              ]
+            }
+          ],
+          "subLists": [
+            {
+              "kind": "List",
+              "span": [6, 17],
+              "text": "- b\n    - c",
+              "markerChar": "-",
+              "listKind": "Bullet",
+              "children": [
+                {
+                  "kind": "Item",
+                  "span": [6, 17],
+                  "text": "- b\n    - c",
+                  "markerSpan": [6, 7],
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [8, 9],
+                      "text": "b",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [8, 9],
+                          "text": "b"
+                        }
+                      ]
+                    }
+                  ],
+                  "subLists": [
+                    {
+                      "kind": "List",
+                      "span": [14, 17],
+                      "text": "- c",
+                      "markerChar": "-",
+                      "listKind": "Bullet",
+                      "children": [
+                        {
+                          "kind": "Item",
+                          "span": [14, 17],
+                          "text": "- c",
+                          "markerSpan": [14, 15],
+                          "children": [
+                            {
+                              "kind": "Paragraph",
+                              "span": [16, 17],
+                              "text": "c",
+                              "children": [
+                                {
+                                  "kind": "Text",
+                                  "span": [16, 17],
+                                  "text": "c"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote containing a table
+> | a |
+> | - |
+> | 1 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "> | a |\n> | - |\n> | 1 |",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 23],
+      "text": "> | a |\n> | - |\n> | 1 |",
+      "children": [
+        {
+          "kind": "Table",
+          "span": [2, 23],
+          "text": "| a |\n> | - |\n> | 1 |",
+          "columnAlignment": ["None"],
+          "header": {
+            "kind": "TableHead",
+            "span": [2, 7],
+            "text": "| a |",
+            "cells": [
+              {
+                "kind": "TableCell",
+                "span": [4, 5],
+                "text": "a",
+                "children": [
+                  {
+                    "kind": "Text",
+                    "span": [4, 5],
+                    "text": "a"
+                  }
+                ]
+              }
+            ]
+          },
+          "rows": [
+            {
+              "kind": "TableRow",
+              "span": [18, 23],
+              "text": "| 1 |",
+              "cells": [
+                {
+                  "kind": "TableCell",
+                  "span": [20, 21],
+                  "text": "1",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [20, 21],
+                      "text": "1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] list item containing a table
+- | a |
+  | - |
+  | 1 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "- | a |\n  | - |\n  | 1 |",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 23],
+      "text": "- | a |\n  | - |\n  | 1 |",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 23],
+          "text": "- | a |\n  | - |\n  | 1 |",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Table",
+              "span": [2, 23],
+              "text": "| a |\n  | - |\n  | 1 |",
+              "columnAlignment": ["None"],
+              "header": {
+                "kind": "TableHead",
+                "span": [2, 7],
+                "text": "| a |",
+                "cells": [
+                  {
+                    "kind": "TableCell",
+                    "span": [4, 5],
+                    "text": "a",
+                    "children": [
+                      {
+                        "kind": "Text",
+                        "span": [4, 5],
+                        "text": "a"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rows": [
+                {
+                  "kind": "TableRow",
+                  "span": [18, 23],
+                  "text": "| 1 |",
+                  "cells": [
+                    {
+                      "kind": "TableCell",
+                      "span": [20, 21],
+                      "text": "1",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [20, 21],
+                          "text": "1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] footnote definition containing a list
+[^1]: text
+
+    - one
+    - two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 31],
+  "text": "[^1]: text\n\n    - one\n    - two",
+  "children": [
+    {
+      "kind": "FootnoteDefinition",
+      "span": [0, 31],
+      "text": "[^1]: text\n\n    - one\n    - two",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [6, 10],
+          "text": "text",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 10],
+              "text": "text"
+            }
+          ]
+        },
+        {
+          "kind": "List",
+          "span": [16, 31],
+          "text": "- one\n    - two",
+          "markerChar": "-",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [16, 21],
+              "text": "- one",
+              "markerSpan": [16, 17],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [18, 21],
+                  "text": "one",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [18, 21],
+                      "text": "one"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "Item",
+              "span": [26, 31],
+              "text": "- two",
+              "markerSpan": [26, 27],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [28, 31],
+                  "text": "two",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [28, 31],
+                      "text": "two"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote containing a footnote definition
+> [^1]: text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "> [^1]: text",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 12],
+      "text": "> [^1]: text",
+      "children": [
+        {
+          "kind": "FootnoteDefinition",
+          "span": [2, 12],
+          "text": "[^1]: text",
+          "name": "1",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [8, 12],
+              "text": "text",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [8, 12],
+                  "text": "text"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] list item containing a definition list
+- Apple
+  : A fruit.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "- Apple\n  : A fruit.",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 20],
+      "text": "- Apple\n  : A fruit.",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 20],
+          "text": "- Apple\n  : A fruit.",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "DefinitionList",
+              "span": [2, 20],
+              "text": "Apple\n  : A fruit.",
+              "children": [
+                {
+                  "kind": "DefinitionListTitle",
+                  "span": [2, 7],
+                  "text": "Apple",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [2, 7],
+                      "text": "Apple"
+                    }
+                  ]
+                },
+                {
+                  "kind": "DefinitionListDefinition",
+                  "span": [10, 20],
+                  "text": ": A fruit.",
+                  "children": [
+                    {
+                      "kind": "Paragraph",
+                      "span": [12, 20],
+                      "text": "A fruit.",
+                      "children": [
+                        {
+                          "kind": "Text",
+                          "span": [12, 20],
+                          "text": "A fruit."
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote containing a definition list
+> Apple
+> : A fruit.
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "> Apple\n> : A fruit.",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 20],
+      "text": "> Apple\n> : A fruit.",
+      "children": [
+        {
+          "kind": "DefinitionList",
+          "span": [2, 20],
+          "text": "Apple\n> : A fruit.",
+          "children": [
+            {
+              "kind": "DefinitionListTitle",
+              "span": [2, 7],
+              "text": "Apple",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 7],
+                  "text": "Apple"
+                }
+              ]
+            },
+            {
+              "kind": "DefinitionListDefinition",
+              "span": [10, 20],
+              "text": ": A fruit.",
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [12, 20],
+                  "text": "A fruit.",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [12, 20],
+                      "text": "A fruit."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

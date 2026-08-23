@@ -1,0 +1,10 @@
+~~ headingKind: setext, hardBreakKind: doubleSpace ~~
+!! should not count a hard break's trailing spaces in the underline width !!
+head\
+ing
+===
+
+[expect]
+head  
+ing
+====

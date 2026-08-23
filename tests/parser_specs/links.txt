@@ -1,0 +1,467 @@
+[[test]] inline link
+[text](/url)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "[text](/url)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 12],
+      "text": "[text](/url)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 12],
+          "text": "[text](/url)",
+          "url": "/url",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline link with a title
+[text](/url "title")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[text](/url \"title\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 20],
+      "text": "[text](/url \"title\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 20],
+          "text": "[text](/url \"title\")",
+          "url": "/url",
+          "title": "title",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline link with pointy brackets
+[text](</url with space>)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "[text](</url with space>)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 25],
+      "text": "[text](</url with space>)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 25],
+          "text": "[text](</url with space>)",
+          "url": "</url with space>",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline link with balanced parens
+[text](/url(inner))
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "[text](/url(inner))",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 19],
+      "text": "[text](/url(inner))",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 19],
+          "text": "[text](/url(inner))",
+          "url": "/url(inner)",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline link with no destination
+[text]()
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "[text]()",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "[text]()",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 8],
+          "text": "[text]()",
+          "url": "",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] autolink
+<https://example.com>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "<https://example.com>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 21],
+      "text": "<https://example.com>",
+      "children": [
+        {
+          "kind": "AutoLink",
+          "span": [0, 21],
+          "text": "<https://example.com>",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 20],
+              "text": "https://example.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] email autolink
+<name@example.com>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "<name@example.com>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 18],
+      "text": "<name@example.com>",
+      "children": [
+        {
+          "kind": "AutoLink",
+          "span": [0, 18],
+          "text": "<name@example.com>",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 17],
+              "text": "name@example.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] not a link without a definition
+[text]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "[text]",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "[text]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "[text]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] shortcut link with a definition
+[text]
+
+[text]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[text]\n\n[text]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "[text]",
+      "children": [
+        {
+          "kind": "ShortcutLink",
+          "span": [0, 6],
+          "text": "[text]",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [8, 20],
+      "text": "[text]: /url",
+      "name": "text",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] collapsed link with a definition
+[text][]
+
+[text]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "[text][]\n\n[text]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "[text][]",
+      "children": [
+        {
+          "kind": "ReferenceLink",
+          "span": [0, 8],
+          "text": "[text][]",
+          "reference": "text",
+          "isCollapsed": true,
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [10, 22],
+      "text": "[text]: /url",
+      "name": "text",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] full reference link
+[text][ref]
+
+[ref]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "[text][ref]\n\n[ref]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "[text][ref]",
+      "children": [
+        {
+          "kind": "ReferenceLink",
+          "span": [0, 11],
+          "text": "[text][ref]",
+          "reference": "ref",
+          "isCollapsed": false,
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [13, 24],
+      "text": "[ref]: /url",
+      "name": "ref",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] reference link with different casing
+[text][REF]
+
+[ref]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "[text][REF]\n\n[ref]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "[text][REF]",
+      "children": [
+        {
+          "kind": "ReferenceLink",
+          "span": [0, 11],
+          "text": "[text][REF]",
+          "reference": "REF",
+          "isCollapsed": false,
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "text"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [13, 24],
+      "text": "[ref]: /url",
+      "name": "ref",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] links cannot nest
+[a [b](/c) d](/e)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[a [b](/c) d](/e)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "[a [b](/c) d](/e)",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "[a"
+        },
+        {
+          "kind": "InlineLink",
+          "span": [3, 10],
+          "text": "[b](/c)",
+          "url": "/c",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [4, 5],
+              "text": "b"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [11, 17],
+          "text": "d](/e)"
+        }
+      ]
+    }
+  ]
+}
+[[test]] link with emphasis inside
+[*text*](/url)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "[*text*](/url)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "[*text*](/url)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 14],
+          "text": "[*text*](/url)",
+          "url": "/url",
+          "children": [
+            {
+              "kind": "TextDecoration",
+              "span": [1, 7],
+              "text": "*text*",
+              "decoration": "Emphasis",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 6],
+                  "text": "text"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

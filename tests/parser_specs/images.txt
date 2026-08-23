@@ -1,0 +1,170 @@
+[[test]] inline image
+![alt](/url)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "![alt](/url)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 12],
+      "text": "![alt](/url)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 12],
+          "text": "![alt](/url)",
+          "alt": "alt",
+          "url": "/url"
+        }
+      ]
+    }
+  ]
+}
+[[test]] inline image with a title
+![alt](/url "title")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "![alt](/url \"title\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 20],
+      "text": "![alt](/url \"title\")",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 20],
+          "text": "![alt](/url \"title\")",
+          "alt": "alt",
+          "url": "/url",
+          "title": "title"
+        }
+      ]
+    }
+  ]
+}
+[[test]] image with no alt text
+![](/url)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "![](/url)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "![](/url)",
+      "children": [
+        {
+          "kind": "InlineImage",
+          "span": [0, 9],
+          "text": "![](/url)",
+          "alt": "",
+          "url": "/url"
+        }
+      ]
+    }
+  ]
+}
+[[test]] reference image
+![alt][ref]
+
+[ref]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 24],
+  "text": "![alt][ref]\n\n[ref]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "![alt][ref]",
+      "children": [
+        {
+          "kind": "ReferenceImage",
+          "span": [0, 11],
+          "text": "![alt][ref]",
+          "alt": "alt",
+          "reference": "ref"
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [13, 24],
+      "text": "[ref]: /url",
+      "name": "ref",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] shortcut image
+![ref]
+
+[ref]: /url
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "![ref]\n\n[ref]: /url",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "![ref]",
+      "children": [
+        {
+          "kind": "ShortcutImage",
+          "span": [0, 6],
+          "text": "![ref]",
+          "alt": "ref"
+        }
+      ]
+    },
+    {
+      "kind": "LinkReference",
+      "span": [8, 19],
+      "text": "[ref]: /url",
+      "name": "ref",
+      "link": "/url"
+    }
+  ]
+}
+[[test]] image inside a link
+[![alt](/img)](/url)
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[![alt](/img)](/url)",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 20],
+      "text": "[![alt](/img)](/url)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 20],
+          "text": "[![alt](/img)](/url)",
+          "url": "/url",
+          "children": [
+            {
+              "kind": "InlineImage",
+              "span": [1, 13],
+              "text": "![alt](/img)",
+              "alt": "alt",
+              "url": "/img"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

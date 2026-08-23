@@ -3,7 +3,6 @@ use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
 use dprint_core::formatting::*;
 use dprint_core_macros::sc;
-use pulldown_cmark::MetadataBlockKind;
 use std::borrow::Cow;
 use std::rc::Rc;
 use unicode_width::UnicodeWidthStr;
@@ -14,15 +13,13 @@ use super::utils;
 use crate::configuration::*;
 
 pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
-  // eprintln!("Kind: {:?}", node.kind());
-  // eprintln!("Text: {:?}", node.text(context));
-
+  let position = context.take_position();
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
     Node::Heading(node) => gen_heading(node, context),
     Node::Paragraph(node) => gen_paragraph(node, context),
     Node::BlockQuote(node) => gen_block_quote(node, context),
-    Node::CodeBlock(node) => gen_code_block(node, context),
+    Node::CodeBlock(node) => gen_code_block(node, position, context),
     Node::Code(node) => gen_code(node, context),
     Node::Text(node) => gen_text(node, context),
     Node::TextDecoration(node) => gen_text_decoration(node, context),
@@ -45,7 +42,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::DefinitionListTitle(_) => unreachable!("this should be handled by gen_definition_list"),
     Node::DefinitionListDefinition(_) => unreachable!("this should be handled by gen_definition_list"),
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
-    Node::HorizontalRule(node) => gen_horizontal_rule(node, context),
+    Node::HorizontalRule(node) => gen_horizontal_rule(node, position),
     Node::SoftBreak(_) => PrintItems::new(),
     Node::HardBreak(_) => gen_hard_break(context),
     Node::Table(node) => gen_table(node, context),
@@ -53,7 +50,6 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TableRow(_) => unreachable!(),
     Node::TableCell(node) => gen_table_cell(node, context),
     Node::MetadataBlock(node) => gen_metadata_block(node, context),
-    Node::NotImplemented(_) => ir_helpers::gen_from_raw_string(node.text(context)),
   }
 }
 
@@ -85,7 +81,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
     if let Some(Node::List(last_list)) = &last_node {
       if let Node::List(list) = &node {
         if last_list.start_index.is_some() == list.start_index.is_some() {
-          items.extend(get_conditional_blank_line(node.range(), context));
+          items.extend(get_conditional_blank_line(node.span(), context));
           items.extend(gen_list(list, true, context));
           if let Some(current_node) = node_iterator.next() {
             last_node = Some(node);
@@ -111,7 +107,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
-        items.extend(get_conditional_blank_line(node.range(), context));
+        items.extend(get_conditional_blank_line(node.span(), context));
       } else if !matches!(node, Node::HardBreak(_)) {
         match last_node {
           Node::Heading(_)
@@ -125,7 +121,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::MetadataBlock(_)
           | Node::BlockQuote(_)
           | Node::DisplayMath(_) => {
-            items.extend(get_conditional_blank_line(node.range(), context));
+            items.extend(get_conditional_blank_line(node.span(), context));
           }
           Node::Code(_)
           | Node::SoftBreak(_)
@@ -141,7 +137,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           | Node::ReferenceImage(_)
           | Node::ShortcutImage(_)
           | Node::InlineMath(_) => {
-            let between_range = (last_node.range().end, node.range().start);
+            let between_range = (last_node.span().end, node.span().start);
             let new_line_count = context.get_new_lines_in_range(between_range.0, between_range.1);
 
             if new_line_count == 1 {
@@ -150,6 +146,10 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
+              } else if node.starts_block_in_paragraph() {
+                // text that would start a block can't be moved to the start of
+                // a line without changing what it means
+                items.push_space();
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
               } else {
@@ -184,13 +184,18 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
             }
           }
           Node::LinkReference(_) => {
-            let needs_newline = matches!(node, Node::LinkReference(_));
-            if needs_newline {
+            if matches!(node, Node::LinkReference(_)) {
+              // definitions are kept on their own lines, with whatever blank
+              // line separated them in the file
+              if context.get_new_lines_in_range(last_node.span().end, node.span().start) > 1 {
+                items.push_signal(Signal::NewLine);
+              }
               items.push_signal(Signal::NewLine);
+            } else {
+              items.extend(get_conditional_blank_line(node.span(), context));
             }
           }
-          Node::NotImplemented(_)
-          | Node::SourceFile(_)
+          Node::SourceFile(_)
           | Node::Item(_)
           | Node::DefinitionListTitle(_)
           | Node::DefinitionListDefinition(_)
@@ -214,59 +219,68 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
       continue;
     }
 
+    // a list takes the indentation of whatever follows it for its own content,
+    // so what comes next has to be written without any
+    if matches!(last_node, Some(Node::List(_) | Node::DefinitionList(_))) {
+      context.mark_after_list();
+    }
+    // a line of dashes directly below a paragraph underlines it into a heading.
+    // everywhere but within a list a blank line is written between the two,
+    // which leaves nothing for the dashes to underline
+    if matches!(last_node, Some(Node::Paragraph(_)))
+      && context.is_in_list()
+      && !context.has_leading_blankline(node.span().start)
+    {
+      context.mark_after_paragraph();
+    }
     items.extend(generate(node, context));
     last_node = Some(node);
 
     // check for ignore comment
     if let Node::Html(html) = node {
-      let html_text = &context.file_text[html.range.clone()];
+      let html_text = html.span.text(context.file_text);
       if context.ignore_regex.is_match(html_text) {
         items.push_signal(Signal::NewLine);
         if let Some(node) = node_iterator.next() {
-          if context.has_leading_blankline(node.range().start) {
+          if context.has_leading_blankline(node.span().start) {
             items.push_signal(Signal::NewLine);
           }
 
           // include the leading indent
-          let range = node.range();
-          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, range.start);
+          let node_span = node.span();
+          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, node_span.start);
           items.extend(ir_helpers::gen_from_raw_string(
-            context.file_text[text_start..range.end].trim_end(),
+            context.file_text[text_start..node_span.end].trim_end_matches(WHITESPACE),
           ));
 
           last_node = Some(node);
         }
       } else if context.ignore_start_regex.is_match(html_text) {
-        let mut range: Option<Range> = None;
         let mut end_comment = None;
-        let start = html.range().end;
+        let start = html.span().end;
         for node in node_iterator.by_ref() {
           last_node = Some(node);
 
           if let Node::Html(html) = node {
-            let html_text = &context.file_text[html.range.clone()];
+            let html_text = html.span.text(context.file_text);
             if context.ignore_end_regex.is_match(html_text) {
               end_comment = Some(html);
               break;
             }
           }
-
-          let node_range = node.range();
-          range = Some(Range {
-            start: range.map(|r| r.start).unwrap_or(node_range.start),
-            end: node_range.end,
-          });
         }
 
         let end = end_comment
-          .map(|c| c.range().start)
-          .unwrap_or_else(|| last_node.unwrap().range().end);
+          .map(|c| c.span().start)
+          .unwrap_or_else(|| last_node.unwrap().span().end);
         let ignore_text = &context.file_text[start..end];
         if let Some(end_comment) = end_comment {
           items.extend(ir_helpers::gen_from_raw_string(ignore_text));
           items.extend(gen_html(end_comment, context));
         } else {
-          items.extend(ir_helpers::gen_from_raw_string(ignore_text.trim_end()));
+          items.extend(ir_helpers::gen_from_raw_string(
+            ignore_text.trim_end_matches(WHITESPACE),
+          ));
         }
       }
     }
@@ -274,9 +288,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 
   return items;
 
-  fn get_conditional_blank_line(range: &Range, context: &mut Context) -> PrintItems {
+  fn get_conditional_blank_line(span: Span, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
-    if !context.is_in_list() || context.has_leading_blankline(range.start) {
+    if !context.is_in_list() || context.has_leading_blankline(span.start) {
       items.push_signal(Signal::NewLine);
     }
     items.push_signal(Signal::NewLine);
@@ -285,26 +299,70 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
 }
 
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-
-  if heading.level < 3 && context.configuration.heading_kind == HeadingKind::Setext {
-    // setext headings only apply to level 1 and level 2.
-    let heading_children = gen_nodes(&heading.children, context);
-    let (heading_children, cloned_children) = clone_items(heading_children);
-    items.extend(heading_children);
-    items.push_item(PrintItem::Signal(Signal::NewLine));
+  // setext headings only apply to level 1 and level 2, and only where the text
+  // they underline reads as the paragraph a heading is made of -- an html
+  // comment at the start of a line is a block of its own, which nothing can
+  // underline
+  if heading.level < 3
+    && context.configuration.heading_kind == HeadingKind::Setext
+    && !heading
+      .children
+      .first()
+      .is_some_and(|child| child.starts_block_in_paragraph())
+  {
+    let children = gen_nodes(&heading.children, context);
+    let (children, cloned_children) = clone_items(children);
 
     // render the heading text with the actual line width so wrapping is
     // applied, then measure the longest line for the underline width.
     let underline_width = measure_longest_line_width(cloned_children, context.configuration.line_width);
-    let underline_char = if heading.level == 1 { "=" } else { "-" };
-    items.push_string(underline_char.repeat(underline_width));
-  } else {
-    // atx headings apply to all levels.
-    items.push_string(format!("{} ", "#".repeat(heading.level as usize)));
-    items.extend(with_no_new_lines(gen_nodes(&heading.children, context)));
+
+    // an underline with no text above it isn't a heading at all, so an
+    // empty heading can only be written as atx
+    if underline_width > 0 {
+      let mut items = PrintItems::new();
+      items.extend(children);
+      items.push_signal(Signal::NewLine);
+      let underline_char = if heading.level == 1 { "=" } else { "-" };
+      items.push_string(underline_char.repeat(underline_width));
+      return items;
+    }
+
+    return gen_atx_heading(heading.level, children);
   }
 
+  // atx headings apply to all levels.
+  let escaped = closing_hashes_start(heading);
+  let children = context.with_escaped_closing_hashes(escaped, |context| gen_nodes(&heading.children, context));
+  return gen_atx_heading(heading.level, children);
+
+  /// Where the text an atx heading ends with starts, when it ends with hashes
+  /// that would be read as the sequence that closes the heading rather than as
+  /// the text they are.
+  ///
+  /// A closing sequence is a run of hashes at the end of the line with only
+  /// spaces after it, and either nothing or a space before it.
+  fn closing_hashes_start(heading: &Heading) -> Option<usize> {
+    let Node::Text(text) = heading.children.last()? else {
+      return None;
+    };
+    let before = text.text.trim_end_matches('#');
+    if before.len() == text.text.len() {
+      return None; // it doesn't end with hashes at all
+    }
+    // hashes written against the text before them are read as part of it,
+    // unless there is no text before them for them to be part of
+    let is_closing = before.is_empty() || before.ends_with([' ', '\t']);
+    is_closing.then_some(text.span.start)
+  }
+}
+
+fn gen_atx_heading(level: u8, children: PrintItems) -> PrintItems {
+  let mut items = PrintItems::new();
+  items.push_string("#".repeat(level as usize));
+  // an empty heading is just the number signs, so don't leave a trailing space
+  items.push_signal(Signal::SpaceIfNotTrailing);
+  items.extend(with_no_new_lines(children));
   items
 }
 
@@ -318,16 +376,42 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     }
   }
 
-  items.extend(gen_task_list_marker_children(
-    &paragraph.children,
-    paragraph.marker.as_ref(),
-    context,
-  ));
-  items
+  // a paragraph begins where a block does, and a hard break puts what follows
+  // it at the start of a line too, so neither can be left to read as the start
+  // of a block of its own
+  let escaped = escaped_block_starts(&paragraph.children);
+  items.extend(context.with_escaped_block_starts(escaped, |context| {
+    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+  }));
+  return items;
+
+  /// Where each bit of the paragraph's text that is written at the start of a
+  /// line starts, when it would be read as the start of a block.
+  fn escaped_block_starts(children: &[Node]) -> Vec<(usize, usize)> {
+    let mut starts = Vec::new();
+    // the first line of a paragraph has nothing above it to be read together
+    // with, so less of what it holds is markup than on the lines after it
+    let mut escape: fn(&str) -> Option<usize> = block_start_escape;
+    let mut at_line_start = true;
+    for child in children {
+      if at_line_start {
+        if let Node::Text(text) = child {
+          if let Some(position) = escape(text.text) {
+            starts.push((text.span.start, position));
+          }
+        }
+      }
+      at_line_start = matches!(child, Node::HardBreak(_));
+      if at_line_start {
+        escape = line_start_escape;
+      }
+    }
+    starts
+  }
 }
 
 fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItems {
-  let content_start = block_quote.children.first().map(|child| child.range().start);
+  let content_start = block_quote.children.first().map(|child| child.span().start);
   context.mark_in_block_quotes(content_start, |context, base_indents| {
     let mut items = PrintItems::new();
 
@@ -339,33 +423,40 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
     let mut needs_opening_marker = true;
     let children = gen_nodes(&block_quote.children, context);
     for print_item in get_content_print_items(children, context) {
-      match print_item {
-        PrintItem::String(text) if needs_opening_marker => {
+      // a tab begins a line just as text does, so the markers belong before
+      // either of them
+      let is_content = matches!(&print_item, PrintItem::String(_) | PrintItem::Signal(Signal::Tab));
+      // avoid inserting space in nested block quote markers (`> > foo`).
+      let needs_space = !matches!(&print_item, PrintItem::String(text) if text.text == ">");
+      if is_content {
+        if needs_opening_marker {
           // at the beginning of a block quote, '>' is necessary
           // even if it is not at the start of a line i.e. the start of a list item.
           needs_opening_marker = false;
           items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
           items.push_sc(sc!(">"));
-          // avoid inserting space in nested block quote markers (`> > foo`).
-          if text.text != ">" {
+          if needs_space {
             items.push_space();
           }
           items
             .push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)));
-          items.push_item(PrintItem::String(text));
-        }
-        PrintItem::String(text) => {
-          // avoid inserting space in nested block quote markers (`> > foo`).
-          let trailing = MarkersTrailing::Text {
-            space: text.text != ">",
-          };
+        } else {
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            gen_block_quote_markers(&base_indents, indent_level, trailing, context),
+            gen_block_quote_markers(
+              &base_indents,
+              indent_level,
+              MarkersTrailing::Text { space: needs_space },
+              context,
+            ),
           ));
-          items.push_item(PrintItem::String(text));
         }
+        items.push_item(print_item);
+        continue;
+      }
+
+      match print_item {
         PrintItem::Signal(Signal::NewLine) => {
           needs_opening_marker = false;
           items.push_condition(if_true(
@@ -381,6 +472,14 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
         }
         PrintItem::Signal(Signal::FinishIndent) => {
           indent_level -= 1;
+          items.push_item(print_item)
+        }
+        // a nested block quote's markers indent from within a path of their
+        // own, which counts towards the indentation the markers here go before
+        PrintItem::RcPath(path) => {
+          if let Some(delta) = context.memoized_path_indent_delta(path) {
+            indent_level = indent_level.saturating_add_signed(delta);
+          }
           items.push_item(print_item)
         }
         _ => items.push_item(print_item),
@@ -476,59 +575,85 @@ fn gen_block_quote_markers(
   items
 }
 
-fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
+fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
-  let trimmed_code_text = if code_block.is_fenced && context.configuration.allow_fenced_blank_lines {
+  let code_text = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
     code_text.as_ref()
   } else {
-    code_text.trim_end()
+    code_text.trim_end_matches(WHITESPACE)
   };
   let code_text = if context.configuration.unindent_code_blocks {
-    utils::unindent(trimmed_code_text)
+    utils::unindent(code_text)
   } else {
-    Cow::Borrowed(trimmed_code_text)
+    Cow::Borrowed(code_text)
   };
-  let backtick_text = "`".repeat(get_backtick_count(&code_text));
-  let indent_level = if code_block.is_fenced { 0 } else { 4 };
+  // a backtick fence's info string can't hold a backtick, so a tag with one in
+  // it has to be fenced with tildes
+  let fence_char = match code_block.tag() {
+    Some(tag) if tag.contains('`') => '~',
+    _ => '`',
+  };
+  let fence_text = fence_char.to_string().repeat(get_fence_count(&code_text, fence_char));
+  // an indented code block can only be written with indentation where nothing
+  // above it would take that indentation for its own content, and where the
+  // indentation of the lines after the first can match the first line's
+  let lines_up = !position.beside_marker || position.marker_lines_up;
+  let is_fenced = code_block.is_fenced() || position.after_list || !lines_up;
+  let indent_level = if is_fenced { 0 } else { 4 };
 
   // header
-  if code_block.is_fenced {
-    items.push_str(&backtick_text);
-    if let Some(tag) = &code_block.tag {
-      items.push_str(tag);
+  if is_fenced {
+    items.push_str(&fence_text);
+    if let Some(tag) = code_block.tag() {
+      // an info string that starts with the fence character would otherwise
+      // read as more of the fence
+      if tag.starts_with(fence_char) {
+        items.push_space();
+      }
+      // the info string may hold a tab, which the printer measures itself
+      if tag.contains('\t') {
+        items.extend(gen_text_with_tabs(tag.to_string()));
+      } else {
+        items.push_str(tag);
+      }
     }
     items.push_signal(Signal::NewLine);
   }
 
   // body
+  if !is_fenced && position.beside_marker {
+    // the item's marker took the place of the first line's indentation, which
+    // the printer only writes out for the lines after it
+    items.push_sc(sc!("    "));
+  }
   if !code_text.is_empty() {
     items.extend(ir_helpers::gen_from_string(&code_text));
   }
 
   // footer
-  if code_block.is_fenced {
+  if is_fenced {
     if !code_text.is_empty() {
       items.push_signal(Signal::NewLine);
     }
-    items.push_string(backtick_text);
+    items.push_string(fence_text);
   }
 
   return with_indent_times(items, indent_level);
 
   fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
     let code = &code_block.code;
-    let code = if code_block.is_fenced && context.configuration.allow_fenced_blank_lines {
-      let code = code.strip_suffix("\n").unwrap_or(code);
-      code.strip_suffix("\r").unwrap_or(code)
+    let code = if code_block.is_fenced() && context.configuration.allow_fenced_blank_lines {
+      let code = code.strip_suffix('\n').unwrap_or(code);
+      code.strip_suffix('\r').unwrap_or(code)
     } else {
-      if code.trim().is_empty() {
+      if code.trim_matches(WHITESPACE).is_empty() {
         return Cow::Borrowed("");
       }
       let start_pos = get_code_block_start_pos(code);
-      code[start_pos..].trim_end()
+      code[start_pos..].trim_end_matches(WHITESPACE)
     };
-    if let Some(tag) = &code_block.tag {
+    if let Some(tag) = code_block.tag() {
       // allow situations like ```rust,ignore
       let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
       if let Ok(Some(text)) = context.format_text(&tag, code) {
@@ -545,24 +670,24 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
     for (i, c) in text.char_indices() {
       if c == '\n' {
         start_pos = i + 1;
-      } else if !c.is_whitespace() {
+      } else if !WHITESPACE.contains(&c) {
         break;
       }
     }
     start_pos
   }
 
-  fn get_backtick_count(text: &str) -> usize {
-    // need to count how many consecutive backticks there are in the text
+  /// How long the fence has to be to hold the code, which is longer than any
+  /// run of the fence character within it.
+  fn get_fence_count(text: &str, fence_char: char) -> usize {
     let mut count = 0;
     let mut max_count = 0;
     for c in text.chars() {
-      match c {
-        '`' => {
-          count += 1;
-          max_count = std::cmp::max(count, max_count);
-        }
-        _ => count = 0,
+      if c == fence_char {
+        count += 1;
+        max_count = std::cmp::max(count, max_count);
+      } else {
+        count = 0;
       }
     }
     std::cmp::max(2, max_count) + 1
@@ -570,16 +695,17 @@ fn gen_code_block(code_block: &CodeBlock, context: &mut Context) -> PrintItems {
 }
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
-  let trimmed_text = code.code.trim();
-  // a code span that's only whitespace keeps its text because trimming
-  // it would cause the code span to disappear entirely
-  let text = if trimmed_text.is_empty() {
-    code.code.as_str()
-  } else {
-    trimmed_text
-  };
+  // a code span holds its text as it is, so the only choice here is how to
+  // write the delimiters so that the text is read back out of them
+  let text = code.code.as_ref();
   let backtick_text = "`".repeat(get_backtick_count(text));
-  let separator = if text.starts_with('`') || text.ends_with('`') {
+  // a reader takes one space off each end of a span that has one at both, and
+  // a backtick written against the delimiter would make the delimiter longer.
+  // A space on each end handles either: the reader takes it straight back off
+  let is_padded = text.starts_with([' ', '\n', '\r'])
+    && text.ends_with([' ', '\n', '\r'])
+    && !text.trim_matches([' ', '\n', '\r']).is_empty();
+  let separator = if text.starts_with('`') || text.ends_with('`') || is_padded {
     " "
   } else {
     ""
@@ -645,7 +771,10 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
       chars.next();
     }
 
-    if whitespace_count == 1 && chars.peek().is_some() {
+    // whitespace is only somewhere the span can be broken when there is a word
+    // on either side of it -- the space a span opens with is text of its own
+    let is_leading = current_word.is_empty() && items.is_empty();
+    if whitespace_count == 1 && chars.peek().is_some() && !is_leading {
       push_word(&mut items, &mut current_word, was_last_newline, context);
       was_last_newline = c == '\n' && context.configuration.text_wrap == TextWrap::Maintain;
     } else {
@@ -679,14 +808,29 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
-  gen_str(&text.text, context)
+  if let Some(position) = context.block_start_escape_at(text.span.start) {
+    let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
+    return gen_str(&escaped, context);
+  }
+  if context.is_escaping_closing_hashes(text.span.start) {
+    // the hashes are escaped where they start, which is enough to keep the
+    // rest of the run from being read as a closing sequence of its own
+    let hashes = text.text.len() - text.text.trim_end_matches('#').len();
+    let escaped = format!(
+      "{}\\{}",
+      &text.text[..text.text.len() - hashes],
+      &text.text[text.text.len() - hashes..]
+    );
+    return gen_str(&escaped, context);
+  }
+  gen_str(text.text, context)
 }
 
 /// Whether the node is a callout header (ex. `[!NOTE]`), which is only
 /// recognized as one when it's the very first thing in a block quote.
 fn is_callout_node(node: &Node, context: &Context) -> bool {
   match node {
-    Node::Text(text) => context.is_block_quote_content_start(text.range.start) && is_callout_text(&text.text),
+    Node::Text(text) => context.is_block_quote_content_start(text.span.start) && is_callout_text(text.text),
     _ => false,
   }
 }
@@ -770,7 +914,8 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
           }
         }
 
-        self.items.push_string(current_word);
+        // the word may hold a tab, which the printer measures itself
+        self.items.extend(gen_text_with_tabs(current_word));
         self.was_last_newline = false;
       }
     }
@@ -778,83 +923,391 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
 }
 
 fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintItems {
-  /// GitHub doesn't make `_` and `__` as being a text decoration when the character
-  /// after the underscore is alphanumeric. For example: `__word__something`. Due
-  /// to this, we need to keep the asterisk when configured for underscores
-  /// in order to ensure the text keeps its meaning on GitHub.
-  fn keep_asterisk(pos: usize, context: &Context) -> bool {
-    &context.file_text[pos - 1..pos] == "*"
-      && context.file_text[pos..]
-        .chars()
-        .next()
-        .map(|c| c.is_alphanumeric())
-        .unwrap_or(false)
-  }
-
   let mut items = PrintItems::new();
-  let decoration_text = match &text.kind {
-    TextDecorationKind::Emphasis => match context.configuration.emphasis_kind {
-      EmphasisKind::Asterisks => sc!("*"),
-      EmphasisKind::Underscores => {
-        if keep_asterisk(text.range.end, context) {
-          sc!("*")
-        } else {
-          sc!("_")
-        }
-      }
-    },
-    TextDecorationKind::Strong => match context.configuration.strong_kind {
-      StrongKind::Asterisks => sc!("**"),
-      StrongKind::Underscores => {
-        if keep_asterisk(text.range.end, context) {
-          sc!("**")
-        } else {
-          sc!("__")
-        }
-      }
-    },
-    TextDecorationKind::Strikethrough => sc!("~~"),
+  let decoration_text = match decoration_delimiter(text, context.enclosing_decoration(), context) {
+    "*" => sc!("*"),
+    "_" => sc!("_"),
+    "**" => sc!("**"),
+    "__" => sc!("__"),
+    "~" => sc!("~"),
+    _ => sc!("~~"),
   };
 
   items.push_sc(decoration_text);
-  items.extend(gen_nodes(&text.children, context));
+  let content = content_span(&text.children);
+  items.extend(context.with_enclosing_decoration(content, |context| gen_nodes(&text.children, context)));
   items.push_sc(decoration_text);
 
   items
 }
 
+/// The delimiter a text decoration is written with.
+///
+/// The configured character is used unless the content it wraps begins or ends
+/// with that character, where the two would run together into a longer
+/// delimiter that means something else (ex. `_` around `_foo_` reads as
+/// strong).
+fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span>, context: &Context) -> &'static str {
+  // the text of a reference link is the name it's matched by, so the
+  // decorations within it are written with the characters they were written
+  // with rather than the configured ones
+  if context.is_preserving_decorations() {
+    return written_delimiter(decoration, context);
+  }
+  // what this one is written with is read off the ones nested in it, so working
+  // it out again for each of them would take twice as long at every level
+  return context.decoration_delimiter(decoration.span.start, || resolve(decoration, parent_content, context));
+
+  fn resolve(decoration: &TextDecoration, parent_content: Option<Span>, context: &Context) -> &'static str {
+    let (asterisks, underscores, prefers_underscores) = match decoration.kind {
+      TextDecorationKind::Emphasis => (
+        "*",
+        "_",
+        context.configuration.emphasis_kind == EmphasisKind::Underscores,
+      ),
+      TextDecorationKind::Strong => ("**", "__", context.configuration.strong_kind == StrongKind::Underscores),
+      TextDecorationKind::Strikethrough => return "~~",
+    };
+    // an underscore isn't read as a delimiter at all within a word, so only
+    // asterisks will do there
+    let (before, after) = surrounding_chars(decoration, parent_content, context);
+    let within_word = is_word(before) || is_word(after);
+    let prefers_underscores = prefers_underscores && !within_word;
+    let (preferred, other) = if prefers_underscores {
+      (underscores, asterisks)
+    } else {
+      (asterisks, underscores)
+    };
+
+    // the delimiter of a decoration written directly against this one is read by
+    // what sits beside it, so changing this one's character would change theirs.
+    // What the file already had parsed as this decoration, so it is safe.
+    if within_word || is_delimiter(before) || is_delimiter(after) {
+      return written_delimiter(decoration, context);
+    }
+
+    for candidate in [preferred, other] {
+      if delimits(decoration, candidate, before, after, context) && !collides(decoration, candidate, context) {
+        return candidate;
+      }
+    }
+    // neither character can be written without running into the content, so keep
+    // the one the file had
+    written_delimiter(decoration, context)
+  }
+
+  /// The characters the decoration is written between, leaving out the
+  /// delimiters of the decoration it is nested directly within -- those are
+  /// written out here too, so they are chosen to sit beside this one rather
+  /// than being something this one has to avoid.
+  fn surrounding_chars(
+    decoration: &TextDecoration,
+    parent_content: Option<Span>,
+    context: &Context,
+  ) -> (Option<char>, Option<char>) {
+    let span = decoration.span;
+    let before = match parent_content {
+      Some(content) if content.start == span.start => None,
+      _ => context.file_text[..span.start].chars().next_back(),
+    };
+    let after = match parent_content {
+      Some(content) if content.end == span.end => None,
+      _ => context.file_text[span.end..].chars().next(),
+    };
+    (before, after)
+  }
+
+  fn is_word(c: Option<char>) -> bool {
+    c.is_some_and(|c| c.is_alphanumeric())
+  }
+
+  fn is_delimiter(c: Option<char>) -> bool {
+    matches!(c, Some('*') | Some('_'))
+  }
+
+  /// Whether the character reads as a delimiter at all where the decoration is
+  /// written, which the text on either side of it decides -- an underscore
+  /// between two letters is one of them rather than a delimiter.
+  fn delimits(
+    decoration: &TextDecoration,
+    delimiter: &str,
+    before: Option<char>,
+    after: Option<char>,
+    context: &Context,
+  ) -> bool {
+    let character = delimiter.chars().next().unwrap();
+    let content = content_span(&decoration.children);
+    let first = written_first_char(decoration.children.first(), content, context);
+    let last = written_last_char(decoration.children.last(), content, context);
+    run_can_open(before, first, character) && run_can_close(last, after, character)
+  }
+
+  /// Whether the delimiter would run into the content it is written around,
+  /// making a longer delimiter that means something else.
+  fn collides(decoration: &TextDecoration, delimiter: &str, context: &Context) -> bool {
+    let character = delimiter.chars().next().unwrap();
+    let content = content_span(&decoration.children);
+    written_first_char(decoration.children.first(), content, context) == Some(character)
+      || written_last_char(decoration.children.last(), content, context) == Some(character)
+      || text_can_pair(&decoration.children, character)
+  }
+}
+
+/// The extent of what a decoration wraps, which is what its delimiters are
+/// written directly against.
+fn content_span(children: &[Node]) -> Option<Span> {
+  Some(Span::new(children.first()?.span().start, children.last()?.span().end))
+}
+
+/// The delimiter the decoration was written with in the file.
+fn written_delimiter(decoration: &TextDecoration, context: &Context) -> &'static str {
+  let written = context.file_text.as_bytes().get(decoration.span.start).copied();
+  match (decoration.kind, written) {
+    (TextDecorationKind::Emphasis, Some(b'_')) => "_",
+    (TextDecorationKind::Emphasis, _) => "*",
+    (TextDecorationKind::Strong, Some(b'_')) => "__",
+    (TextDecorationKind::Strong, _) => "**",
+    (TextDecorationKind::Strikethrough, _) => {
+      if context.file_text[decoration.span.start..].starts_with("~~") {
+        "~~"
+      } else {
+        "~"
+      }
+    }
+  }
+}
+
+/// The character the text ends with, unless a backslash escapes it and so
+/// keeps it from merging with whatever follows.
+fn last_unescaped_char(text: &str) -> Option<char> {
+  let last = text.chars().next_back()?;
+  let backslashes = text[..text.len() - last.len_utf8()]
+    .chars()
+    .rev()
+    .take_while(|c| *c == '\\')
+    .count();
+  (backslashes % 2 == 0).then_some(last)
+}
+
+/// Whether any text within the nodes holds a run of the character that could
+/// pair with a delimiter of that character written around them, which would
+/// split that delimiter apart.
+fn text_can_pair(nodes: &[Node], delimiter: char) -> bool {
+  nodes.iter().any(|node| match node {
+    Node::Text(text) => can_pair_with_delimiter(text.text, delimiter),
+    // a decoration's own delimiters pair with each other rather than reaching
+    // out, but the text it wraps is still text within this one
+    node => text_can_pair(node.children(), delimiter),
+  })
+}
+
+/// Whether the text holds a run of the character that could open or close
+/// emphasis, and so pair with a delimiter of that character around it.
+fn can_pair_with_delimiter(text: &str, delimiter: char) -> bool {
+  let mut chars = text.char_indices().peekable();
+  let mut is_escaped = false;
+  while let Some((start, c)) = chars.next() {
+    // an escaped character is text of its own and pairs with nothing
+    if std::mem::take(&mut is_escaped) {
+      continue;
+    }
+    if c == '\\' {
+      is_escaped = true;
+      continue;
+    }
+    if c != delimiter {
+      continue;
+    }
+    let mut end = start + c.len_utf8();
+    while chars.next_if(|(_, next)| *next == delimiter).is_some() {
+      end += delimiter.len_utf8();
+    }
+    // what sits outside the text is the delimiter this could pair with, or
+    // another node's punctuation -- either way, not whitespace
+    let before = text[..start].chars().next_back().unwrap_or(delimiter);
+    let after = text[end..].chars().next().unwrap_or(delimiter);
+    if run_can_pair(Some(before), Some(after), delimiter) {
+      return true;
+    }
+  }
+  false
+}
+
+/// Whether a run of the character surrounded by those two can open or close
+/// emphasis, which is the "flanking" rule of the CommonMark spec.
+fn run_can_pair(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
+  run_can_open(before, after, delimiter) || run_can_close(before, after, delimiter)
+}
+
+/// Whether a run of the character surrounded by those two opens emphasis.
+fn run_can_open(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
+  let flanking = Flanking::new(before, after);
+  if delimiter == '_' {
+    // `_` can't be used within a word
+    flanking.left && (!flanking.right || flanking.before_punctuation)
+  } else {
+    flanking.left
+  }
+}
+
+/// Whether a run of the character surrounded by those two closes emphasis.
+fn run_can_close(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
+  let flanking = Flanking::new(before, after);
+  if delimiter == '_' {
+    flanking.right && (!flanking.left || flanking.after_punctuation)
+  } else {
+    flanking.right
+  }
+}
+
+/// Which sides of a run of delimiters have text against them, which is what
+/// decides whether the run opens emphasis, closes it, or does neither.
+struct Flanking {
+  left: bool,
+  right: bool,
+  before_punctuation: bool,
+  after_punctuation: bool,
+}
+
+impl Flanking {
+  fn new(before: Option<char>, after: Option<char>) -> Flanking {
+    let before_whitespace = before.is_none_or(char::is_whitespace);
+    let after_whitespace = after.is_none_or(char::is_whitespace);
+    let before_punctuation = before.is_some_and(|c| c.is_ascii_punctuation());
+    let after_punctuation = after.is_some_and(|c| c.is_ascii_punctuation());
+    Flanking {
+      left: !after_whitespace && (!after_punctuation || before_whitespace || before_punctuation),
+      right: !before_whitespace && (!before_punctuation || after_whitespace || after_punctuation),
+      before_punctuation,
+      after_punctuation,
+    }
+  }
+}
+
+/// The character the node is written out beginning with, as far as a delimiter
+/// beside it could run into.
+fn written_first_char(node: Option<&Node>, parent_content: Option<Span>, context: &Context) -> Option<char> {
+  match node? {
+    Node::Text(text) => text.text.chars().next(),
+    Node::TextDecoration(decoration) => decoration_delimiter(decoration, parent_content, context).chars().next(),
+    Node::Code(_) => Some('`'),
+    Node::Html(html) => html.text.chars().next(),
+    Node::InlineMath(_) | Node::DisplayMath(_) => Some('$'),
+    Node::AutoLink(_) => Some('<'),
+    Node::InlineLink(_) | Node::ReferenceLink(_) | Node::ShortcutLink(_) | Node::FootnoteReference(_) => Some('['),
+    Node::InlineImage(_) | Node::ReferenceImage(_) | Node::ShortcutImage(_) => Some('!'),
+    _ => None,
+  }
+}
+
+/// The character the node is written out ending with.
+fn written_last_char(node: Option<&Node>, parent_content: Option<Span>, context: &Context) -> Option<char> {
+  match node? {
+    Node::Text(text) => last_unescaped_char(text.text),
+    Node::TextDecoration(decoration) => decoration_delimiter(decoration, parent_content, context).chars().last(),
+    Node::Code(_) => Some('`'),
+    Node::Html(html) => html.text.chars().last(),
+    Node::InlineMath(_) | Node::DisplayMath(_) => Some('$'),
+    Node::AutoLink(_) => Some('>'),
+    Node::InlineLink(_) | Node::InlineImage(_) => Some(')'),
+    Node::ReferenceLink(_)
+    | Node::ShortcutLink(_)
+    | Node::ReferenceImage(_)
+    | Node::ShortcutImage(_)
+    | Node::FootnoteReference(_) => Some(']'),
+    _ => None,
+  }
+}
+
 fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
-  gen_range(node.range.clone(), ctx)
+  gen_range(node.span, ctx)
 }
 
 fn gen_display_math(node: &DisplayMath, ctx: &mut Context) -> PrintItems {
-  gen_range(node.range.clone(), ctx)
+  gen_range(node.span, ctx)
 }
 
 fn gen_inline_math(node: &InlineMath, ctx: &mut Context) -> PrintItems {
-  gen_range(node.range.clone(), ctx)
+  gen_range(node.span, ctx)
 }
 
-fn gen_range(range: Range, ctx: &mut Context) -> PrintItems {
-  let text = ctx.file_text[range].trim_end();
+/// Writes out the text of the span as it is in the file, apart from the block
+/// quote markers that the printer writes out itself.
+fn gen_range(span: Span, ctx: &mut Context) -> PrintItems {
+  let text = span.text(ctx.file_text).trim_end_matches(WHITESPACE);
   if text.is_empty() {
     return PrintItems::new();
   }
   let mut items = PrintItems::new();
   items.push_sc(sc!("")); // force first line indentation
-  items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(text));
+  items.extend(ir_helpers::gen_from_raw_string(&trim_line_ends(
+    &strip_raw_block_quote_markers(text, ctx),
+  )));
   items
+}
+
+/// Trims the whitespace written at the end of each line, which is only a space
+/// or a tab -- a character that merely looks like one is text of the line.
+fn trim_line_ends(text: &str) -> Cow<'_, str> {
+  if !text.split('\n').any(|line| line.ends_with(SPACES)) {
+    return Cow::Borrowed(text);
+  }
+  let mut result = String::with_capacity(text.len());
+  for (index, line) in text.split('\n').enumerate() {
+    if index > 0 {
+      result.push('\n');
+    }
+    result.push_str(line.trim_end_matches(SPACES));
+  }
+  Cow::Owned(result)
+}
+
+/// Removes the block quote markers that the continued lines of raw text picked
+/// up from the file, keeping the indentation that follows them.
+///
+/// Only the markers the surrounding block quotes contributed are removed,
+/// since the printer writes back exactly that many. Any further ones are the
+/// text's own.
+fn strip_raw_block_quote_markers<'a>(text: &'a str, context: &Context) -> Cow<'a, str> {
+  let depth = context.block_quote_depth();
+  // the first line is written out where the printer has already put the
+  // markers, so only what follows it can have picked any up
+  let continued_lines = || text.split('\n').skip(1);
+  if depth == 0 || !continued_lines().any(|line| strip_markers(line, depth).len() != line.len()) {
+    return Cow::Borrowed(text);
+  }
+
+  let mut result = String::with_capacity(text.len());
+  result.push_str(text.split('\n').next().unwrap_or(""));
+  for line in continued_lines() {
+    result.push('\n');
+    result.push_str(strip_markers(line, depth));
+  }
+  return Cow::Owned(result);
+
+  fn strip_markers(line: &str, depth: usize) -> &str {
+    let mut line = line;
+    for _ in 0..depth {
+      let trimmed = line.trim_start_matches([' ', '\t']);
+      let Some(rest) = trimmed.strip_prefix('>') else {
+        return line;
+      };
+      // a single space after a marker is part of it
+      line = rest.strip_prefix(' ').unwrap_or(rest);
+    }
+    line
+  }
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string(format!("[^{}]", footnote_reference.name.trim()));
+  items.push_string(format!("[^{}]", footnote_reference.name.trim_matches(WHITESPACE)));
   ir_helpers::with_no_new_lines(items)
 }
 
 fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string(format!("[^{}]: ", footnote_definition.name.trim()));
+  items.push_string(format!("[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE)));
   items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
   items
 }
@@ -866,9 +1319,9 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
     items.extend(gen_nodes(&link.children, context));
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
-    // the parser resolves the escapes in an inline link's url, so render it
-    // back out with the escapes it needs and no others
-    items.extend(gen_link_destination_text(format_link_destination(link.url.trim())));
+    items.extend(gen_link_destination_text(format_raw_link_destination(
+      link.url.trim_matches(WHITESPACE),
+    )));
     if let Some(title) = &link.title {
       items.extend(gen_title(title, context));
     }
@@ -880,22 +1333,22 @@ fn gen_inline_link(link: &InlineLink, context: &mut Context) -> PrintItems {
 
 /// Writes out a rendered link destination, handling the characters the printer
 /// can't be handed as part of a string.
-fn gen_link_destination_text(text: String) -> PrintItems {
+fn gen_link_destination_text(text: Cow<'_, str>) -> PrintItems {
   // a destination can't contain a line ending in either of its forms, so keep
   // one as the character reference it could only have come from
   let text = if text.contains(['\n', '\r']) {
-    text.replace('\r', "&#13;").replace('\n', "&#10;")
+    Cow::Owned(text.replace('\r', "&#13;").replace('\n', "&#10;"))
   } else {
     text
   };
-  gen_text_with_tabs(text)
+  gen_text_with_tabs(text.into_owned())
 }
 
 /// Generates an image's alt text, which is the raw text from the file.
 fn gen_image_alt_text(text: &str, context: &Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_sc(sc!("!["));
-  items.extend(gen_raw_text(text.trim(), context));
+  items.extend(gen_raw_text(text.trim_matches(WHITESPACE), context));
   items.push_sc(sc!("]"));
   items
 }
@@ -904,7 +1357,7 @@ fn gen_image_alt_text(text: &str, context: &Context) -> PrintItems {
 fn gen_reference_label(reference: &str, context: &Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_sc(sc!("["));
-  items.extend(gen_raw_text(reference.trim(), context));
+  items.extend(gen_raw_text(reference.trim_matches(WHITESPACE), context));
   items.push_sc(sc!("]"));
   items
 }
@@ -917,9 +1370,32 @@ fn gen_reference_label(reference: &str, context: &Context) -> PrintItems {
 fn gen_title(title: &str, context: &Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_sc(sc!(" \""));
-  items.extend(gen_raw_text(title.trim(), context));
+  items.extend(gen_raw_text(&escape_title(title.trim_matches(WHITESPACE)), context));
   items.push_sc(sc!("\""));
   items
+}
+
+/// Escapes the double quotes of a title that aren't escaped already, since a
+/// title is always written out within them.
+fn escape_title(title: &str) -> Cow<'_, str> {
+  if !title.contains('"') && !title.ends_with('\\') {
+    return Cow::Borrowed(title);
+  }
+  let mut text = String::with_capacity(title.len() + 2);
+  let mut chars = title.chars();
+  while let Some(c) = chars.next() {
+    match c {
+      '\\' => {
+        text.push('\\');
+        // a trailing backslash would escape the closing quote, so it escapes
+        // itself instead
+        text.push(chars.next().unwrap_or('\\'));
+      }
+      '"' => text.push_str("\\\""),
+      _ => text.push(c),
+    }
+  }
+  Cow::Owned(text)
 }
 
 /// Generates raw text from the file that may span multiple lines.
@@ -932,14 +1408,14 @@ fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
   // and skip the empty text a carriage return and line feed pair leaves behind
   let mut lines = text.split(['\r', '\n']).filter(|line| !line.is_empty());
   if let Some(line) = lines.next() {
-    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
   }
   for line in lines {
     items.extend(get_newline_wrapping_based_on_config(context));
     // the printer provides the indentation and block quote markers of a
     // continued line, so drop the ones this picked up from the file
     let line = strip_block_quote_markers(line, context);
-    items.extend(gen_text_with_tabs(line.trim_end().to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
   }
   items
 }
@@ -947,10 +1423,10 @@ fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
 /// Strips the markers a line of raw text picked up by continuing within a
 /// block quote.
 fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
-  let mut line = line.trim_start();
+  let mut line = line.trim_start_matches(SPACES);
   if context.is_in_block_quote() {
     while let Some(rest) = line.strip_prefix('>') {
-      line = rest.trim_start();
+      line = rest.trim_start_matches(SPACES);
     }
   }
   line
@@ -976,33 +1452,28 @@ fn gen_text_with_tabs(text: String) -> PrintItems {
   items
 }
 
-/// Renders an unescaped link destination, enclosing it in pointy brackets and
-/// escaping characters only where necessary for it to round trip.
-fn format_link_destination(destination: &str) -> String {
-  let escaped = escape_link_destination(destination);
-  if link_destination_needs_pointy_brackets(destination) {
-    format!("<{}>", escaped.replace('<', r"\<").replace('>', r"\>"))
-  } else {
-    escaped
-  }
-}
-
-/// Returns `true` if the destination can't be written without pointy brackets,
-/// which is when it starts with `<`, contains a space or ascii control
-/// character, or has unbalanced parentheses.
+/// Whether the destination has to be written within pointy brackets, which is
+/// when it starts with `<`, holds a space or an ascii control character, or has
+/// unbalanced parentheses.
 fn link_destination_needs_pointy_brackets(destination: &str) -> bool {
-  if destination.starts_with('<') {
-    return true;
-  }
-
+  let mut chars = destination.chars().peekable();
   let mut parentheses_depth = 0;
-  for c in destination.chars() {
+  let mut is_first = true;
+  while let Some(c) = chars.next() {
+    // an escaped character stands for itself once the escape is resolved
+    let c = if c == '\\' && chars.peek().is_some_and(|next| next.is_ascii_punctuation()) {
+      chars.next().unwrap()
+    } else {
+      c
+    };
     match c {
+      '<' if is_first => return true,
       c if c == ' ' || c.is_ascii_control() => return true,
       '(' => parentheses_depth += 1,
       ')' => parentheses_depth -= 1,
       _ => (),
     }
+    is_first = false;
     if parentheses_depth < 0 {
       return true;
     }
@@ -1010,55 +1481,37 @@ fn link_destination_needs_pointy_brackets(destination: &str) -> bool {
   parentheses_depth != 0
 }
 
-/// Escapes the characters that would otherwise take on a different meaning
-/// when the destination gets parsed again.
-fn escape_link_destination(destination: &str) -> String {
-  let mut text = String::with_capacity(destination.len());
-  for (index, c) in destination.char_indices() {
-    let rest = &destination[index + c.len_utf8()..];
-    match c {
-      // a trailing backslash would escape the delimiter written after the
-      // destination, so it needs escaping too
-      '\\' if rest.chars().next().is_none_or(|c| c.is_ascii_punctuation()) => text.push('\\'),
-      '&' if starts_character_reference(rest) => text.push('\\'),
-      _ => (),
-    }
-    text.push(c);
-  }
-  text
-}
-
-/// Returns `true` if the text following an ampersand makes it a character
-/// reference (ex. `amp;`, `#41;` or `#x29;`).
-fn starts_character_reference(text: &str) -> bool {
-  let Some((body, _)) = text.split_once(';') else {
-    return false;
-  };
-  match body.strip_prefix('#') {
-    Some(number) => match number.strip_prefix(['x', 'X']) {
-      Some(number) => !number.is_empty() && number.chars().all(|c| c.is_ascii_hexdigit()),
-      None => !number.is_empty() && number.chars().all(|c| c.is_ascii_digit()),
-    },
-    None => !body.is_empty() && body.chars().all(|c| c.is_ascii_alphanumeric()),
-  }
-}
-
 fn gen_reference_link(link: &ReferenceLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     items.push_sc(sc!("["));
-    items.extend(gen_nodes(&link.children, context));
+    // a collapsed reference is named by its own text, so that text is kept as
+    // it was written rather than being normalized out of matching
+    items.extend(gen_link_text(&link.children, link.is_collapsed, context));
     items.push_sc(sc!("]"));
-    items.extend(gen_reference_label(&link.reference, context));
+    items.extend(gen_reference_label(
+      if link.is_collapsed { "" } else { &link.reference },
+      context,
+    ));
     ir_helpers::new_line_group(items)
   })
+}
+
+/// Writes out the text between a link's brackets, keeping it exactly as it was
+/// written where that text is the name the link is matched by.
+fn gen_link_text(children: &[Node], is_the_name: bool, context: &mut Context) -> PrintItems {
+  if is_the_name {
+    context.with_preserved_decorations(|context| gen_nodes(children, context))
+  } else {
+    gen_nodes(children, context)
+  }
 }
 
 fn gen_shortcut_link(link: &ShortcutLink, context: &mut Context) -> PrintItems {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new();
     items.push_sc(sc!("["));
-    items.extend(gen_nodes(&link.children, context));
+    items.extend(gen_link_text(&link.children, true, context));
     items.push_sc(sc!("]"));
     ir_helpers::new_line_group(items)
   })
@@ -1080,7 +1533,7 @@ fn gen_link_reference(link_ref: &LinkReference, context: &mut Context) -> PrintI
   items.extend(gen_reference_label(&link_ref.name, context));
   items.push_sc(sc!(": "));
 
-  let url = format_raw_link_destination(link_ref.link.trim());
+  let url = format_raw_link_destination(link_ref.link.trim_matches(WHITESPACE));
   if url.is_empty() {
     // unlike an inline link, a link reference definition can't have an
     // empty destination without these
@@ -1100,12 +1553,17 @@ fn gen_link_reference(link_ref: &LinkReference, context: &mut Context) -> PrintI
 /// The escapes the author wrote are kept as they are, because resolving them
 /// would also resolve any character reference, and there's no way to tell a
 /// resolved one apart from text that merely looks like one.
-fn format_raw_link_destination(destination: &str) -> String {
+fn format_raw_link_destination(destination: &str) -> Cow<'_, str> {
   let destination = destination
     .strip_prefix('<')
     .and_then(|destination| destination.strip_suffix('>'))
     .unwrap_or(destination);
-  let needs_pointy_brackets = link_destination_needs_pointy_brackets(&unescape_link_destination(destination));
+  let needs_pointy_brackets = link_destination_needs_pointy_brackets(destination);
+  // the overwhelmingly common destination is written back out as it is
+  if !needs_pointy_brackets && !destination.contains('\\') {
+    return Cow::Borrowed(destination);
+  }
+
   let mut text = String::with_capacity(destination.len() + 2);
   if needs_pointy_brackets {
     text.push('<');
@@ -1135,26 +1593,7 @@ fn format_raw_link_destination(destination: &str) -> String {
   if needs_pointy_brackets {
     text.push('>');
   }
-  text
-}
-
-/// Resolves the backslash escapes in a raw link destination.
-///
-/// This is only good enough to decide how the destination has to be written,
-/// since it leaves any character reference alone.
-fn unescape_link_destination(destination: &str) -> String {
-  let mut text = String::with_capacity(destination.len());
-  let mut chars = destination.chars().peekable();
-  while let Some(c) = chars.next() {
-    match chars.peek() {
-      Some(next) if c == '\\' && next.is_ascii_punctuation() => {
-        text.push(*next);
-        chars.next();
-      }
-      _ => text.push(c),
-    }
-  }
-  text
+  Cow::Owned(text)
 }
 
 fn gen_inline_image(image: &InlineImage, context: &mut Context) -> PrintItems {
@@ -1163,7 +1602,9 @@ fn gen_inline_image(image: &InlineImage, context: &mut Context) -> PrintItems {
     items.extend(gen_image_alt_text(&image.text, context));
     items.push_sc(sc!("("));
     // like a link reference definition, this is the raw text from the file
-    items.extend(gen_link_destination_text(format_raw_link_destination(image.url.trim())));
+    items.extend(gen_link_destination_text(format_raw_link_destination(
+      image.url.trim_matches(WHITESPACE),
+    )));
     if let Some(title) = &image.title {
       items.extend(gen_title(title, context));
     }
@@ -1197,7 +1638,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
         items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.range().start) {
+        if context.has_leading_blankline(child.span().start) {
           items.push_signal(Signal::NewLine);
         }
       }
@@ -1212,22 +1653,23 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       } else {
         String::from(context.configuration.unordered_list_kind.list_char(is_alternate))
       };
+      let marker_width = prefix_text.chars().count() as u32 + 1;
       let indent_increment = match context.configuration.list_indent_kind {
-        crate::configuration::ListIndentKind::CommonMark => (prefix_text.chars().count() + 1) as u32,
-        crate::configuration::ListIndentKind::PythonMarkdown => {
-          std::cmp::max(prefix_text.chars().count() as u32 + 1, 4)
-        }
+        crate::configuration::ListIndentKind::CommonMark => marker_width,
+        crate::configuration::ListIndentKind::PythonMarkdown => std::cmp::max(marker_width, 4),
       };
+      // only a bullet marker shares its character with a thematic break
+      let marker_char = list.start_index.is_none().then(|| prefix_text.chars().next()).flatten();
+      let marker_lines_up = indent_increment == marker_width;
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
-      let after_child = LineAndColumn::new("afterChild");
-      items.push_condition(if_true(
-        "spaceIfHasChild",
-        Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
-        Signal::SpaceIfNotTrailing.into(),
-      ));
-      items.extend(with_indent_times(generate(child, context), indent_increment));
-      items.push_line_and_column(after_child);
+      // the space is dropped where nothing follows it on the line, so an item
+      // with nothing in it is written as the marker alone. Whether anything
+      // does follow is the item's to say, not something to measure: content of
+      // no width is content all the same
+      items.push_signal(Signal::SpaceIfNotTrailing);
+      let child_items = context.mark_in_list_item(marker_char, marker_lines_up, |context| generate(child, context));
+      items.extend(with_indent_times(child_items, indent_increment));
       context.indent_level -= indent_increment;
     }
 
@@ -1245,6 +1687,13 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     }
   }
 
+  // what the item begins with is written beside its marker, unless a blank
+  // line puts it on a line of its own
+  if let Some(first) = item.children.first() {
+    if !context.has_leading_blankline(first.span().start) {
+      context.mark_marker_beside();
+    }
+  }
   items.extend(gen_task_list_marker_children(
     &item.children,
     item.marker.as_ref(),
@@ -1253,7 +1702,7 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
 
   if !item.sub_lists.is_empty() {
     items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(item.sub_lists.first().unwrap().range().start) {
+    if context.has_leading_blankline(item.sub_lists.first().unwrap().span().start) {
       items.push_signal(Signal::NewLine);
     }
     items.extend(gen_nodes(&item.sub_lists, context));
@@ -1269,7 +1718,7 @@ fn gen_definition_list(definition_list: &DefinitionList, context: &mut Context) 
     for (index, child) in definition_list.children.iter().enumerate() {
       if index > 0 {
         items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.range().start) {
+        if context.has_leading_blankline(child.span().start) {
           items.push_signal(Signal::NewLine);
         }
       }
@@ -1313,17 +1762,11 @@ fn gen_definition(definition: &DefinitionListDefinition, context: &mut Context) 
 
   context.indent_level += indent_increment;
   items.push_sc(sc!(":"));
-  let after_child = LineAndColumn::new("afterDefinition");
-  items.push_condition(if_true(
-    "spaceIfHasDefinition",
-    Rc::new(move |context| Some(!condition_helpers::is_at_same_position(context, after_child)?)),
-    Signal::SpaceIfNotTrailing.into(),
-  ));
+  items.push_signal(Signal::SpaceIfNotTrailing);
   items.extend(with_indent_times(
     gen_nodes(&definition.children, context),
     indent_increment,
   ));
-  items.push_line_and_column(after_child);
   context.indent_level -= indent_increment;
 
   items
@@ -1349,7 +1792,7 @@ fn gen_task_list_marker_children(
           | Node::BlockQuote(_)
           | Node::Heading(_)
           | Node::Table(_)
-      ) || context.has_leading_blankline(c.range().start)
+      ) || context.has_leading_blankline(c.span().start)
     })
     .unwrap_or(children.len());
   items.extend(with_indent_times(
@@ -1361,7 +1804,7 @@ fn gen_task_list_marker_children(
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != children.len() {
     items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(children[indent_child_index_end].range().start) {
+    if context.has_leading_blankline(children[indent_child_index_end].span().start) {
       items.push_signal(Signal::NewLine);
     }
   }
@@ -1380,18 +1823,28 @@ fn gen_task_list_marker(marker: &TaskListMarker, _: &mut Context) -> PrintItems 
   items
 }
 
-fn gen_horizontal_rule(_: &HorizontalRule, _: &mut Context) -> PrintItems {
-  "---".into()
+fn gen_horizontal_rule(_: &HorizontalRule, position: NodePosition) -> PrintItems {
+  // a break made of the same character as the marker beside it would read as
+  // one long break instead (ex. `- ---`), and one made of dashes below a
+  // paragraph would underline it into a heading
+  let runs_together = position.beside_marker && position.marker_char == Some('-');
+  match runs_together || position.after_paragraph {
+    true => "***".into(),
+    false => "---".into(),
+  }
 }
 
 /// Generates a hard break, which has no representation on a single line, so it
 /// becomes a space where newlines are being forced off (ex. within an ATX
-/// heading). Otherwise the backslash it leaves behind would escape the
-/// character that followed it.
-fn gen_hard_break(_: &mut Context) -> PrintItems {
+/// heading). Otherwise the marker it leaves behind would either escape the
+/// character that followed it or be collapsed as extra whitespace.
+fn gen_hard_break(context: &mut Context) -> PrintItems {
   let hard_break = {
     let mut items = PrintItems::new();
-    items.push_sc(sc!("\\"));
+    match context.configuration.hard_break_kind {
+      HardBreakKind::Backslash => items.push_sc(sc!("\\")),
+      HardBreakKind::DoubleSpace => items.push_sc(sc!("  ")),
+    }
     items.push_signal(Signal::NewLine);
     items
   };
@@ -1471,8 +1924,9 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     let mut items = PrintItems::new();
     for (i, (cell_items, cell_width)) in row_cells.into_iter().enumerate() {
       let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
-      let column_max_width = *column_widths.get(i).unwrap();
-      let difference = column_max_width - cell_width;
+      // a cell past the last column has no column to be sized or aligned to,
+      // so it is written out as it is
+      let difference = column_widths.get(i).map(|width| width - cell_width).unwrap_or(0);
       if i == 0 {
         items.push_sc(sc!("| "))
       } else {
@@ -1516,40 +1970,26 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     rows: &[Vec<(PrintItems, usize)>],
     column_alignments: &[ColumnAlignment],
   ) -> Vec<usize> {
-    let mut column_widths = Vec::new();
-    for i in 0.. {
-      let mut had_column = false;
-      let mut max_width = 0;
+    // the delimiter row is what says how many columns the table has, and a
+    // cell written past the last of them is no part of any column
+    let mut column_widths = Vec::with_capacity(column_alignments.len());
+    for (i, column_alignment) in column_alignments.iter().enumerate() {
+      // + 1 in order to have at least one dash
+      let mut max_width = get_column_alignment_properties(*column_alignment).count() + 1;
 
       // get header width
       if let Some((_, width)) = header.get(i) {
-        max_width = *width;
-        had_column = true;
-      }
-
-      // check column alignment row width
-      if let Some(column_alignment) = column_alignments.get(i) {
-        // + 1 in order to have at least one dash
-        max_width = std::cmp::max(
-          max_width,
-          get_column_alignment_properties(*column_alignment).count() + 1,
-        );
-        had_column = true;
+        max_width = std::cmp::max(max_width, *width);
       }
 
       // check each row width
       for row in rows.iter() {
         if let Some((_, width)) = row.get(i) {
           max_width = std::cmp::max(max_width, *width);
-          had_column = true;
         }
       }
 
-      if had_column {
-        column_widths.push(max_width);
-      } else {
-        break;
-      }
+      column_widths.push(max_width);
     }
     column_widths
   }
@@ -1597,15 +2037,19 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
   match node.kind {
     MetadataBlockKind::YamlStyle => {
       let text = context
-        .format_text("yaml", &node.text)
+        .format_text("yaml", node.text)
         .ok()
         .flatten()
         .map(Cow::from)
-        .unwrap_or_else(|| Cow::from(&node.text));
-      items.extend(ir_helpers::gen_from_string_trim_line_ends(text.trim_end()));
+        .unwrap_or_else(|| Cow::from(node.text));
+      items.extend(ir_helpers::gen_from_string(&trim_line_ends(
+        text.trim_end_matches(WHITESPACE),
+      )));
     }
     MetadataBlockKind::PlusesStyle => {
-      items.extend(ir_helpers::gen_from_raw_string_trim_line_ends(node.text.trim_end()));
+      items.extend(ir_helpers::gen_from_raw_string(&trim_line_ends(
+        node.text.trim_end_matches(WHITESPACE),
+      )));
     }
   }
   items.push_signal(Signal::NewLine);
@@ -1656,7 +2100,13 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
       new_line_text: "\n",
     },
   );
-  rendered.lines().map(UnicodeWidthStr::width).max().unwrap_or(0)
+  // trailing whitespace isn't visible, so ignore it when measuring
+  // (ex. the two spaces of a hard break)
+  rendered
+    .lines()
+    .map(|line| UnicodeWidthStr::width(line.trim_end_matches(WHITESPACE)))
+    .max()
+    .unwrap_or(0)
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {
@@ -1693,79 +2143,31 @@ fn get_newline_wrapping_based_on_config(context: &Context) -> PrintItems {
   match context.configuration.text_wrap {
     TextWrap::Always => Signal::SpaceOrNewLine.into(),
     TextWrap::Never => space(),
-    TextWrap::Maintain => Signal::NewLine.into(),
+    // a line break can't be written where newlines are being forced off
+    // (ex. within a heading), where it stands for the space between the words
+    // it separated
+    TextWrap::Maintain => if_true_or(
+      "newLineOrSpaceIfNewlinesDisabled",
+      condition_resolvers::is_forcing_no_newlines(),
+      space(),
+      Signal::NewLine.into(),
+    )
+    .into(),
   }
 }
 
 /// If the list's first items are both 1s
 fn is_all_ones_list(list: &List, context: &Context) -> bool {
-  list.children.len() > 1 && list.start_index.unwrap_or(0) == 1 && {
-    let text = list.children.get(1).unwrap().text(context).trim();
-    text.starts_with("1.") || text.starts_with("1)")
-  }
+  list.start_index == Some(1)
+    && matches!(
+      list.children.get(1),
+      Some(Node::Item(item)) if item.marker_span.text(context.file_text).starts_with('1')
+    )
 }
 
 #[cfg(test)]
 mod tests {
-  use super::format_link_destination;
   use super::format_raw_link_destination;
-  use super::unescape_link_destination;
-
-  #[test]
-  fn formats_link_destination_without_pointy_brackets_when_possible() {
-    assert_eq!(format_link_destination(""), "");
-    assert_eq!(format_link_destination("foo%20bar"), "foo%20bar");
-    assert_eq!(format_link_destination("foo(bar)baz"), "foo(bar)baz");
-    assert_eq!(format_link_destination("a>b"), "a>b");
-  }
-
-  #[test]
-  fn formats_link_destination_with_pointy_brackets_when_necessary() {
-    assert_eq!(format_link_destination("foo bar"), "<foo bar>");
-    assert_eq!(format_link_destination("foo(bar"), "<foo(bar>");
-    assert_eq!(format_link_destination("foo)(bar"), "<foo)(bar>");
-    // can't start with a pointy bracket without them
-    assert_eq!(format_link_destination("<foo"), r"<\<foo>");
-    // ascii control characters aren't allowed without them
-    assert_eq!(format_link_destination("foo\u{1}bar"), "<foo\u{1}bar>");
-  }
-
-  #[test]
-  fn escapes_link_destination_characters() {
-    // pointy brackets need escaping within pointy brackets
-    assert_eq!(format_link_destination("a> b"), r"<a\> b>");
-    assert_eq!(format_link_destination("a< b"), r"<a\< b>");
-    // a backslash needs escaping when it would escape what follows it
-    assert_eq!(format_link_destination(r"foo\_bar"), r"foo\\_bar");
-    assert_eq!(format_link_destination(r"foo\bar"), r"foo\bar");
-    assert_eq!(format_link_destination(r"foo\<bar baz"), r"<foo\\\<bar baz>");
-    // ...including the delimiter that follows the destination
-    assert_eq!(format_link_destination(r"foo\"), r"foo\\");
-    assert_eq!(format_link_destination("foo bar\\"), r"<foo bar\\>");
-  }
-
-  #[test]
-  fn escapes_ampersands_that_would_become_character_references() {
-    assert_eq!(format_link_destination("&amp;"), r"\&amp;");
-    assert_eq!(format_link_destination("&#41;"), r"\&#41;");
-    assert_eq!(format_link_destination("&#x29;"), r"\&#x29;");
-    // these can't be mistaken for a character reference
-    assert_eq!(format_link_destination("x?a=1&b=2"), "x?a=1&b=2");
-    assert_eq!(format_link_destination("x?a=1&b=2;c=3"), "x?a=1&b=2;c=3");
-    assert_eq!(format_link_destination("&;"), "&;");
-    assert_eq!(format_link_destination("&#;"), "&#;");
-  }
-
-  #[test]
-  fn unescapes_link_destination() {
-    assert_eq!(unescape_link_destination(r"foo\(bar"), "foo(bar");
-    assert_eq!(unescape_link_destination(r"foo\\_bar"), r"foo\_bar");
-    assert_eq!(unescape_link_destination("foo\\"), "foo\\");
-    // only ascii punctuation is escapable
-    assert_eq!(unescape_link_destination(r"foo\bar"), r"foo\bar");
-    // a character reference is left alone, since it isn't an escape
-    assert_eq!(unescape_link_destination("&amp;"), "&amp;");
-  }
 
   #[test]
   fn formats_raw_link_destination_keeping_its_escapes() {

@@ -1,0 +1,336 @@
+[[test:crlf]] a soft break between two lines
+one
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "one\r\ntwo",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "one\r\ntwo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "one"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [3, 5],
+          "text": "\r\n"
+        },
+        {
+          "kind": "Text",
+          "span": [5, 8],
+          "text": "two"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a hard break made of two spaces
+one  
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "one  \r\ntwo",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "one  \r\ntwo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "one"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [3, 5],
+          "text": "  "
+        },
+        {
+          "kind": "Text",
+          "span": [7, 10],
+          "text": "two"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a hard break made of a backslash
+one\
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "one\\\r\ntwo",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "one\\\r\ntwo",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "one"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [3, 4],
+          "text": "\\"
+        },
+        {
+          "kind": "Text",
+          "span": [6, 9],
+          "text": "two"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a fenced code block
+```
+a
+b
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "```\r\na\r\nb\r\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 14],
+      "text": "```\r\na\r\nb\r\n```",
+      "isFenced": true,
+      "fence": "```",
+      "content": "a\nb\n"
+    }
+  ]
+}
+[[test:crlf]] an indented code block
+    a
+    b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "    a\r\n    b",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [4, 12],
+      "text": "a\r\n    b",
+      "isFenced": false,
+      "content": "a\nb\n"
+    }
+  ]
+}
+[[test:crlf]] front matter
+---
+title: x
+---
+
+text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 26],
+  "text": "---\r\ntitle: x\r\n---\r\n\r\ntext",
+  "children": [
+    {
+      "kind": "MetadataBlock",
+      "span": [0, 18],
+      "text": "---\r\ntitle: x\r\n---",
+      "metadataKind": "YamlStyle",
+      "content": "title: x"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [22, 26],
+      "text": "text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [22, 26],
+          "text": "text"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a block quote
+> one
+> two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "> one\r\n> two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 12],
+      "text": "> one\r\n> two",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 12],
+          "text": "one\r\n> two",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 7],
+              "text": "\r\n"
+            },
+            {
+              "kind": "Text",
+              "span": [9, 12],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a table
+| a | b |
+| - | - |
+| 1 | 2 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 31],
+  "text": "| a | b |\r\n| - | - |\r\n| 1 | 2 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 31],
+      "text": "| a | b |\r\n| - | - |\r\n| 1 | 2 |",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 9],
+        "text": "| a | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [6, 7],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [6, 7],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [22, 31],
+          "text": "| 1 | 2 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [24, 25],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [24, 25],
+                  "text": "1"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [28, 29],
+              "text": "2",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [28, 29],
+                  "text": "2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a code span across lines
+`one
+two`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "`one\r\ntwo`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "`one\r\ntwo`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 10],
+          "text": "`one\r\ntwo`",
+          "content": "one\ntwo"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a link reference definition with the title on the next line
+[a]: /url
+"title"
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "[a]: /url\r\n\"title\"",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 18],
+      "text": "[a]: /url\r\n\"title\"",
+      "name": "a",
+      "link": "/url",
+      "title": "title"
+    }
+  ]
+}

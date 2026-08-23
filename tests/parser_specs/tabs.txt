@@ -1,0 +1,107 @@
+[[test]] tab indented code block
+	code
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "\tcode",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [1, 5],
+      "text": "code",
+      "isFenced": false,
+      "content": "code\n"
+    }
+  ]
+}
+[[test]] list item with a tab after the marker
+-	one
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "-\tone",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 5],
+      "text": "-\tone",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 5],
+          "text": "-\tone",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "one",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "one"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a tab after the marker
+>	one
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": ">\tone",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 5],
+      "text": ">\tone",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "one",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] tab in the middle of a line
+a	b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 3],
+  "text": "a\tb",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 3],
+      "text": "a\tb",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "a\tb"
+        }
+      ]
+    }
+  ]
+}

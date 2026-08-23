@@ -1,0 +1,469 @@
+[[test]] a heading in a quote leaves nothing to continue
+> foo
+> # bar
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "> foo\n> # bar\nbaz",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> foo\n> # bar",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "foo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "foo"
+            }
+          ]
+        },
+        {
+          "kind": "Heading",
+          "span": [8, 13],
+          "text": "# bar",
+          "level": 1,
+          "headingStyle": "Atx",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [10, 13],
+              "text": "bar"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [14, 17],
+      "text": "baz",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 17],
+          "text": "baz"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a thematic break in a quote leaves nothing to continue
+> foo
+> ***
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "> foo\n> ***\nbaz",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 11],
+      "text": "> foo\n> ***",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "foo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "foo"
+            }
+          ]
+        },
+        {
+          "kind": "HorizontalRule",
+          "span": [8, 11],
+          "text": "***"
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 15],
+      "text": "baz",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 15],
+          "text": "baz"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an html block in a quote leaves nothing to continue
+> foo
+> <div>
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "> foo\n> <div>\nbaz",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> foo\n> <div>",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "foo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "foo"
+            }
+          ]
+        },
+        {
+          "kind": "Html",
+          "span": [8, 13],
+          "text": "<div>",
+          "isBlock": true
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [14, 17],
+      "text": "baz",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 17],
+          "text": "baz"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a fenced code block in a quote leaves nothing to continue
+> a
+> ```
+  a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> a\n> ```\n  a",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> a\n> ```",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 3],
+          "text": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 3],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "kind": "CodeBlock",
+          "span": [6, 9],
+          "text": "```",
+          "isFenced": true,
+          "fence": "```",
+          "content": ""
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 13],
+      "text": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a heading in an item leaves nothing to continue
+- foo
+  # bar
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "- foo\n  # bar\nbaz",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 13],
+      "text": "- foo\n  # bar",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 13],
+          "text": "- foo\n  # bar",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "foo",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "foo"
+                }
+              ]
+            },
+            {
+              "kind": "Heading",
+              "span": [8, 13],
+              "text": "# bar",
+              "level": 1,
+              "headingStyle": "Atx",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 13],
+                  "text": "bar"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [14, 17],
+      "text": "baz",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 17],
+          "text": "baz"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a heading in a nested quote leaves nothing to continue
+> > # foo
+bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> > # foo\nbar",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> > # foo",
+      "children": [
+        {
+          "kind": "BlockQuote",
+          "span": [2, 9],
+          "text": "> # foo",
+          "children": [
+            {
+              "kind": "Heading",
+              "span": [4, 9],
+              "text": "# foo",
+              "level": 1,
+              "headingStyle": "Atx",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [6, 9],
+                  "text": "foo"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [10, 13],
+      "text": "bar",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 13],
+          "text": "bar"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a lazy line never starts a list
+> - a
+2. a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "> - a\n2. a",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 5],
+      "text": "> - a",
+      "children": [
+        {
+          "kind": "List",
+          "span": [2, 5],
+          "text": "- a",
+          "markerChar": "-",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [2, 5],
+              "text": "- a",
+              "markerSpan": [2, 3],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [4, 5],
+                  "text": "a",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [4, 5],
+                      "text": "a"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "List",
+      "span": [6, 10],
+      "text": "2. a",
+      "markerChar": ".",
+      "startIndex": 2,
+      "children": [
+        {
+          "kind": "Item",
+          "span": [6, 10],
+          "text": "2. a",
+          "markerSpan": [6, 8],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [9, 10],
+              "text": "a",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [9, 10],
+                  "text": "a"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a quote within an item still takes a lazy line
+- foo
+  > bar
+baz
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "- foo\n  > bar\nbaz",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 17],
+      "text": "- foo\n  > bar\nbaz",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 17],
+          "text": "- foo\n  > bar\nbaz",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 5],
+              "text": "foo",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [2, 5],
+                  "text": "foo"
+                }
+              ]
+            },
+            {
+              "kind": "BlockQuote",
+              "span": [8, 17],
+              "text": "> bar\nbaz",
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [10, 17],
+                  "text": "bar\nbaz",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [10, 13],
+                      "text": "bar"
+                    },
+                    {
+                      "kind": "SoftBreak",
+                      "span": [13, 14],
+                      "text": "\n"
+                    },
+                    {
+                      "kind": "Text",
+                      "span": [14, 17],
+                      "text": "baz"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

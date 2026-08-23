@@ -54,3 +54,17 @@
 [expect]
 > - [some words here that are quite long
 >   and more text](a.png)
+
+!! should keep a line a tab begins within the quote it is in !!
+> <a
+>	b>
+
+[expect]
+> <a
+> 	b>
+
+!! should keep indented code within nested block quotes !!
+>>     a
+
+[expect]
+>>     a

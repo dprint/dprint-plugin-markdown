@@ -1,0 +1,343 @@
+[[test]] block quote
+> hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "> hello",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 7],
+      "text": "> hello",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 7],
+          "text": "hello",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 7],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote over multiple lines
+> one
+> two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "> one\n> two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 11],
+      "text": "> one\n> two",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 11],
+          "text": "one\n> two",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 6],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [8, 11],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a lazy continuation
+> one
+two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> one\ntwo",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> one\ntwo",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 9],
+          "text": "one\ntwo",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [5, 6],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [6, 9],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] nested block quote
+> > hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> > hello",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> > hello",
+      "children": [
+        {
+          "kind": "BlockQuote",
+          "span": [2, 9],
+          "text": "> hello",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [4, 9],
+              "text": "hello",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [4, 9],
+                  "text": "hello"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a heading
+> # Hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> # Hello",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> # Hello",
+      "children": [
+        {
+          "kind": "Heading",
+          "span": [2, 9],
+          "text": "# Hello",
+          "level": 1,
+          "headingStyle": "Atx",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [4, 9],
+              "text": "Hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a list
+> - one
+> - two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "> - one\n> - two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 15],
+      "text": "> - one\n> - two",
+      "children": [
+        {
+          "kind": "List",
+          "span": [2, 15],
+          "text": "- one\n> - two",
+          "markerChar": "-",
+          "listKind": "Bullet",
+          "children": [
+            {
+              "kind": "Item",
+              "span": [2, 7],
+              "text": "- one",
+              "markerSpan": [2, 3],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [4, 7],
+                  "text": "one",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [4, 7],
+                      "text": "one"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "Item",
+              "span": [10, 15],
+              "text": "- two",
+              "markerSpan": [10, 11],
+              "children": [
+                {
+                  "kind": "Paragraph",
+                  "span": [12, 15],
+                  "text": "two",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [12, 15],
+                      "text": "two"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a blank line
+> one
+>
+> two
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> one\n>\n> two",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 13],
+      "text": "> one\n>\n> two",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 5],
+          "text": "one",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 5],
+              "text": "one"
+            }
+          ]
+        },
+        {
+          "kind": "Paragraph",
+          "span": [10, 13],
+          "text": "two",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [10, 13],
+              "text": "two"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote without a space after the marker
+>hello
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": ">hello",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 6],
+      "text": ">hello",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [1, 6],
+          "text": "hello",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 6],
+              "text": "hello"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] block quote with a code block
+> ```ts
+> code
+> ```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "> ```ts\n> code\n> ```",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 20],
+      "text": "> ```ts\n> code\n> ```",
+      "children": [
+        {
+          "kind": "CodeBlock",
+          "span": [2, 20],
+          "text": "```ts\n> code\n> ```",
+          "isFenced": true,
+          "fence": "```",
+          "tag": "ts",
+          "content": "code\n"
+        }
+      ]
+    }
+  ]
+}

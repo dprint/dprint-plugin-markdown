@@ -1,0 +1,306 @@
+[[test]] a tab after a block quote marker in a code span
+> `a
+>	b`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> `a\n>\tb`",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> `a\n>\tb`",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 9],
+          "text": "`a\n>\tb`",
+          "children": [
+            {
+              "kind": "Code",
+              "span": [2, 9],
+              "text": "`a\n>\tb`",
+              "content": "a\n  b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a tab after a block quote marker in html
+> <a
+>	b>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "> <a\n>\tb>",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 9],
+      "text": "> <a\n>\tb>",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [2, 9],
+          "text": "<a\n>\tb>",
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 9],
+              "text": "<a\n>\tb>",
+              "isBlock": false,
+              "content": "<a\n  b>"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a tab within a list item's continued code span
+- `a
+ 	b`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "- `a\n \tb`",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 9],
+      "text": "- `a\n \tb`",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 9],
+          "text": "- `a\n \tb`",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [2, 9],
+              "text": "`a\n \tb`",
+              "children": [
+                {
+                  "kind": "Code",
+                  "span": [2, 9],
+                  "text": "`a\n \tb`",
+                  "content": "a\n  b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a marker within an item's indented code is not a task
+-     [x] foo
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "-     [x] foo",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 13],
+      "text": "-     [x] foo",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 13],
+          "text": "-     [x] foo",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "CodeBlock",
+              "span": [6, 13],
+              "text": "[x] foo",
+              "isFenced": false,
+              "content": "[x] foo\n"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a header with no pipe is not a table
+abc
+:-
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "abc\n:-",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "abc\n:-",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "abc"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [3, 4],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [4, 6],
+          "text": ":-"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a single column table still needs its pipes
+| a |
+| - |
+| 1 |
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "| a |\n| - |\n| 1 |",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 17],
+      "text": "| a |\n| - |\n| 1 |",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "| a |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 3],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 3],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 17],
+          "text": "| 1 |",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [14, 15],
+              "text": "1",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [14, 15],
+                  "text": "1"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a term can't be a block of its own
+term
+: def
+# heading
+: def2
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 27],
+  "text": "term\n: def\n# heading\n: def2",
+  "children": [
+    {
+      "kind": "DefinitionList",
+      "span": [0, 10],
+      "text": "term\n: def",
+      "children": [
+        {
+          "kind": "DefinitionListTitle",
+          "span": [0, 4],
+          "text": "term",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [0, 4],
+              "text": "term"
+            }
+          ]
+        },
+        {
+          "kind": "DefinitionListDefinition",
+          "span": [5, 10],
+          "text": ": def",
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [7, 10],
+              "text": "def",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [7, 10],
+                  "text": "def"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Heading",
+      "span": [11, 20],
+      "text": "# heading",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [13, 20],
+          "text": "heading"
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [21, 27],
+      "text": ": def2",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [21, 27],
+          "text": ": def2"
+        }
+      ]
+    }
+  ]
+}

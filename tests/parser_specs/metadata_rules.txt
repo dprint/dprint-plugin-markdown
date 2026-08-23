@@ -1,0 +1,140 @@
+[[test]] front matter can't begin with a blank line
+---
+
+## foo
+
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "---\n\n## foo\n\n---",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "---"
+    },
+    {
+      "kind": "Heading",
+      "span": [5, 11],
+      "text": "## foo",
+      "level": 2,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 11],
+          "text": "foo"
+        }
+      ]
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [13, 16],
+      "text": "---"
+    }
+  ]
+}
+[[test]] front matter can't be empty
+---
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "---\n---",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 3],
+      "text": "---"
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [4, 7],
+      "text": "---"
+    }
+  ]
+}
+[[test]] front matter closed by three dots
+---
+title: x
+...
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "---\ntitle: x\n...",
+  "children": [
+    {
+      "kind": "MetadataBlock",
+      "span": [0, 16],
+      "text": "---\ntitle: x\n...",
+      "metadataKind": "YamlStyle",
+      "content": "title: x"
+    }
+  ]
+}
+[[test]] four dashes don't open front matter
+----
+title: x
+----
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "----\ntitle: x\n----",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 4],
+      "text": "----"
+    },
+    {
+      "kind": "Heading",
+      "span": [5, 18],
+      "text": "title: x\n----",
+      "level": 2,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 13],
+          "text": "title: x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] indented dashes don't open front matter
+   ---
+title: x
+---
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "   ---\ntitle: x\n---",
+  "children": [
+    {
+      "kind": "HorizontalRule",
+      "span": [0, 6],
+      "text": "   ---"
+    },
+    {
+      "kind": "Heading",
+      "span": [7, 19],
+      "text": "title: x\n---",
+      "level": 2,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [7, 15],
+          "text": "title: x"
+        }
+      ]
+    }
+  ]
+}

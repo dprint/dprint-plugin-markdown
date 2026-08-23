@@ -16,6 +16,7 @@ pub struct Configuration {
   pub strong_kind: StrongKind,
   pub unordered_list_kind: UnorderedListKind,
   pub heading_kind: HeadingKind,
+  pub hard_break_kind: HardBreakKind,
   pub unindent_code_blocks: bool,
   pub list_indent_kind: ListIndentKind,
   pub allow_fenced_blank_lines: bool,
@@ -118,6 +119,22 @@ pub enum HeadingKind {
 }
 
 generate_str_to_from![HeadingKind, [Setext, "setext"], [Atx, "atx"]];
+
+/// The style of [hard line break](https://spec.commonmark.org/0.31.2/#hard-line-breaks)
+/// to use.
+#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum HardBreakKind {
+  /// Uses a trailing backslash (default).
+  Backslash,
+  /// Uses two trailing spaces.
+  ///
+  /// Note that some tools strip trailing whitespace, which would
+  /// silently remove these hard line breaks.
+  DoubleSpace,
+}
+
+generate_str_to_from![HardBreakKind, [Backslash, "backslash"], [DoubleSpace, "doubleSpace"]];
 
 /// The style of indentation to use for list items.
 ///

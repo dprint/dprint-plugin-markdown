@@ -1,0 +1,252 @@
+[[test]] a definition then a heading
+[a]: /b
+# h
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "[a]: /b\n# h",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "Heading",
+      "span": [8, 11],
+      "text": "# h",
+      "level": 1,
+      "headingStyle": "Atx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 11],
+          "text": "h"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition then a block quote
+[a]: /b
+> q
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "[a]: /b\n> q",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "BlockQuote",
+      "span": [8, 11],
+      "text": "> q",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [10, 11],
+          "text": "q",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [10, 11],
+              "text": "q"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition then a list
+[a]: /b
+- x
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "[a]: /b\n- x",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "List",
+      "span": [8, 11],
+      "text": "- x",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [8, 11],
+          "text": "- x",
+          "markerSpan": [8, 9],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [10, 11],
+              "text": "x",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 11],
+                  "text": "x"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition then indented code
+[a]: /b
+    code
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "[a]: /b\n    code",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 16],
+      "text": "code",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 16],
+          "text": "code"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition then a fenced code block
+[a]: /b
+```
+x
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[a]: /b\n```\nx\n```",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "CodeBlock",
+      "span": [8, 17],
+      "text": "```\nx\n```",
+      "isFenced": true,
+      "fence": "```",
+      "content": "x\n"
+    }
+  ]
+}
+[[test]] a definition then an html block
+[a]: /b
+<!--
+x
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "[a]: /b\n<!--\nx",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "Html",
+      "span": [8, 14],
+      "text": "<!--\nx",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] a definition then a thematic break
+[a]: /b
+***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "[a]: /b\n***",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "HorizontalRule",
+      "span": [8, 11],
+      "text": "***"
+    }
+  ]
+}
+[[test]] a definition then a paragraph
+[a]: /b
+text
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 12],
+  "text": "[a]: /b\ntext",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 7],
+      "text": "[a]: /b",
+      "name": "a",
+      "link": "/b"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 12],
+      "text": "text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 12],
+          "text": "text"
+        }
+      ]
+    }
+  ]
+}

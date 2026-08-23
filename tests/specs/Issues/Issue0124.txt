@@ -1,0 +1,94 @@
+!! should maintain the indentation of an html block's first line !!
+<table>
+  <tr>
+  <td></td>
+
+  </tr>
+</table>
+
+[expect]
+<table>
+  <tr>
+  <td></td>
+
+  </tr>
+</table>
+
+!! should maintain the indentation in a list !!
+- Test
+
+    <div>
+    </div>
+
+[expect]
+- Test
+
+    <div>
+    </div>
+
+!! should maintain the indentation in a block quote !!
+> <div>
+>
+>   </div>
+
+[expect]
+> <div>
+>
+>   </div>
+
+!! should not include a list marker in the html !!
+- <div>
+
+[expect]
+- <div>
+
+!! should maintain up to three spaces of indentation !!
+   <div>
+
+[expect]
+   <div>
+
+!! should discard the indentation when beside a marker !!
+-
+    <div>
+      Test
+    </div>
+
+[expect]
+- <div>
+      Test
+    </div>
+
+!! should maintain the indentation in a footnote definition !!
+[^1]: Test
+
+      <div>
+      </div>
+
+Test[^1]
+
+[expect]
+[^1]: Test
+
+      <div>
+      </div>
+
+Test[^1]
+
+!! should not restore a tab of indentation !!
+- Test
+
+	<div>
+
+[expect]
+- Test
+
+  <div>
+
+!! should maintain the indentation of an indented ignore comment !!
+  <!-- dprint-ignore -->
+  <div>   </div>
+
+[expect]
+  <!-- dprint-ignore -->
+  <div>   </div>
