@@ -7,7 +7,6 @@ use regex::Regex;
 
 use super::utils::*;
 use crate::configuration::Configuration;
-use crate::configuration::TextWrap;
 use crate::format_text;
 use crate::format_text::FormatError;
 use crate::parser::Span;
@@ -419,7 +418,7 @@ impl<'a> Context<'a> {
 
   fn written_char(&self, at: &[(usize, char)], position: usize) -> Option<char> {
     // a break that is kept is still written out, so nothing moves against it
-    if self.configuration.text_wrap == TextWrap::Maintain {
+    if self.configuration.text_wrap.keeps_line_breaks() {
       return None;
     }
     at.binary_search_by_key(&position, |(at, _)| *at)

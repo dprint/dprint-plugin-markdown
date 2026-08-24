@@ -1,0 +1,146 @@
+~~ lineWidth: 40, textWrap: maintainAndWrap ~~
+!! should keep the line breaks that were written !!
+A new paragraph.
+Here the lines are shorter.
+Like so.
+
+[expect]
+A new paragraph.
+Here the lines are shorter.
+Like so.
+
+!! should wrap a line that runs past the line width !!
+A very long line exceeding the line width. It goes all the way and stops.
+
+[expect]
+A very long line exceeding the line
+width. It goes all the way and stops.
+
+!! should wrap the long lines and leave the short ones where they were !!
+A very long line exceeding the line width. It goes all the way and stops.
+
+A new paragraph.
+Here the lines are shorter.
+Like so.
+
+[expect]
+A very long line exceeding the line
+width. It goes all the way and stops.
+
+A new paragraph.
+Here the lines are shorter.
+Like so.
+
+!! should keep the blank lines between paragraphs !!
+One.
+
+Two.
+
+[expect]
+One.
+
+Two.
+
+!! should keep a heading on one line !!
+# A heading that is quite long indeed and runs past the width
+
+[expect]
+# A heading that is quite long indeed and runs past the width
+
+!! should wrap within a block quote !!
+> A very long line exceeding the line width. It goes all the way and stops.
+> Short line.
+
+[expect]
+> A very long line exceeding the line
+> width. It goes all the way and stops.
+> Short line.
+
+!! should wrap within a list !!
+- A very long list item that exceeds the line width by quite a lot indeed.
+  Short line.
+- Another
+
+[expect]
+- A very long list item that exceeds the
+  line width by quite a lot indeed.
+  Short line.
+- Another
+
+!! should keep a table cell on one line !!
+| a | b |
+| - | - |
+| a very long cell value here that is long | b |
+
+[expect]
+| a                                        | b |
+| ---------------------------------------- | - |
+| a very long cell value here that is long | b |
+
+!! should keep a hard break !!
+A very long line exceeding the line width. It goes all the way.\
+Short line.
+
+[expect]
+A very long line exceeding the line
+width. It goes all the way.\
+Short line.
+
+!! should not move text that would start a block to the start of a line !!
+Some text that is long enough to wrap here - not a list at all
+
+Some text that is long enough to wrap ok 1. not a list at all
+
+[expect]
+Some text that is long enough to wrap
+here - not a list at all
+
+Some text that is long enough to wrap
+ok 1. not a list at all
+
+!! should keep the line breaks within a link's text, and not break within it !!
+[a link whose text is long enough to run past the width](https://example.com/)
+
+[a link whose text
+runs over lines](https://example.com/)
+
+[expect]
+[a link whose text is long enough to run past the width](https://example.com/)
+
+[a link whose text
+runs over lines](https://example.com/)
+
+!! should wrap a code span, and keep the break within it !!
+`a code span with quite a lot of words inside of it` and more text here
+
+`a code span
+over lines` and more text that runs past the line width here
+
+[expect]
+`a code span with quite a lot of words
+inside of it` and more text here
+
+`a code span
+over lines` and more text that runs past
+the line width here
+
+!! should break a run of a script written without spaces, and keep the break within it !!
+一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十
+短い行
+
+[expect]
+一二三四五六七八九十一二三四五六七八九十
+一二三四五六七八九十
+短い行
+
+!! should join a line whose first word alone would start a block, which wrapping could leave it as !!
+aaaaaaaaaa
+-- bbbbbbbbbb
+
+aaaaaaaaaa
+|--| bbbbbbbbbb
+
+[expect]
+aaaaaaaaaa -- bbbbbbbbbb
+
+aaaaaaaaaa |--| bbbbbbbbbb
