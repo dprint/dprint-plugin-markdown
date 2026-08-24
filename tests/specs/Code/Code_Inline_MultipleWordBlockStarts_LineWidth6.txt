@@ -1,0 +1,8 @@
+~~ textWrap: always, lineWidth: 6 ~~
+!! should not leave the words of a thematic break on a line of a code span's own !!
+`aaaa _ _ _ zz`
+
+[expect]
+`aaaa _
+_ _
+zz`
