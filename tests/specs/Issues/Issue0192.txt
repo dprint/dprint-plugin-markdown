@@ -24,8 +24,7 @@
 - - [a]: b
 
 [expect]
--
-  - [a]: b
+- - [a]: b
 
 !! should keep a link reference definition in a block quote's list item !!
 > - [a]: b
