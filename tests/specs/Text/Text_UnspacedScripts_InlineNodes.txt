@@ -1,0 +1,79 @@
+~~ textWrap: never ~~
+!! should drop a line break between a link and such a script !!
+[日](https://dprint.dev)
+日本語
+
+日本語
+[日](https://dprint.dev)
+
+[expect]
+[日](https://dprint.dev)日本語
+
+日本語[日](https://dprint.dev)
+
+!! should drop a line break between a code span and such a script !!
+`日`
+日本語
+
+日本語
+`日`
+
+[expect]
+`日`日本語
+
+日本語`日`
+
+!! should keep the line break beside an image, which isn't read as text !!
+![日](https://dprint.dev/a.png)
+日本語
+
+[expect]
+![日](https://dprint.dev/a.png) 日本語
+
+!! should keep the line break beside a text decoration, whose delimiter is chosen from the whitespace around it !!
+日本語
+*テスト*
+
+実行**します**
+そして次へ
+
+[expect]
+日本語 _テスト_
+
+実行**します** そして次へ
+
+!! should keep the line break where the delimiters would run together !!
+**日本語**
+**テスト**
+
+`日本語`
+`テスト`
+
+[expect]
+**日本語** **テスト**
+
+`日本語` `テスト`
+
+!! should keep the line break where a link's text begins or ends with something not read as text !!
+日本語
+[*a*日](https://dprint.dev)
+
+[日*a*](https://dprint.dev)
+日本語
+
+日本語
+[![i](https://dprint.dev/a.png)日](https://dprint.dev)
+
+[expect]
+日本語 [*a*日](https://dprint.dev)
+
+[日*a*](https://dprint.dev) 日本語
+
+日本語 [![i](https://dprint.dev/a.png)日](https://dprint.dev)
+
+!! should keep the line break beside an autolink, whose text is a url rather than prose !!
+日本語
+<https://例え.jp>
+
+[expect]
+日本語 <https://例え.jp>
