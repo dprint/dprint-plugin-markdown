@@ -1970,10 +1970,16 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
     context,
   ));
 
-  if !item.sub_lists.is_empty() {
-    items.extend(get_blank_lines(
-      context.get_leading_blank_lines(item.sub_lists.first().unwrap().span().start),
-    ));
+  if let Some(first_sub_list) = item.sub_lists.first() {
+    // an item with nothing of its own has its lists written beside its marker.
+    // On a line of their own the marker would be left alone on one, where it
+    // underlines a paragraph above it into a heading and can't be read as a
+    // marker at all, since an item with nothing in it doesn't interrupt one
+    if !item.children.is_empty() {
+      items.extend(get_blank_lines(
+        context.get_leading_blank_lines(first_sub_list.span().start),
+      ));
+    }
     items.extend(gen_nodes(&item.sub_lists, context));
   }
 

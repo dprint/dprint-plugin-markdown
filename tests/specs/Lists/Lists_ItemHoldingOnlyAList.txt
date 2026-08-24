@@ -1,0 +1,25 @@
+!! should write an item's list beside its marker where the item holds nothing else !!
+- a
+  * - b
+
+[expect]
+- a
+  - - b
+
+!! should do so for each such item !!
+- a
+  * - b
+  * - c
+
+[expect]
+- a
+  - - b
+  - - c
+
+!! should do so within an ordered item !!
+1. a
+   * - b
+
+[expect]
+1. a
+   - - b
