@@ -1,0 +1,106 @@
+~~ useTabs: true ~~
+!! should indent a code block with a tab !!
+Test:
+
+    code
+
+[expect]
+Test:
+
+	code
+
+!! should keep the indentation written within the code !!
+Test:
+
+    code
+      more
+
+[expect]
+Test:
+
+	code
+	  more
+
+!! should leave a blank line within a code block blank !!
+Test:
+
+    one
+
+    two
+
+[expect]
+Test:
+
+	one
+
+	two
+
+!! should not indent a fenced code block with a tab !!
+- Testing
+
+  ```
+  code
+  ```
+
+[expect]
+- Testing
+
+  ```
+  code
+  ```
+
+!! should keep the spaces of a code block a list indents off a tab stop !!
+- one
+
+      two
+
+[expect]
+- one
+
+      two
+
+!! should write the tab after the spaces a list indents the code block by !!
+- - one
+
+        two
+
+[expect]
+- - one
+
+    	two
+
+!! should keep the spaces of a code block within a block quote !!
+> Test:
+>
+>     code
+
+[expect]
+> Test:
+>
+>     code
+
+!! should keep the spaces of a code block beside a list marker !!
+-     code
+
+[expect]
+-     code
+
+!! should keep the tabs written within the code !!
+Test:
+
+    one
+    	two
+
+[expect]
+Test:
+
+	one
+		two
+
+!! should not write a tab where a definition's marker is written on the line !!
+term
+:       code
+
+[expect]
+term
+: code

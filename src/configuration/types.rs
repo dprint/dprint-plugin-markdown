@@ -11,6 +11,14 @@ use serde::Serialize;
 pub struct Configuration {
   pub line_width: u32,
   pub new_line_kind: NewLineKind,
+  /// Whether to write the four columns of indentation that an indented code
+  /// block and the body of a footnote definition are written with as a tab.
+  ///
+  /// A tab reaches to the next multiple of four columns, so it only stands for
+  /// those four where the content around the block begins at a multiple of
+  /// four itself. Either keeps its spaces where it doesn't, and within a block
+  /// quote, whose markers leave the column its content begins at unknown.
+  pub use_tabs: bool,
   pub text_wrap: TextWrap,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,

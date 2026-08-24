@@ -21,6 +21,18 @@
         "description": "Uses the system standard (ex. crlf on Windows)."
       }]
     },
+    "useTabs": {
+      "description": "Whether to write the four columns of indentation that an indented code block and the body of a footnote definition are written with as a tab. Either keeps its spaces within a block quote, and anywhere else a tab wouldn't reach the column its content has to begin at.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Indents an indented code block and a footnote definition's body with a tab."
+      }, {
+        "const": false,
+        "description": "Indents an indented code block and a footnote definition's body with four spaces."
+      }]
+    },
     "textWrap": {
       "description": "Text wrapping possibilities.",
       "type": "string",
@@ -217,6 +229,9 @@
     },
     "newLineKind": {
       "$ref": "#/definitions/newLineKind"
+    },
+    "useTabs": {
+      "$ref": "#/definitions/useTabs"
     },
     "textWrap": {
       "$ref": "#/definitions/textWrap"
