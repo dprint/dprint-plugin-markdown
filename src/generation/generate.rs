@@ -152,8 +152,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 items.push_space();
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
-              } else if last_node.ends_with_unspaced_script(context.file_text)
-                && node.starts_with_unspaced_script(context.file_text)
+              } else if last_node.ends_with_unspaced_script()
+                && node.starts_with_unspaced_script()
+                && can_be_written_beside(last_node, node, context.file_text)
               {
                 items.extend(get_unspaced_script_newline_wrapping(context));
               } else {
@@ -2200,6 +2201,18 @@ fn space() -> PrintItems {
   let mut items = PrintItems::new();
   items.push_space();
   items
+}
+
+/// Whether the two nodes can be written directly beside each other without
+/// what they're written with running together into something else (ex. the
+/// `]` of one link meeting the `[` of the next and reading as a reference).
+///
+/// Only the characters actually written count here, rather than the ones a
+/// reader sees: it's the delimiters that would end up side by side.
+fn can_be_written_beside(last_node: &Node, node: &Node, file_text: &str) -> bool {
+  let last = last_node.span().text(file_text).chars().last();
+  let next = node.span().text(file_text).chars().next();
+  !matches!((last, next), (Some(last), Some(next)) if last.is_ascii_punctuation() && next.is_ascii_punctuation())
 }
 
 /// What takes the place of a line break that falls between two characters of
