@@ -85,6 +85,9 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         if let Some(use_tabs) = config.code_block_use_tabs {
           additional_config.insert("useTabs".into(), use_tabs.into());
         }
+        if let Some(indent_width) = config.code_block_indent_width {
+          additional_config.insert("indentWidth".into(), (indent_width as i32).into());
+        }
         let request = SyncHostFormatRequest {
           file_path: &file_path,
           file_bytes: file_text.as_bytes(),

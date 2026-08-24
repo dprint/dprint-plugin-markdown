@@ -131,6 +131,14 @@ impl ConfigurationBuilder {
     self.insert("codeBlock.useTabs", value.into())
   }
 
+  /// The indentation width the plugin that formats the code within a code
+  /// block should use, overriding that plugin's own `indentWidth`
+  /// configuration.
+  /// Default: not overridden
+  pub fn code_block_indent_width(&mut self, value: u8) -> &mut Self {
+    self.insert("codeBlock.indentWidth", (value as i32).into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -200,13 +208,14 @@ mod tests {
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
       .code_block_use_tabs(true)
+      .code_block_indent_width(2)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 18);
+    assert_eq!(inner_config.len(), 19);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -243,6 +252,15 @@ mod tests {
 
     let config = ConfigurationBuilder::new().code_block_use_tabs(false).build();
     assert_eq!(config.code_block_use_tabs, Some(false));
+  }
+
+  #[test]
+  fn code_block_indent_width_only_set_when_specified() {
+    let config = ConfigurationBuilder::new().build();
+    assert_eq!(config.code_block_indent_width, None);
+
+    let config = ConfigurationBuilder::new().code_block_indent_width(2).build();
+    assert_eq!(config.code_block_indent_width, Some(2));
   }
 
   #[test]
