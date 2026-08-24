@@ -27,27 +27,55 @@ pub struct DroppedBreaks {
   pub after: Vec<(usize, char)>,
 }
 
+/// What the paragraph being written has to be written with in order to be read
+/// back as the paragraph it is.
+pub struct ParagraphEscapes {
+  /// The text the paragraph writes at the start of a line that would be read
+  /// as the start of a block of its own.
+  pub block_starts: Vec<BlockStartEscape>,
+  /// Where each bit of text the paragraph writes at the start of a line
+  /// starts.
+  pub line_starts: Vec<usize>,
+  /// Where the paragraph ends, which bounds how far the text of one of its
+  /// lines can run.
+  pub end: usize,
+}
+
+/// Where a backslash goes so that a bit of a paragraph's text isn't read as the
+/// start of a block of its own.
+pub struct BlockStartEscape {
+  /// Where the text that would be read that way starts.
+  pub text_start: usize,
+  /// Where within that text the backslash goes.
+  pub position: usize,
+}
+
 /// Where a node sits among the ones around it, which decides how some of them
 /// have to be written.
 #[derive(Default, Clone, Copy)]
 pub struct NodePosition {
-  /// Whether the node is written directly after a list item's marker, which
+  /// The marker of the list item the node is written directly after, which
   /// takes the place of the indentation its first line would have.
-  pub beside_marker: bool,
-  /// The character marking the list item the node is written within, where it
-  /// is written within one.
-  pub marker_char: Option<char>,
-  /// Whether the indentation the list item's content is written at lines up
-  /// with the column its marker leaves the first line at. Where it doesn't,
-  /// nothing that has to keep its own indentation can be written beside the
-  /// marker.
-  pub marker_lines_up: bool,
+  pub marker: Option<ListItemMarker>,
   /// Whether a list is written directly above the node, which would take the
   /// indentation of anything indented into its last item.
   pub after_list: bool,
   /// Whether a paragraph is written directly above the node with no blank line
   /// between, which a line of dashes below would turn into a heading.
   pub after_paragraph: bool,
+}
+
+/// The marker of a list item, which decides how what is written beside it may
+/// be written.
+#[derive(Clone, Copy)]
+pub struct ListItemMarker {
+  /// The character the item is marked with, where it is marked with one rather
+  /// than numbered.
+  pub char: Option<char>,
+  /// Whether the indentation the item's content is written at lines up with
+  /// the column its marker leaves the first line at. Where it doesn't, nothing
+  /// that has to keep its own indentation can be written beside the marker.
+  pub lines_up: bool,
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -61,9 +89,9 @@ pub enum MemoizedRcPathKind {
 pub struct Context<'a> {
   pub file_text: &'a str,
   pub configuration: &'a Configuration,
-  /** The current indentation level of what's being printed out. */
+  /// The current indentation level of what's being printed out.
   pub indent_level: u32,
-  /** The current indentation level within the file being formatted. */
+  /// The current indentation level within the file being formatted.
   pub raw_indent_level: u32,
   is_in_list_count: u32,
   /// The indentation level each surrounding block quote started at, from outermost to innermost.
@@ -80,7 +108,7 @@ pub struct Context<'a> {
   /// Where each bit of text a paragraph writes at the start of a line starts,
   /// when it has to be escaped so that it isn't read as the start of a block
   /// of its own.
-  escaped_block_starts: Vec<(usize, usize)>,
+  escaped_block_starts: Vec<BlockStartEscape>,
   /// Where each bit of text written at the start of a line starts.
   line_start_texts: Vec<usize>,
   /// Where the block being written ends, which bounds how far the text of one
@@ -90,11 +118,8 @@ pub struct Context<'a> {
   dropped_breaks: DroppedBreaks,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
-  /// The character the list item being generated is marked with.
-  list_marker_char: Option<char>,
-  /// Whether the indentation of the list item being generated lines up with
-  /// the column its marker leaves the first line at.
-  list_marker_lines_up: bool,
+  /// The marker of the list item being generated.
+  list_marker: ListItemMarker,
   /// Where the node generated next sits.
   next_position: NodePosition,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
@@ -141,8 +166,10 @@ impl<'a> Context<'a> {
       block_end: None,
       dropped_breaks: Default::default(),
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
-      list_marker_char: None,
-      list_marker_lines_up: true,
+      list_marker: ListItemMarker {
+        char: None,
+        lines_up: true,
+      },
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
@@ -263,29 +290,18 @@ impl<'a> Context<'a> {
     items
   }
 
-  /// Generates the content of a list item marked with the given character,
-  /// which is indented to line up with the column after its marker where
-  /// `lines_up` holds.
-  pub fn mark_in_list_item<T>(
-    &mut self,
-    marker: Option<char>,
-    lines_up: bool,
-    func: impl FnOnce(&mut Context) -> T,
-  ) -> T {
-    let previous_marker = std::mem::replace(&mut self.list_marker_char, marker);
-    let previous_lines_up = std::mem::replace(&mut self.list_marker_lines_up, lines_up);
+  /// Generates the content of the list item the marker belongs to.
+  pub fn mark_in_list_item<T>(&mut self, marker: ListItemMarker, func: impl FnOnce(&mut Context) -> T) -> T {
+    let previous = std::mem::replace(&mut self.list_marker, marker);
     let result = func(self);
-    self.list_marker_char = previous_marker;
-    self.list_marker_lines_up = previous_lines_up;
+    self.list_marker = previous;
     result
   }
 
   /// Marks that a list item's marker was just written out, so that what comes
   /// directly after it can tell it will be sitting beside it.
   pub fn mark_marker_beside(&mut self) {
-    self.next_position.beside_marker = true;
-    self.next_position.marker_char = self.list_marker_char;
-    self.next_position.marker_lines_up = self.list_marker_lines_up;
+    self.next_position.marker = Some(self.list_marker);
   }
 
   /// Marks that a paragraph was just written out with nothing between it and
@@ -344,20 +360,14 @@ impl<'a> Context<'a> {
     self.escaped_closing_hashes == Some(start)
   }
 
-  /// Generates the content of a paragraph, whose text at each of `starts` would
-  /// be read as the start of a block of its own.
-  pub fn with_escaped_block_starts<T>(
-    &mut self,
-    starts: Vec<(usize, usize)>,
-    line_starts: Vec<usize>,
-    block_end: usize,
-    func: impl FnOnce(&mut Context) -> T,
-  ) -> T {
-    let previous = std::mem::replace(&mut self.escaped_block_starts, starts);
-    let previous_line_starts = std::mem::replace(&mut self.line_start_texts, line_starts);
-    let previous_end = self.block_end.replace(block_end);
+  /// Generates the content of a paragraph, which `escapes` says has to be
+  /// written with backslashes in order to be read back as one.
+  pub fn with_paragraph_escapes<T>(&mut self, escapes: ParagraphEscapes, func: impl FnOnce(&mut Context) -> T) -> T {
+    let previous_starts = std::mem::replace(&mut self.escaped_block_starts, escapes.block_starts);
+    let previous_line_starts = std::mem::replace(&mut self.line_start_texts, escapes.line_starts);
+    let previous_end = self.block_end.replace(escapes.end);
     let result = func(self);
-    self.escaped_block_starts = previous;
+    self.escaped_block_starts = previous_starts;
     self.line_start_texts = previous_line_starts;
     self.block_end = previous_end;
     result
@@ -423,8 +433,8 @@ impl<'a> Context<'a> {
     self
       .escaped_block_starts
       .iter()
-      .find(|(text_start, _)| *text_start == start)
-      .map(|(_, position)| *position)
+      .find(|escape| escape.text_start == start)
+      .map(|escape| escape.position)
   }
 
   pub fn enclosing_decoration(&self) -> Option<Span> {

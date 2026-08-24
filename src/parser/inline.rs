@@ -652,8 +652,8 @@ impl<'a, 'b> InlineParser<'a, 'b> {
   fn flanking(&self, start: usize, end: usize, byte: u8) -> (bool, bool) {
     let before = self.text.char_before(start);
     let after = self.text.char_at(end);
-    let before_whitespace = before.is_none_or(is_markdown_whitespace);
-    let after_whitespace = after.is_none_or(is_markdown_whitespace);
+    let before_whitespace = before.is_none_or(char::is_whitespace);
+    let after_whitespace = after.is_none_or(char::is_whitespace);
     let before_punctuation = before.is_some_and(is_markdown_punctuation);
     let after_punctuation = after.is_some_and(is_markdown_punctuation);
 
@@ -869,8 +869,6 @@ fn is_mergeable_text(previous: &Text<'_>, node: &Node<'_>, source: &str) -> bool
       .all(|b| matches!(b, b' ' | b'\t'))
 }
 
-/// A code span's content has a space stripped off each end when it has one on
-/// both and isn't all spaces.
 /// Strips the space a code span pads its text with.
 ///
 /// A reader takes one space off each end of a span that has one at both, which
@@ -907,10 +905,6 @@ fn trailing_space_len(code: &str) -> Option<usize> {
     _ if code.ends_with([' ', '\n', '\r']) => Some(1),
     _ => None,
   }
-}
-
-fn is_markdown_whitespace(c: char) -> bool {
-  c.is_whitespace()
 }
 
 fn is_markdown_punctuation(c: char) -> bool {

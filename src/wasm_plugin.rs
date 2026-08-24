@@ -110,12 +110,11 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     fn tag_to_extension<'a>(tag: &str, config: &'a Configuration) -> Option<&'a str> {
       let tag_lower = tag.trim().to_lowercase();
 
-      // First check custom tags from configuration
+      // a tag the configuration maps takes precedence over the built-in ones
       if let Some(ext) = config.tags.get(&tag_lower) {
         return Some(ext);
       }
 
-      // Fall back to built-in mappings
       match tag_lower.as_str() {
         "typescript" | "ts" => Some("ts"),
         "tsx" => Some("tsx"),

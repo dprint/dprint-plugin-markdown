@@ -131,7 +131,7 @@ impl<'a> Node<'a> {
   /// Whether the node would start a block of its own, or turn the line above
   /// it into one, if it were moved to the start of a line by wrapping.
   ///
-  /// Unlike [`Self::starts_block_in_paragraph`] this counts what the node's
+  /// Unlike [`Self::starts_block_at_block_start`] this counts what the node's
   /// first word would start on its own, since the text after it can wrap onto
   /// the line below and leave it there alone.
   pub fn starts_block_at_line_start(&self, following_text: &str, word_can_be_left_alone: bool) -> bool {
