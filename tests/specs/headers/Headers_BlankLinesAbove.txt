@@ -1,0 +1,160 @@
+~~ heading.blankLinesAbove: 2 ~~
+!! should write the configured number of blank lines above a heading !!
+# Project
+
+This is a cool project.
+
+## Installation
+
+Some installation instructions.
+
+[expect]
+# Project
+
+This is a cool project.
+
+
+## Installation
+
+Some installation instructions.
+
+!! should not write blank lines above a heading that starts the file !!
+
+
+# Project
+
+Text.
+
+[expect]
+# Project
+
+Text.
+
+!! should write the blank lines above a heading of any kind !!
+Text.
+
+Setext Heading
+==============
+
+Text.
+
+### Atx Heading
+
+Text.
+
+[expect]
+Text.
+
+
+# Setext Heading
+
+Text.
+
+
+### Atx Heading
+
+Text.
+
+!! should write them between two headings !!
+# One
+
+## Two
+
+[expect]
+# One
+
+
+## Two
+
+!! should write them below the front matter !!
+---
+title: Test
+---
+
+# Heading
+
+[expect]
+---
+title: Test
+---
+
+
+# Heading
+
+!! should write them above a heading within a block quote !!
+> Text.
+>
+> # Heading
+>
+> Text.
+
+[expect]
+> Text.
+>
+>
+> # Heading
+>
+> Text.
+
+!! should write them above a heading within a nested block quote !!
+> > Text.
+> >
+> > # Heading
+
+[expect]
+>> Text.
+>>
+>>
+>> # Heading
+
+!! should write them above a heading within a footnote definition !!
+[^1]: Text.
+
+    # Heading
+
+    Text.
+
+[expect]
+[^1]: Text.
+
+
+    # Heading
+
+    Text.
+
+!! should leave a heading drawn up against the block above it in a list !!
+- Text.
+  # Heading
+  Text.
+
+[expect]
+- Text.
+  # Heading
+  Text.
+
+!! should write them above a heading in a list whose blocks are separated !!
+- Text.
+
+  # Heading
+
+  Text.
+
+[expect]
+- Text.
+
+
+  # Heading
+
+  Text.
+
+!! should leave a heading that follows an ignore comment as it was written !!
+Text.
+
+<!-- dprint-ignore -->
+# Heading
+
+[expect]
+Text.
+
+<!-- dprint-ignore -->
+# Heading

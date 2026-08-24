@@ -103,6 +103,14 @@ impl ConfigurationBuilder {
     self.insert("maxBlankLines", (value as i32).into())
   }
 
+  /// The number of blank lines to write above a heading. That many are written
+  /// even where `maxBlankLines` is lower, though a heading drawn up against the
+  /// block above it within a list is left there, which keeps the list tight.
+  /// Default: the blank lines that were written are kept, up to `maxBlankLines`
+  pub fn heading_blank_lines_above(&mut self, value: u32) -> &mut Self {
+    self.insert("heading.blankLinesAbove", (value as i32).into())
+  }
+
   /// Whether to leave the code within a code block as it was written rather
   /// than formatting it with the plugin that handles the code's language.
   /// Default: `false`
@@ -217,6 +225,7 @@ mod tests {
       .hard_break_kind(HardBreakKind::DoubleSpace)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
       .max_blank_lines(2)
+      .heading_blank_lines_above(2)
       .code_block_skip_format(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
@@ -230,7 +239,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 21);
+    assert_eq!(inner_config.len(), 22);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -288,6 +297,27 @@ mod tests {
     assert_eq!(result.diagnostics[0].property_name, "maxBlankLines");
     assert!(result.diagnostics[0].message.contains("at least 1"));
     assert_eq!(result.config.max_blank_lines, 1);
+  }
+
+  #[test]
+  fn heading_blank_lines_above_only_set_when_specified() {
+    let config = ConfigurationBuilder::new().build();
+    assert_eq!(config.heading_blank_lines_above, None);
+
+    let config = ConfigurationBuilder::new().heading_blank_lines_above(2).build();
+    assert_eq!(config.heading_blank_lines_above, Some(2));
+  }
+
+  #[test]
+  fn heading_blank_lines_above_below_one() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("heading.blankLinesAbove".into(), 0.into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "heading.blankLinesAbove");
+    assert!(result.diagnostics[0].message.contains("at least 1"));
+    assert_eq!(result.config.heading_blank_lines_above, Some(1));
   }
 
   #[test]

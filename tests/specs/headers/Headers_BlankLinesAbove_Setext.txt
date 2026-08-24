@@ -1,0 +1,39 @@
+~~ heading.blankLinesAbove: 2, headingKind: setext ~~
+!! should write the configured number above a setext heading !!
+Text.
+
+Heading
+=======
+
+Text.
+
+Other Heading
+-------------
+
+[expect]
+Text.
+
+
+Heading
+=======
+
+Text.
+
+
+Other Heading
+-------------
+
+!! should write it above a heading that stays atx !!
+Text.
+
+### Three
+
+Text.
+
+[expect]
+Text.
+
+
+### Three
+
+Text.

@@ -1,0 +1,30 @@
+~~ heading.blankLinesAbove: 1, maxBlankLines: 3 ~~
+!! should collapse the blank lines above a heading to the configured number !!
+Text.
+
+
+
+# Heading
+
+Text.
+
+[expect]
+Text.
+
+# Heading
+
+Text.
+
+!! should keep the blank lines above the blocks that are not headings !!
+Text.
+
+
+
+Text.
+
+[expect]
+Text.
+
+
+
+Text.

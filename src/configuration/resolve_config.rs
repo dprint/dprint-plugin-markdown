@@ -73,6 +73,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     max_blank_lines: get_max_blank_lines(&mut config, &mut diagnostics),
+    heading_blank_lines_above: get_heading_blank_lines_above(&mut config, &mut diagnostics),
     code_block_skip_format: get_value(&mut config, "codeBlock.skipFormat", false, &mut diagnostics),
     code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
@@ -129,9 +130,32 @@ pub fn resolve_config(
 /// maximum below one isn't something the formatter could ever stay under.
 fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> u32 {
   let value = get_value(config, "maxBlankLines", 1, diagnostics);
+  ensure_at_least_one_blank_line("maxBlankLines", value, diagnostics)
+}
+
+/// With `headingKind: setext` a heading written against the paragraph above it
+/// would underline that paragraph rather than follow it, so a count below one
+/// isn't one that could be written wherever the option applies.
+fn get_heading_blank_lines_above(
+  config: &mut ConfigKeyMap,
+  diagnostics: &mut Vec<ConfigurationDiagnostic>,
+) -> Option<u32> {
+  let value = get_nullable_value(config, "heading.blankLinesAbove", diagnostics)?;
+  Some(ensure_at_least_one_blank_line(
+    "heading.blankLinesAbove",
+    value,
+    diagnostics,
+  ))
+}
+
+fn ensure_at_least_one_blank_line(
+  property_name: &str,
+  value: u32,
+  diagnostics: &mut Vec<ConfigurationDiagnostic>,
+) -> u32 {
   if value < 1 {
     diagnostics.push(ConfigurationDiagnostic {
-      property_name: "maxBlankLines".to_string(),
+      property_name: property_name.to_string(),
       message: "Expected a value of at least 1.".to_string(),
     });
     return 1;
