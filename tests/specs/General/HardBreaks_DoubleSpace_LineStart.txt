@@ -1,0 +1,40 @@
+~~ hardBreakKind: doubleSpace ~~
+!! should write a backslash where two spaces would have nothing before them !!
+> \
+> bbb
+
+[expect]
+> \
+> bbb
+
+!! should write one within a nested block quote and a list item !!
+>> \
+>> bbb
+
+- > \
+  > bbb
+
+[expect]
+>> \
+>> bbb
+
+- > \
+  > bbb
+
+!! should write one for a break that follows another !!
+> aaa\
+> \
+> bbb
+
+[expect]
+> aaa  
+> \
+> bbb
+
+!! should still write two spaces where there is text before them !!
+aaa\
+bbb
+
+[expect]
+aaa  
+bbb

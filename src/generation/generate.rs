@@ -44,7 +44,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, position),
     Node::SoftBreak(_) => PrintItems::new(),
-    Node::HardBreak(_) => gen_hard_break(context),
+    Node::HardBreak(node) => gen_hard_break(node, context),
     Node::Table(node) => gen_table(node, context),
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
@@ -479,8 +479,8 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     let mut at_line_start = true;
     for child in children {
       if at_line_start {
+        line_starts.push(child.span().start);
         if let Node::Text(text) = child {
-          line_starts.push(text.span.start);
           if let Some(position) = escape(text.text) {
             starts.push((text.span.start, position));
           }
@@ -1048,7 +1048,7 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
     /// Whether the text was written at the start of a line, which is where a
     /// line break can't have been written before the words it begins with.
     fn is_at_line_start(&self) -> bool {
-      matches!(self.text_start, Some(start) if self.context.is_line_start_text(start))
+      matches!(self.text_start, Some(start) if self.context.is_line_start(start))
     }
 
     /// Whether the space sits between two characters of a script written
@@ -2014,7 +2014,7 @@ fn gen_horizontal_rule(_: &HorizontalRule, position: NodePosition) -> PrintItems
 /// becomes a space where newlines are being forced off (ex. within an ATX
 /// heading). Otherwise the marker it leaves behind would either escape the
 /// character that followed it or be collapsed as extra whitespace.
-fn gen_hard_break(context: &mut Context) -> PrintItems {
+fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
   /// The two spaces a double space hard break leaves behind, measured as zero
   /// columns because trailing whitespace isn't visible.
   const DOUBLE_SPACE: StringContainer = StringContainer::proc_macro_new_with_char_count("  ", 0);
@@ -2025,12 +2025,19 @@ fn gen_hard_break(context: &mut Context) -> PrintItems {
 
   let hard_break = {
     let mut items = PrintItems::new();
-    match context.configuration.hard_break_kind {
-      HardBreakKind::Backslash => items.push_sc(sc!("\\")),
+    // two spaces are only read as a break where there's text before them on
+    // the line, so a backslash is written where there isn't -- a line holding
+    // nothing but whitespace ends the paragraph rather than breaking a line
+    // within it
+    let writes_double_space = context.configuration.hard_break_kind == HardBreakKind::DoubleSpace
+      && !context.is_line_start(hard_break.span.start);
+    if writes_double_space {
       // the two spaces sit at the end of the line, where they take no visible
       // width, so they're written as zero columns to keep them out of the
       // decision of where the text before them wraps
-      HardBreakKind::DoubleSpace => items.push_sc(&DOUBLE_SPACE),
+      items.push_sc(&DOUBLE_SPACE);
+    } else {
+      items.push_sc(sc!("\\"));
     }
     items.push_signal(Signal::NewLine);
     items
