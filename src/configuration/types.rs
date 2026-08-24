@@ -38,6 +38,10 @@ pub struct Configuration {
   /// aligning their cells into columns.
   #[serde(rename = "table.skipFormat")]
   pub table_skip_format: bool,
+  /// The padding to write around the text of a table's cells. Has no effect on
+  /// a table left as it was written by `table.skipFormat`.
+  #[serde(rename = "table.cellPadding")]
+  pub table_cell_padding: TableCellPadding,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
@@ -166,6 +170,24 @@ pub enum HardBreakKind {
 }
 
 generate_str_to_from![HardBreakKind, [Backslash, "backslash"], [DoubleSpace, "doubleSpace"]];
+
+/// The padding to write around the text of a table's cells.
+#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TableCellPadding {
+  /// Pads a cell out to the width of its column, which aligns the cells of a
+  /// column with each other (default).
+  ///
+  /// The width of one cell then decides how every row of the table is written,
+  /// so editing a single cell can rewrite all of them.
+  Align,
+  /// Writes a single space on either side of a cell's text.
+  Space,
+  /// Writes no space around a cell's text.
+  None,
+}
+
+generate_str_to_from![TableCellPadding, [Align, "align"], [Space, "space"], [None, "none"]];
 
 /// The style of indentation to use for list items.
 ///

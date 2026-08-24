@@ -146,6 +146,12 @@ impl ConfigurationBuilder {
     self.insert("table.skipFormat", value.into())
   }
 
+  /// The padding to write around the text of a table's cells.
+  /// Default: `TableCellPadding::Align`
+  pub fn table_cell_padding(&mut self, value: TableCellPadding) -> &mut Self {
+    self.insert("table.cellPadding", value.to_string().into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -217,13 +223,14 @@ mod tests {
       .code_block_use_tabs(true)
       .code_block_indent_width(2)
       .table_skip_format(true)
+      .table_cell_padding(TableCellPadding::Space)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 20);
+    assert_eq!(inner_config.len(), 21);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

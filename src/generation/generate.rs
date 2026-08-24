@@ -2204,11 +2204,12 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     return gen_table_rows_as_written(table, context);
   }
 
+  let padding = context.configuration.table_cell_padding;
   let header = table
     .header
     .cells
     .iter()
-    .map(|cell| get_cell_items_and_width(cell, context))
+    .map(|cell| get_generated_cell(cell, context))
     .collect::<Vec<_>>();
   let rows = table
     .rows
@@ -2217,36 +2218,45 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
       row
         .cells
         .iter()
-        .map(|cell| get_cell_items_and_width(cell, context))
+        .map(|cell| get_generated_cell(cell, context))
         .collect::<Vec<_>>()
     })
     .collect::<Vec<_>>();
-  let column_widths = get_column_widths(&header, &rows, &table.column_alignment);
+  // only a cell that's aligned is written out to the width of its column, so
+  // any other padding leaves the cells of a column no width to be written to
+  let column_widths = match padding {
+    TableCellPadding::Align => Some(get_column_widths(&header, &rows, &table.column_alignment)),
+    TableCellPadding::Space | TableCellPadding::None => None,
+  };
+  let column_widths = column_widths.as_deref();
   let mut items = PrintItems::new();
 
-  items.extend(get_row_items(header, &column_widths, &table.column_alignment));
+  items.extend(get_row_items(header, column_widths, &table.column_alignment, padding));
   items.push_signal(Signal::NewLine);
-  items.extend(get_divider_row(&column_widths, &table.column_alignment));
+  items.extend(get_divider_row(column_widths, &table.column_alignment, padding));
 
   for row in rows {
     items.push_signal(Signal::NewLine);
-    items.extend(get_row_items(row, &column_widths, &table.column_alignment));
+    items.extend(get_row_items(row, column_widths, &table.column_alignment, padding));
   }
 
   return items;
 
-  fn get_divider_row(column_widths: &[usize], column_alignments: &[ColumnAlignment]) -> PrintItems {
+  fn get_divider_row(
+    column_widths: Option<&[usize]>,
+    column_alignments: &[ColumnAlignment],
+    padding: TableCellPadding,
+  ) -> PrintItems {
     let mut items = PrintItems::new();
-    for (i, column_width) in column_widths.iter().enumerate() {
-      let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
-      if i == 0 {
-        items.push_sc(sc!("| "));
-      } else {
-        items.push_space();
-      }
+    for (i, column_alignment) in column_alignments.iter().enumerate() {
+      items.extend(get_cell_start(i == 0, padding));
 
-      let column_alignment_props = get_column_alignment_properties(column_alignment);
-      let dashes_count = column_width - column_alignment_props.count();
+      let column_alignment_props = get_column_alignment_properties(*column_alignment);
+      // a column that isn't written out to a width gets the one dash a
+      // delimiter row needs to be read as one
+      let dashes_count = get_column_width(column_widths, i)
+        .map(|column_width| column_width - column_alignment_props.count())
+        .unwrap_or(1);
 
       if column_alignment_props.has_left_colon {
         items.push_sc(sc!(":"));
@@ -2256,28 +2266,25 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         items.push_sc(sc!(":"));
       }
 
-      items.push_sc(sc!(" |"));
+      items.extend(get_cell_end(padding, false));
     }
 
     ir_helpers::with_no_new_lines(items)
   }
 
   fn get_row_items(
-    row_cells: Vec<(PrintItems, usize)>,
-    column_widths: &[usize],
+    row_cells: Vec<GeneratedCell>,
+    column_widths: Option<&[usize]>,
     column_alignments: &[ColumnAlignment],
+    padding: TableCellPadding,
   ) -> PrintItems {
     let mut items = PrintItems::new();
-    for (i, (cell_items, cell_width)) in row_cells.into_iter().enumerate() {
+    for (i, cell) in row_cells.into_iter().enumerate() {
       let column_alignment = column_alignments.get(i).copied().unwrap_or(ColumnAlignment::None);
-      // a cell past the last column has no column to be sized or aligned to,
-      // so it is written out as it is
-      let difference = column_widths.get(i).map(|width| width - cell_width).unwrap_or(0);
-      if i == 0 {
-        items.push_sc(sc!("| "))
-      } else {
-        items.push_space();
-      }
+      let difference = get_column_width(column_widths, i)
+        .map(|width| width - cell.width)
+        .unwrap_or(0);
+      items.extend(get_cell_start(i == 0, padding));
 
       if difference > 0 {
         match column_alignment {
@@ -2293,7 +2300,7 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         }
       }
 
-      items.extend(cell_items);
+      items.extend(cell.items);
 
       if difference > 0 {
         match column_alignment {
@@ -2305,31 +2312,64 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         }
       }
 
-      items.push_sc(sc!(" |"));
+      items.extend(get_cell_end(padding, cell.ends_with_escape));
     }
 
     ir_helpers::with_no_new_lines(items)
   }
 
+  /// The width the cell of the column is written out to, which a column has
+  /// only where the cells are aligned, and only for as many columns as the
+  /// delimiter row gave the table -- a cell written past the last of them is
+  /// no part of any column.
+  fn get_column_width(column_widths: Option<&[usize]>, index: usize) -> Option<usize> {
+    column_widths?.get(index).copied()
+  }
+
+  /// Writes the pipe a cell begins with, which for any cell but the first of a
+  /// row is the one the cell before it ended with.
+  fn get_cell_start(is_first: bool, padding: TableCellPadding) -> PrintItems {
+    let mut items = PrintItems::new();
+    if is_first {
+      items.push_sc(sc!("|"));
+    }
+    if padding != TableCellPadding::None {
+      items.push_space();
+    }
+    items
+  }
+
+  /// Writes the pipe a cell ends with.
+  ///
+  /// Text that ends with a backslash keeps a space after it however the cells
+  /// are padded, since the backslash would otherwise escape that pipe and read
+  /// the cell into the one beside it.
+  fn get_cell_end(padding: TableCellPadding, ends_with_escape: bool) -> PrintItems {
+    let mut items = PrintItems::new();
+    if padding != TableCellPadding::None || ends_with_escape {
+      items.push_space();
+    }
+    items.push_sc(sc!("|"));
+    items
+  }
+
   fn get_column_widths(
-    header: &[(PrintItems, usize)],
-    rows: &[Vec<(PrintItems, usize)>],
+    header: &[GeneratedCell],
+    rows: &[Vec<GeneratedCell>],
     column_alignments: &[ColumnAlignment],
   ) -> Vec<usize> {
-    // the delimiter row is what says how many columns the table has, and a
-    // cell written past the last of them is no part of any column
     let mut column_widths = Vec::with_capacity(column_alignments.len());
     for (i, column_alignment) in column_alignments.iter().enumerate() {
       // + 1 in order to have at least one dash
       let mut max_width = get_column_alignment_properties(*column_alignment).count() + 1;
 
-      if let Some((_, width)) = header.get(i) {
-        max_width = std::cmp::max(max_width, *width);
+      if let Some(cell) = header.get(i) {
+        max_width = std::cmp::max(max_width, cell.width);
       }
 
       for row in rows.iter() {
-        if let Some((_, width)) = row.get(i) {
-          max_width = std::cmp::max(max_width, *width);
+        if let Some(cell) = row.get(i) {
+          max_width = std::cmp::max(max_width, cell.width);
         }
       }
 
@@ -2358,10 +2398,30 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     }
   }
 
-  fn get_cell_items_and_width(cell: &TableCell, context: &mut Context) -> (PrintItems, usize) {
-    let items = gen_table_cell(cell, context);
-    get_items_single_line_width(items)
+  fn get_generated_cell(cell: &TableCell, context: &mut Context) -> GeneratedCell {
+    let (items, cloned_items) = clone_items(gen_table_cell(cell, context));
+    let text = get_items_text(cloned_items);
+    GeneratedCell {
+      items,
+      width: UnicodeWidthStr::width(text.as_str()),
+      ends_with_escape: ends_with_escape(&text),
+    }
   }
+
+  /// Whether the text ends with a backslash that escapes whatever is written
+  /// after it, which is when the backslashes it ends with are odd in number --
+  /// an even number of them is a run of escaped backslashes.
+  fn ends_with_escape(text: &str) -> bool {
+    (text.len() - text.trim_end_matches('\\').len()) % 2 == 1
+  }
+}
+
+/// The text of a table's cell, ready to be written out beside the others.
+struct GeneratedCell {
+  items: PrintItems,
+  /// The columns the text takes up on a line.
+  width: usize,
+  ends_with_escape: bool,
 }
 
 /// Writes out the rows of a table as they were written in the file, leaving
@@ -2429,12 +2489,6 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
   items
 }
 
-fn get_items_single_line_width(items: PrintItems) -> (PrintItems, usize) {
-  let (items, cloned_items) = clone_items(items);
-  let width = measure_single_line_width(cloned_items);
-  (items, width)
-}
-
 fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
   // todo: something in the core library? This is weird
   let rc_path = items.into_rc_path();
@@ -2443,10 +2497,6 @@ fn clone_items(items: PrintItems) -> (PrintItems, PrintItems) {
   items1.push_optional_path(rc_path);
   items2.push_optional_path(rc_path);
   (items1, items2)
-}
-
-fn measure_single_line_width(items: PrintItems) -> usize {
-  UnicodeWidthStr::width(get_items_text(items).as_str())
 }
 
 fn get_items_text(items: PrintItems) -> String {
