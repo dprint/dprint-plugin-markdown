@@ -843,17 +843,21 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
 fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let mut current_word = String::new();
+  let mut word_start = 0;
   let mut was_last_newline = false;
-  let mut chars = text.chars().peekable();
+  let mut chars = text.char_indices().peekable();
 
-  while let Some(c) = chars.next() {
+  while let Some((index, c)) = chars.next() {
     if c != ' ' && c != '\n' {
+      if current_word.is_empty() {
+        word_start = index;
+      }
       current_word.push(c);
       continue;
     }
 
     let mut whitespace_count = 1;
-    while chars.peek().map(|c| *c == ' ' || *c == '\n').unwrap_or(false) {
+    while chars.peek().is_some_and(|(_, c)| *c == ' ' || *c == '\n') {
       whitespace_count += 1;
       chars.next();
     }
@@ -862,26 +866,50 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     // on either side of it -- the space a span opens with is text of its own
     let is_leading = current_word.is_empty() && items.is_empty();
     if whitespace_count == 1 && chars.peek().is_some() && !is_leading {
-      push_word(&mut items, &mut current_word, was_last_newline, context);
+      push_word(
+        &mut items,
+        &mut current_word,
+        word_start,
+        text,
+        was_last_newline,
+        context,
+      );
       was_last_newline = c == '\n' && context.configuration.text_wrap == TextWrap::Maintain;
     } else {
+      if current_word.is_empty() {
+        word_start = index;
+      }
       // keep the width the same because a line ending renders as a space
       current_word.push_str(&" ".repeat(whitespace_count));
     }
   }
 
-  push_word(&mut items, &mut current_word, was_last_newline, context);
+  push_word(
+    &mut items,
+    &mut current_word,
+    word_start,
+    text,
+    was_last_newline,
+    context,
+  );
 
   return items;
 
-  fn push_word(items: &mut PrintItems, word: &mut String, was_last_newline: bool, context: &Context) {
+  fn push_word(
+    items: &mut PrintItems,
+    word: &mut String,
+    word_start: usize,
+    text: &str,
+    was_last_newline: bool,
+    context: &Context,
+  ) {
     if word.is_empty() {
       return;
     }
     if !items.is_empty() {
-      // only the chunk is looked at, since a code span's text is written out
-      // in chunks rather than a line at a time
-      if utils::wrapping_word_starts_block(word, word, text_can_be_wrapped_away(context)) {
+      // the words the span goes on with count as well as this one, since a
+      // block can be written as several of them (ex. a table's delimiter row)
+      if utils::wrapping_word_starts_block(word, &text[word_start..], text_can_be_wrapped_away(context)) {
         items.push_space();
       } else if was_last_newline {
         items.push_signal(Signal::NewLine);
