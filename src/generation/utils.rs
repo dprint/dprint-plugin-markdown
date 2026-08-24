@@ -158,13 +158,14 @@ pub fn is_list_word(word: &str) -> bool {
   }
 }
 
-/// Whether the position at `index` is preceded by a blank line.
+/// The number of blank lines that precede the position at `index`, counting no
+/// further than `max` of them.
 ///
 /// When `in_block_quote` is `true`, the block quote markers (`>`) that prefix an
 /// otherwise blank line are skipped while scanning backwards. Without this a blank
 /// line inside a block quote (which is written as `>`) would not be recognized as
 /// blank because of the leading `>` character.
-pub fn has_leading_blankline(index: usize, text: &str, in_block_quote: bool) -> bool {
+pub fn get_leading_blank_lines(index: usize, text: &str, in_block_quote: bool, max: u32) -> u32 {
   let mut newline_count = 0;
   // whether the character to the right of this one was a newline, which makes
   // a carriage return here the start of the line ending it already counted
@@ -174,8 +175,11 @@ pub fn has_leading_blankline(index: usize, text: &str, in_block_quote: bool) -> 
     after_newline = c == '\n';
     if ends_line {
       newline_count += 1;
-      if newline_count >= 2 {
-        return true;
+      // the first line ending found is the one the line above ends with
+      // rather than a blank line, so it takes one more than `max` of them
+      // before the maximum is passed
+      if newline_count > max {
+        break;
       }
     } else if c == '\r' {
       continue;
@@ -187,7 +191,7 @@ pub fn has_leading_blankline(index: usize, text: &str, in_block_quote: bool) -> 
       break;
     }
   }
-  false
+  newline_count.saturating_sub(1)
 }
 
 pub fn file_has_ignore_file_directive(file_text: &str, directive_inner_text: &str) -> bool {
