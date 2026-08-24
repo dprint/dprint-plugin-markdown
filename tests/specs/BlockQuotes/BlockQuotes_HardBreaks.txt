@@ -1,0 +1,61 @@
+!! should keep the marker of a line whose only content is a hard break !!
+> \
+> bbb
+
+[expect]
+> \
+> bbb
+
+!! should keep the markers of nested block quotes !!
+>> \
+>> bbb
+
+[expect]
+>> \
+>> bbb
+
+!! should keep the marker of a block quote in a list item !!
+- > \
+  > bbb
+
+[expect]
+- > \
+  > bbb
+
+!! should keep the markers of a block quote in a list in a block quote !!
+> - > \
+>   > bar
+
+[expect]
+> - > \
+>   > bar
+
+!! should keep the marker of a hard break beside another one !!
+> aaa\
+> \
+> bbb
+
+[expect]
+> aaa\
+> \
+> bbb
+
+!! should keep the marker of a hard break that opens a later block !!
+> # h
+>
+> \
+> bbb
+
+[expect]
+> # h
+>
+> \
+> bbb
+
+!! should keep writing the marker where text comes before the hard break !!
+> aaa\
+> bbb
+
+[expect]
+> aaa\
+> bbb
