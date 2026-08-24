@@ -880,6 +880,47 @@ pub fn starts_block_in_paragraph(text: &str) -> bool {
   }
 }
 
+/// Whether the text would begin a block of its own where a block begins,
+/// rather than being read as the paragraph it's written as.
+///
+/// This is stricter than what can interrupt a paragraph, which is what
+/// [`starts_block_in_paragraph`] answers: a complete html tag opens a block
+/// where one begins, a list marker opens a list whatever it counts from and
+/// with nothing written after it, and a link reference definition is read as
+/// one rather than as text.
+pub fn starts_block_at_block_start(text: &str) -> bool {
+  if starts_block_in_paragraph(text) {
+    return true;
+  }
+  let text = text.trim_start_matches([' ', '\t']);
+  match text.as_bytes().first() {
+    None => false,
+    Some(b'<') => html_block_kind(text, false).is_some(),
+    Some(b'[') => opens_link_reference_definition(text),
+    Some(_) => list_marker(text).is_some(),
+  }
+}
+
+/// Whether the text opens with a link label followed by the colon that makes
+/// it a definition, which is as much of one as has to be read to know that the
+/// line isn't the paragraph it would otherwise be.
+fn opens_link_reference_definition(text: &str) -> bool {
+  let mut is_escaped = false;
+  for (index, character) in text.char_indices().skip(1) {
+    if is_escaped {
+      is_escaped = false;
+      continue;
+    }
+    match character {
+      '\\' => is_escaped = true,
+      ']' => return text[index + 1..].starts_with(':'),
+      '\n' => return false,
+      _ => {}
+    }
+  }
+  false
+}
+
 /// Where a backslash has to be written for the text not to start a block of its
 /// own, when the text is written where a block starts.
 ///
