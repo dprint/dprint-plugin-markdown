@@ -126,6 +126,18 @@
         "description": "Formats the code within a code block."
       }]
     },
+    "codeBlock.raiseSyntaxErrors": {
+      "description": "Whether to fail the file when the plugin that formats the code within a code block reports an error, which is what it does when the code doesn't parse, rather than leaving that code as it was written.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Fails the file when the code within a code block can't be formatted."
+      }, {
+        "const": false,
+        "description": "Leaves the code within a code block as it was written when it can't be formatted."
+      }]
+    },
     "codeBlock.preserveIndentation": {
       "description": "Whether to keep the indentation the code within a code block was written with, rather than unindenting it.",
       "type": "boolean",
@@ -252,6 +264,9 @@
     },
     "codeBlock.skipFormat": {
       "$ref": "#/definitions/codeBlock.skipFormat"
+    },
+    "codeBlock.raiseSyntaxErrors": {
+      "$ref": "#/definitions/codeBlock.raiseSyntaxErrors"
     },
     "codeBlock.preserveIndentation": {
       "$ref": "#/definitions/codeBlock.preserveIndentation"

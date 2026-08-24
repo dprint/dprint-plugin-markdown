@@ -33,6 +33,11 @@ pub struct Configuration {
   pub list_indent_kind: ListIndentKind,
   #[serde(rename = "codeBlock.skipFormat")]
   pub code_block_skip_format: bool,
+  /// Whether to fail the file when the plugin that formats the code within a
+  /// code block reports an error, which is what it does when the code doesn't
+  /// parse, rather than leaving that code as it was written.
+  #[serde(rename = "codeBlock.raiseSyntaxErrors")]
+  pub code_block_raise_syntax_errors: bool,
   #[serde(rename = "codeBlock.preserveIndentation")]
   pub code_block_preserve_indentation: bool,
   #[serde(rename = "codeBlock.preserveBlankLines")]
