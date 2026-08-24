@@ -1,0 +1,10 @@
+~~ table.skipFormat: true, table.cellPadding: none ~~
+!! should leave a table as it was written whatever the cells are padded with !!
+| a | b |
+| - | - |
+| c | d |
+
+[expect]
+| a | b |
+| - | - |
+| c | d |

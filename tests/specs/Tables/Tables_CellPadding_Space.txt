@@ -1,0 +1,60 @@
+~~ table.cellPadding: space ~~
+!! should write a single space around a cell's text rather than aligning it !!
+| Testing|test |Outtt   | final |
+|--|:--:|:--|--:|
+| Some Data | Otherrrr|asdfffff | testingthis |
+
+[expect]
+| Testing | test | Outtt | final |
+| - | :-: | :- | -: |
+| Some Data | Otherrrr | asdfffff | testingthis |
+
+!! should still write the text of a cell as the configuration says !!
+|a|b|
+|-|-|
+|*c*|__d__|
+
+[expect]
+| a | b |
+| - | - |
+| _c_ | **d** |
+
+!! should fill out a row that is short of cells !!
+|a|b|c|
+|-|-|-|
+|d|
+
+[expect]
+| a | b | c |
+| - | - | - |
+| d |  |  |
+
+!! should write a cell past the last column as it is !!
+|a|b|
+|-|-|
+|c|d|e|
+
+[expect]
+| a | b |
+| - | - |
+| c | d | e |
+
+!! should keep a table in a list and a block quote !!
+- > |a|b|
+  > |-|-|
+  > |c|d|
+
+[expect]
+- > | a | b |
+  > | - | - |
+  > | c | d |
+
+!! should keep the space after text that ends with a backslash !!
+|a|b|
+|-|-|
+| c\ | d |
+
+[expect]
+| a | b |
+| - | - |
+| c\ | d |

@@ -79,6 +79,12 @@ pub fn resolve_config(
     code_block_use_tabs: get_nullable_value(&mut config, "codeBlock.useTabs", &mut diagnostics),
     code_block_indent_width: get_nullable_value(&mut config, "codeBlock.indentWidth", &mut diagnostics),
     table_skip_format: get_value(&mut config, "table.skipFormat", false, &mut diagnostics),
+    table_cell_padding: get_value(
+      &mut config,
+      "table.cellPadding",
+      TableCellPadding::Align,
+      &mut diagnostics,
+    ),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",
