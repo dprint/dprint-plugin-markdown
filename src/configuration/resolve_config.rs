@@ -133,9 +133,9 @@ fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<Configur
   ensure_at_least_one_blank_line("maxBlankLines", value, diagnostics)
 }
 
-/// A heading drawn up against the block above it reads as part of that block --
-/// a setext heading would underline the paragraph rather than follow it -- so a
-/// count below one isn't something the formatter could write.
+/// With `headingKind: setext` a heading written against the paragraph above it
+/// would underline that paragraph rather than follow it, so a count below one
+/// isn't one that could be written wherever the option applies.
 fn get_heading_blank_lines_above(
   config: &mut ConfigKeyMap,
   diagnostics: &mut Vec<ConfigurationDiagnostic>,

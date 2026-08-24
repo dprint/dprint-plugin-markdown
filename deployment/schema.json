@@ -243,7 +243,7 @@
       "type": "number"
     },
     "heading.blankLinesAbove": {
-      "description": "The number of blank lines to write above a heading, which is written even where `maxBlankLines` is lower. When not specified, the blank lines that were written above a heading are kept, up to `maxBlankLines`.",
+      "description": "The number of blank lines to write above a heading. That many are written even where `maxBlankLines` is lower, though a heading drawn up against the block above it within a list is left there, which keeps the list tight. When not specified, the blank lines that were written above a heading are kept, up to `maxBlankLines`.",
       "minimum": 1,
       "type": "number"
     },

@@ -103,8 +103,9 @@ impl ConfigurationBuilder {
     self.insert("maxBlankLines", (value as i32).into())
   }
 
-  /// The number of blank lines to write above a heading, which is written even
-  /// where `maxBlankLines` is lower.
+  /// The number of blank lines to write above a heading. That many are written
+  /// even where `maxBlankLines` is lower, though a heading drawn up against the
+  /// block above it within a list is left there, which keeps the list tight.
   /// Default: the blank lines that were written are kept, up to `maxBlankLines`
   pub fn heading_blank_lines_above(&mut self, value: u32) -> &mut Self {
     self.insert("heading.blankLinesAbove", (value as i32).into())

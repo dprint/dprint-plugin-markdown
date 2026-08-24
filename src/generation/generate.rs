@@ -2534,13 +2534,15 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
 /// The number of blank lines to write above `node`, which is at least
 /// `minimum` and otherwise however many were written above it.
 ///
-/// A heading takes the configured number instead, unless it's drawn up against
-/// the block above it, which is what keeps a list tight.
+/// A heading takes the configured number instead, except within a list, where
+/// one drawn up against the block above it is left there to keep the list tight.
 fn get_blank_lines_above(node: &Node, minimum: u32, context: &Context) -> u32 {
-  let written = std::cmp::max(context.get_leading_blank_lines(node.span().start), minimum);
+  let written_or_minimum = std::cmp::max(context.get_leading_blank_lines(node.span().start), minimum);
   match (node, context.configuration.heading_blank_lines_above) {
-    (Node::Heading(_), Some(count)) if written > 0 => count,
-    _ => written,
+    // everywhere but within a list the minimum is one, so the only heading this
+    // leaves out is one drawn up against the block above it in a tight list
+    (Node::Heading(_), Some(count)) if written_or_minimum > 0 => count,
+    _ => written_or_minimum,
   }
 }
 
