@@ -162,6 +162,18 @@
       "description": "The indentation width the plugin that formats the code within a code block should use, overriding that plugin's own `indentWidth` configuration. When not specified, that plugin's configuration is left alone.",
       "type": "number"
     },
+    "table.skipFormat": {
+      "description": "Whether to leave a table's rows as they were written rather than aligning their cells into columns.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Leaves a table's rows as they were written."
+      }, {
+        "const": false,
+        "description": "Aligns the cells of a table into columns."
+      }]
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -229,6 +241,9 @@
     },
     "codeBlock.indentWidth": {
       "$ref": "#/definitions/codeBlock.indentWidth"
+    },
+    "table.skipFormat": {
+      "$ref": "#/definitions/table.skipFormat"
     },
     "deno": {
       "$ref": "#/definitions/deno"

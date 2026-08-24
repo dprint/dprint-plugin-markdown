@@ -2200,6 +2200,10 @@ fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
+  if context.configuration.table_skip_format {
+    return gen_table_rows_as_written(table, context);
+  }
+
   let header = table
     .header
     .cells
@@ -2358,6 +2362,33 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     let items = gen_table_cell(cell, context);
     get_items_single_line_width(items)
   }
+}
+
+/// Writes out the rows of a table as they were written in the file, leaving
+/// the cells unaligned.
+///
+/// A row is always a single line, so what the printer writes at the start of
+/// one itself -- the indentation and the block quote markers -- is dropped
+/// from the text of the file, as is the whitespace at the end of a line, which
+/// says nothing within a table.
+fn gen_table_rows_as_written(table: &Table, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  // a line ending may be in either of its forms, so split on both characters
+  // and skip the empty text a carriage return and line feed pair leaves behind
+  let mut lines = table
+    .span
+    .text(context.file_text)
+    .split(['\r', '\n'])
+    .filter(|line| !line.is_empty());
+  if let Some(line) = lines.next() {
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+  }
+  for line in lines {
+    items.push_signal(Signal::NewLine);
+    let line = strip_block_quote_markers(line, context);
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+  }
+  items
 }
 
 fn gen_table_cell(table_cell: &TableCell, context: &mut Context) -> PrintItems {
