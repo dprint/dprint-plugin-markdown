@@ -1,0 +1,13 @@
+!! should keep the line breaks written around text that would start a block !!
+Some text
+-- a dash starts this line
+
+line one
+=== not a heading because of this text
+
+[expect]
+Some text
+-- a dash starts this line
+
+line one
+=== not a heading because of this text

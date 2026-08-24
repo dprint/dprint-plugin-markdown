@@ -1,0 +1,8 @@
+~~ textWrap: always, lineWidth: 14 ~~
+!! should not wrap two dashes within a code span to the start of a line !!
+aaaaaaaaaa `bbbbbbbbbb --` cc
+
+[expect]
+aaaaaaaaaa
+`bbbbbbbbbb --`
+cc
