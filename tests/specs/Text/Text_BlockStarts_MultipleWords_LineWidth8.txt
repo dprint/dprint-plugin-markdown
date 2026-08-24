@@ -1,0 +1,14 @@
+~~ textWrap: always, lineWidth: 8 ~~
+!! should not leave the words of a table's delimiter row on a line of their own !!
+aa|bb | - | - | zz
+
+[expect]
+aa|bb | - | -
+| zz
+
+!! should still wrap a word the marks are written within !!
+aaaaaaaa =text zz
+
+[expect]
+aaaaaaaa
+=text zz
