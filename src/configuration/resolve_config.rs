@@ -58,22 +58,30 @@ pub fn resolve_config(
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
     emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
     strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
-    unordered_list_kind: get_value(
+    hard_break_kind: get_value(&mut config, "hardBreakKind", HardBreakKind::Backslash, &mut diagnostics),
+    max_blank_lines: get_max_blank_lines(&mut config, &mut diagnostics),
+    heading_kind: get_renamed_value(
       &mut config,
-      "unorderedListKind",
-      UnorderedListKind::Dashes,
+      "heading.kind",
+      "headingKind",
+      HeadingKind::Atx,
       &mut diagnostics,
     ),
-    heading_kind: get_value(&mut config, "headingKind", HeadingKind::Atx, &mut diagnostics),
-    hard_break_kind: get_value(&mut config, "hardBreakKind", HardBreakKind::Backslash, &mut diagnostics),
-    list_indent_kind: get_value(
+    heading_blank_lines_above: get_heading_blank_lines_above(&mut config, &mut diagnostics),
+    list_unordered_marker: get_renamed_value(
       &mut config,
+      "list.unorderedMarker",
+      "unorderedListKind",
+      ListUnorderedMarker::Dashes,
+      &mut diagnostics,
+    ),
+    list_indent_kind: get_renamed_value(
+      &mut config,
+      "list.indentKind",
       "listIndentKind",
       ListIndentKind::CommonMark,
       &mut diagnostics,
     ),
-    max_blank_lines: get_max_blank_lines(&mut config, &mut diagnostics),
-    heading_blank_lines_above: get_heading_blank_lines_above(&mut config, &mut diagnostics),
     code_block_skip_format: get_value(&mut config, "codeBlock.skipFormat", false, &mut diagnostics),
     code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
@@ -126,6 +134,26 @@ pub fn resolve_config(
   }
 }
 
+/// Reads a property, falling back to the deprecated name the property used to
+/// go by. Both names are taken from the map so that a deprecated one isn't
+/// reported as unknown.
+fn get_renamed_value<T>(
+  config: &mut ConfigKeyMap,
+  key: &str,
+  deprecated_key: &str,
+  default_value: T,
+  diagnostics: &mut Vec<ConfigurationDiagnostic>,
+) -> T
+where
+  T: std::str::FromStr,
+  <T as std::str::FromStr>::Err: std::fmt::Display,
+{
+  let deprecated_value = get_nullable_value(config, deprecated_key, diagnostics);
+  get_nullable_value(config, key, diagnostics)
+    .or(deprecated_value)
+    .unwrap_or(default_value)
+}
+
 /// A block is always separated from the one above it by a blank line, so a
 /// maximum below one isn't something the formatter could ever stay under.
 fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> u32 {
@@ -133,7 +161,7 @@ fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<Configur
   ensure_at_least_one_blank_line("maxBlankLines", value, diagnostics)
 }
 
-/// With `headingKind: setext` a heading written against the paragraph above it
+/// With `heading.kind: setext` a heading written against the paragraph above it
 /// would underline that paragraph rather than follow it, so a count below one
 /// isn't one that could be written wherever the option applies.
 fn get_heading_blank_lines_above(

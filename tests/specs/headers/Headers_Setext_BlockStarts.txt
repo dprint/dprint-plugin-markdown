@@ -1,4 +1,4 @@
-~~ headingKind: setext ~~
+~~ heading.kind: setext ~~
 !! should not underline html, which begins a block of its own !!
 # <a>
 

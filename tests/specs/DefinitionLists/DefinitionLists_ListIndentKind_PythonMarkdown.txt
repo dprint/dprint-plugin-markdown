@@ -1,4 +1,4 @@
-~~ listIndentKind: pythonMarkdown ~~
+~~ list.indentKind: pythonMarkdown ~~
 !! should indent a definition by 4 spaces !!
 Term
 : Definition

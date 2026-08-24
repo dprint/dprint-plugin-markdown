@@ -1,4 +1,4 @@
-~~ listIndentKind: pythonMarkdown ~~
+~~ list.indentKind: pythonMarkdown ~~
 !! should indent nested ordered list by 4 spaces !!
 1. first
    1. nested first

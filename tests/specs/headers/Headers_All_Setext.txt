@@ -1,4 +1,4 @@
-~~ lineWidth: 40, headingKind: setext ~~
+~~ lineWidth: 40, heading.kind: setext ~~
 !! should format the headers !!
 # H1
 
