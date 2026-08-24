@@ -82,6 +82,9 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = ConfigKeyMap::new();
         additional_config.insert("lineWidth".into(), (line_width as i32).into());
+        if let Some(use_tabs) = config.code_block_use_tabs {
+          additional_config.insert("useTabs".into(), use_tabs.into());
+        }
         let request = SyncHostFormatRequest {
           file_path: &file_path,
           file_bytes: file_text.as_bytes(),
