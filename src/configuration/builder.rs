@@ -139,6 +139,13 @@ impl ConfigurationBuilder {
     self.insert("codeBlock.indentWidth", (value as i32).into())
   }
 
+  /// Whether to leave a table's rows as they were written rather than
+  /// aligning their cells into columns.
+  /// Default: `false`
+  pub fn table_skip_format(&mut self, value: bool) -> &mut Self {
+    self.insert("table.skipFormat", value.into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -209,13 +216,14 @@ mod tests {
       .code_block_preserve_blank_lines(true)
       .code_block_use_tabs(true)
       .code_block_indent_width(2)
+      .table_skip_format(true)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 19);
+    assert_eq!(inner_config.len(), 20);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

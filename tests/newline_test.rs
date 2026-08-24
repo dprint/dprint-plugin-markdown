@@ -109,3 +109,15 @@ fn test_keeps_the_whitespace_that_is_text_of_the_line() {
     assert_eq!(kept(&once), kept(input), "for {:?}, which became {:?}", input, once);
   }
 }
+
+#[test]
+fn test_carriage_return_ends_a_row_of_a_table_left_as_written() {
+  let config = ConfigurationBuilder::new().table_skip_format(true).build();
+  for (input, expected) in [
+    ("|a|b|\r|-|-|\r|c|d|\r", "|a|b|\n|-|-|\n|c|d|\n"),
+    ("> |a|b|\r> |-|-|\r> |c|d|\r", "> |a|b|\n> |-|-|\n> |c|d|\n"),
+  ] {
+    let result = format_text(input, &config, |_, _, _| Ok(None)).unwrap();
+    assert_eq!(result.unwrap(), expected, "for {:?}", input);
+  }
+}

@@ -34,6 +34,10 @@ pub struct Configuration {
   /// formats the code within a code block. `None` leaves it to that plugin.
   #[serde(rename = "codeBlock.indentWidth")]
   pub code_block_indent_width: Option<u8>,
+  /// Whether to leave a table's rows as they were written rather than
+  /// aligning their cells into columns.
+  #[serde(rename = "table.skipFormat")]
+  pub table_skip_format: bool,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,

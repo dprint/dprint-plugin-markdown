@@ -1,0 +1,104 @@
+~~ table.skipFormat: true ~~
+!! should leave a table's rows as they were written !!
+| Testing|test |Outtt   | final |
+|--|:--:|:--|--:|
+| Some Data | Otherrrr|asdfffff | testingthis |
+
+[expect]
+| Testing|test |Outtt   | final |
+|--|:--:|:--|--:|
+| Some Data | Otherrrr|asdfffff | testingthis |
+
+!! should still format the text around a table !!
+# heading   #
+
+|a|b|
+|-|-|
+|c|d|
+
+*  item
+*  other
+
+[expect]
+# heading
+
+|a|b|
+|-|-|
+|c|d|
+
+- item
+- other
+
+!! should indent a table written in a list !!
+1. Testing
+
+     |a|b|
+     |-|-|
+     |c|d|
+
+[expect]
+1. Testing
+
+   |a|b|
+   |-|-|
+   |c|d|
+
+!! should write the block quote markers of a table in a block quote !!
+> |a|b|
+>|-|-|
+>   |c|d|
+
+[expect]
+> |a|b|
+> |-|-|
+> |c|d|
+
+!! should write the block quote markers of a table in a nested block quote !!
+> > |a|b|
+>>|-|-|
+> >    |c|d|
+
+[expect]
+>> |a|b|
+>> |-|-|
+>> |c|d|
+
+!! should leave the text of a cell as it was written !!
+|a|b|
+|-|-|
+|*c*|`d`|
+
+[expect]
+|a|b|
+|-|-|
+|*c*|`d`|
+
+!! should unindent a table indented up to three spaces !!
+   |a|b|
+   |-|-|
+   |c|d|
+
+[expect]
+|a|b|
+|-|-|
+|c|d|
+
+!! should leave a row's cells past the last column as they were written !!
+|a|b|
+|-|-|
+|c|d|e|
+
+[expect]
+|a|b|
+|-|-|
+|c|d|e|
+
+!! should keep a tab written within a row !!
+|a	x|b|
+|-|-|
+|c|d|
+
+[expect]
+|a	x|b|
+|-|-|
+|c|d|
