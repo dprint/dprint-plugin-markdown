@@ -1,0 +1,245 @@
+~~ maxBlankLines: 2 ~~
+!! should keep up to the maximum number of blank lines between paragraphs !!
+a
+
+b
+
+
+c
+
+
+
+d
+
+[expect]
+a
+
+b
+
+
+c
+
+
+d
+
+!! should keep the blank lines between blocks of different kinds !!
+# heading
+
+
+
+text
+
+
+
+```
+code
+```
+
+
+
+> quote
+
+[expect]
+# heading
+
+
+text
+
+
+```
+code
+```
+
+
+> quote
+
+!! should keep the blank lines between the items of a list !!
+- a
+
+
+- b
+  - c
+
+
+  - d
+
+[expect]
+- a
+
+
+- b
+  - c
+
+
+  - d
+
+!! should keep the blank lines within a block quote !!
+> a
+>
+>
+> b
+>
+>
+>
+> c
+
+[expect]
+> a
+>
+>
+> b
+>
+>
+> c
+
+!! should keep the blank lines between link reference definitions !!
+[a]: /a
+
+
+[b]: /b
+
+
+
+[c]: /c
+
+[expect]
+[a]: /a
+
+
+[b]: /b
+
+
+[c]: /c
+
+!! should keep the blank lines between html blocks !!
+<div></div>
+
+
+<div></div>
+
+
+
+<div></div>
+
+[expect]
+<div></div>
+
+
+<div></div>
+
+
+<div></div>
+
+!! should keep the blank lines between the terms of a definition list !!
+a
+
+: b
+
+
+c
+
+: d
+
+[expect]
+a
+
+: b
+
+
+c
+
+: d
+
+!! should keep the blank lines between the blocks within a list item !!
+- a
+
+
+  b
+
+
+  ```
+  code
+  ```
+
+- c
+
+[expect]
+- a
+
+
+  b
+
+
+  ```
+  code
+  ```
+
+- c
+
+!! should remove the blank lines at the start and end of the file !!
+
+
+
+a
+
+
+
+[expect]
+a
+
+!! should keep the blank lines around a table !!
+| a |
+| - |
+| b |
+
+
+text
+
+[expect]
+| a |
+| - |
+| b |
+
+
+text
+
+!! should keep the blank lines between the children of a task list item !!
+- [ ] a
+
+
+  b
+
+[expect]
+- [ ] a
+
+
+  b
+
+!! should keep the blank lines within a footnote definition !!
+[^1]: a
+
+
+    b
+
+[expect]
+[^1]: a
+
+
+    b
+
+!! should keep the blank lines below a yaml header !!
+---
+a: b
+---
+
+
+
+# heading
+
+[expect]
+---
+a: b
+---
+
+
+# heading

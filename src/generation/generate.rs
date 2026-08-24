@@ -160,8 +160,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 items.extend(get_newline_wrapping_based_on_config(context));
               }
             } else if new_line_count > 1 {
-              items.push_signal(Signal::NewLine);
-              items.push_signal(Signal::NewLine);
+              let blank_lines = std::cmp::min(new_line_count - 1, context.configuration.max_blank_lines);
+              items.extend(get_blank_lines(blank_lines));
             } else {
               let needs_space = if let Node::Html(_) = last_node {
                 node.has_preceding_space(context.file_text)
@@ -192,11 +192,10 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           Node::LinkReference(_) => {
             if matches!(node, Node::LinkReference(_)) {
               // definitions are kept on their own lines, with whatever blank
-              // line separated them in the file
-              if context.get_new_lines_in_range(last_node.span().end, node.span().start) > 1 {
-                items.push_signal(Signal::NewLine);
-              }
-              items.push_signal(Signal::NewLine);
+              // lines separated them in the file
+              let new_line_count = context.get_new_lines_in_range(last_node.span().end, node.span().start);
+              let blank_lines = std::cmp::min(new_line_count.saturating_sub(1), context.configuration.max_blank_lines);
+              items.extend(get_blank_lines(blank_lines));
             } else {
               items.extend(get_conditional_blank_line(node.span(), context));
             }
@@ -295,12 +294,11 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   return items;
 
   fn get_conditional_blank_line(span: Span, context: &mut Context) -> PrintItems {
-    let mut items = PrintItems::new();
-    if !context.is_in_list() || context.has_leading_blankline(span.start) {
-      items.push_signal(Signal::NewLine);
-    }
-    items.push_signal(Signal::NewLine);
-    items
+    // within a list two blocks may sit on consecutive lines, which is what
+    // keeps the list tight. Everywhere else a blank line is what separates them
+    let minimum = if context.is_in_list() { 0 } else { 1 };
+    let blank_lines = std::cmp::max(context.get_leading_blank_lines(span.start), minimum);
+    get_blank_lines(blank_lines)
   }
 }
 
@@ -1695,10 +1693,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
     // generate items
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
-        items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.span().start) {
-          items.push_signal(Signal::NewLine);
-        }
+        items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
@@ -1759,10 +1754,9 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   ));
 
   if !item.sub_lists.is_empty() {
-    items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(item.sub_lists.first().unwrap().span().start) {
-      items.push_signal(Signal::NewLine);
-    }
+    items.extend(get_blank_lines(
+      context.get_leading_blank_lines(item.sub_lists.first().unwrap().span().start),
+    ));
     items.extend(gen_nodes(&item.sub_lists, context));
   }
 
@@ -1775,10 +1769,7 @@ fn gen_definition_list(definition_list: &DefinitionList, context: &mut Context) 
 
     for (index, child) in definition_list.children.iter().enumerate() {
       if index > 0 {
-        items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.span().start) {
-          items.push_signal(Signal::NewLine);
-        }
+        items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
 
       items.extend(match child {
@@ -1861,10 +1852,9 @@ fn gen_task_list_marker_children(
 
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != children.len() {
-    items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(children[indent_child_index_end].span().start) {
-      items.push_signal(Signal::NewLine);
-    }
+    items.extend(get_blank_lines(
+      context.get_leading_blank_lines(children[indent_child_index_end].span().start),
+    ));
   }
   items.extend(gen_nodes(&children[indent_child_index_end..], context));
   items
@@ -2178,6 +2168,15 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
     .map(|line| UnicodeWidthStr::width(line.trim_end_matches(WHITESPACE)))
     .max()
     .unwrap_or(0)
+}
+
+/// Ends the current line and writes `count` blank lines below it.
+fn get_blank_lines(count: u32) -> PrintItems {
+  let mut items = PrintItems::new();
+  for _ in 0..count + 1 {
+    items.push_signal(Signal::NewLine);
+  }
+  items
 }
 
 /// Whether the text after a word can be wrapped onto the line below it, which
