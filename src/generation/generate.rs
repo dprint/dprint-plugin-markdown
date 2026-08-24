@@ -68,10 +68,78 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 }
 
 fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
   if nodes.is_empty() {
-    return items;
+    return PrintItems::new();
   }
+  let dropped = dropped_breaks(nodes, context);
+  context.with_dropped_breaks(dropped, |context| gen_nodes_within_breaks(nodes, context))
+}
+
+/// The line breaks within the nodes, and everything nested in them, that
+/// aren't written out -- which is where a break between two characters of a
+/// script written without spaces reads as nothing at all.
+///
+/// These are worked out once for the whole tree before any of it is written,
+/// so that everything written from it agrees about what ends up beside what.
+/// The delimiters a text decoration is written with are chosen by the
+/// characters on either side of it, and a decoration nested within another is
+/// asked for its delimiters while the run it belongs to is still being
+/// measured -- so nothing below here may be left out.
+fn dropped_breaks(nodes: &[Node], context: &Context) -> DroppedBreaks {
+  let mut dropped = DroppedBreaks::default();
+  // a reference is matched by the text of its label, so a break written within
+  // one is part of what it's matched by and has to stay
+  if context.is_preserving_decorations() {
+    return dropped;
+  }
+  push_dropped_breaks(nodes, context, &mut dropped);
+  dropped.before.sort_by_key(|(at, _)| *at);
+  dropped.after.sort_by_key(|(at, _)| *at);
+  dropped
+}
+
+fn push_dropped_breaks(nodes: &[Node], context: &Context, dropped: &mut DroppedBreaks) {
+  let mut last_node: Option<&Node> = None;
+  for node in nodes.iter().filter(|node| !matches!(node, Node::SoftBreak(_))) {
+    if let Some(last_node) = last_node {
+      let between = (last_node.span().end, node.span().start);
+      if context.get_new_lines_in_range(between.0, between.1) == 1 && drops_break_between(last_node, node, context) {
+        let before = last_node.span().text(context.file_text).chars().last();
+        let after = node.span().text(context.file_text).chars().next();
+        if let (Some(before), Some(after)) = (before, after) {
+          dropped.before.push((node.span().start, before));
+          dropped.after.push((last_node.span().end, after));
+        }
+      }
+    }
+    last_node = Some(node);
+    if let Some(children) = written_children(node) {
+      push_dropped_breaks(children, context, dropped);
+    }
+  }
+}
+
+/// The nodes written within this one, which hold breaks of their own.
+fn written_children<'a>(node: &'a Node<'a>) -> Option<&'a [Node<'a>]> {
+  match node {
+    Node::TextDecoration(node) => Some(&node.children),
+    Node::InlineLink(node) => Some(&node.children),
+    // a reference link is matched by the text of its label, so a break written
+    // within one is part of what it's matched by and has to stay
+    _ => None,
+  }
+}
+
+/// Whether the line break between the two nodes reads as nothing, and so is
+/// dropped rather than written out as the space it would otherwise read as.
+fn drops_break_between(last_node: &Node, node: &Node, context: &Context) -> bool {
+  last_node.ends_with_unspaced_script()
+    && node.starts_with_unspaced_script()
+    && can_be_written_beside(last_node, node, context.file_text)
+}
+
+fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
 
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
@@ -152,10 +220,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 items.push_space();
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
-              } else if last_node.ends_with_unspaced_script()
-                && node.starts_with_unspaced_script()
-                && can_be_written_beside(last_node, node, context.file_text)
-              {
+              } else if context.drops_break_before(node.span().start) {
                 items.extend(get_unspaced_script_newline_wrapping(context));
               } else {
                 items.extend(get_newline_wrapping_based_on_config(context));
@@ -180,7 +245,14 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               };
 
               if needs_space {
-                if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) || node.starts_with_list_word() {
+                if drops_break_between(last_node, node, context) {
+                  // a space between two characters of a script written without
+                  // spaces is rendered, so it's kept as one rather than being
+                  // written as the line break that would read as nothing
+                  items.push_space();
+                } else if node.starts_block_at_line_start(text_can_be_wrapped_away(context))
+                  || node.starts_with_list_word()
+                {
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
@@ -1002,7 +1074,7 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     // the delimiter of a decoration written directly against this one is read by
     // what sits beside it, so changing this one's character would change theirs.
     // What the file already had parsed as this decoration, so it is safe.
-    if within_word || is_delimiter(before) || is_delimiter(after) {
+    if is_delimiter(before) || is_delimiter(after) {
       return written_delimiter(decoration, context);
     }
 
@@ -1020,6 +1092,10 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// delimiters of the decoration it is nested directly within -- those are
   /// written out here too, so they are chosen to sit beside this one rather
   /// than being something this one has to avoid.
+  ///
+  /// Where the line break beside the decoration isn't written out, the
+  /// character past it is what ends up against the delimiter, so that's what's
+  /// read here.
   fn surrounding_chars(
     decoration: &TextDecoration,
     parent_content: Option<Span>,
@@ -1028,11 +1104,15 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     let span = decoration.span;
     let before = match parent_content {
       Some(content) if content.start == span.start => None,
-      _ => context.file_text[..span.start].chars().next_back(),
+      _ => context
+        .char_written_before(span.start)
+        .or_else(|| context.file_text[..span.start].chars().next_back()),
     };
     let after = match parent_content {
       Some(content) if content.end == span.end => None,
-      _ => context.file_text[span.end..].chars().next(),
+      _ => context
+        .char_written_after(span.end)
+        .or_else(|| context.file_text[span.end..].chars().next()),
     };
     (before, after)
   }
@@ -2212,7 +2292,54 @@ fn space() -> PrintItems {
 fn can_be_written_beside(last_node: &Node, node: &Node, file_text: &str) -> bool {
   let last = last_node.span().text(file_text).chars().last();
   let next = node.span().text(file_text).chars().next();
-  !matches!((last, next), (Some(last), Some(next)) if last.is_ascii_punctuation() && next.is_ascii_punctuation())
+  if matches!((last, next), (Some(last), Some(next)) if last.is_ascii_punctuation() && next.is_ascii_punctuation()) {
+    return false;
+  }
+  keeps_its_delimiters(last_node, file_text) && keeps_its_delimiters(node, file_text)
+}
+
+/// Whether the node's delimiters would still read as delimiters with the
+/// whitespace beside it taken away.
+fn keeps_its_delimiters(node: &Node, file_text: &str) -> bool {
+  match node {
+    Node::TextDecoration(decoration) => decoration_keeps_its_delimiters(decoration, file_text),
+    _ => true,
+  }
+}
+
+/// Whether the decoration's delimiters would still read as delimiters with the
+/// whitespace beside it taken away.
+///
+/// Which characters sit on either side of a delimiter is what decides whether
+/// it reads as one, so the text it holds has to begin and end with a word
+/// character, and nothing written against it from outside may be read as part
+/// of its delimiters.
+fn decoration_keeps_its_delimiters(decoration: &TextDecoration, file_text: &str) -> bool {
+  // it has to be text that's written against the delimiter: anything with
+  // delimiters of its own there (ex. a code span's backticks, or a decoration
+  // nested at the edge) is read together with it rather than beside it
+  let holds_a_word = |node: Option<&Node>, character: fn(&str) -> Option<char>| match node {
+    Some(Node::Text(text)) => character(text.text).is_some_and(char::is_alphanumeric),
+    _ => false,
+  };
+  // a delimiter character written against the run lengthens it, and how long
+  // the runs on either side of the text are is what pairs them up
+  let is_delimiter = |character: Option<char>| matches!(character, Some('*') | Some('_') | Some('~'));
+  holds_a_word(decoration.children.first(), |text| text.chars().next())
+    && holds_a_word(decoration.children.last(), last_unescaped_char)
+    && !is_delimiter(file_text[..decoration.span.start].chars().next_back())
+    && !is_delimiter(file_text[decoration.span.end..].chars().next())
+    && !holds_the_same_kind(&decoration.children, decoration.kind)
+}
+
+/// Whether a decoration of the same kind is written within these nodes, whose
+/// delimiter would be the same character as the one around them and so would
+/// be paired up with it rather than read on its own.
+fn holds_the_same_kind(nodes: &[Node], kind: TextDecorationKind) -> bool {
+  nodes.iter().any(|node| match node {
+    Node::TextDecoration(decoration) => decoration.kind == kind || holds_the_same_kind(&decoration.children, kind),
+    _ => false,
+  })
 }
 
 /// What takes the place of a line break that falls between two characters of
