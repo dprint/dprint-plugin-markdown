@@ -67,6 +67,11 @@ pub struct Context<'a> {
   /// when it has to be escaped so that it isn't read as the start of a block
   /// of its own.
   escaped_block_starts: Vec<(usize, usize)>,
+  /// Where each bit of text written at the start of a line starts.
+  line_start_texts: Vec<usize>,
+  /// Where the block being written ends, which bounds how far the text of one
+  /// of its lines can run.
+  block_end: Option<usize>,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The character the list item being generated is marked with.
@@ -116,6 +121,8 @@ impl<'a> Context<'a> {
       enclosing_decoration: None,
       escaped_closing_hashes: None,
       escaped_block_starts: Vec::new(),
+      line_start_texts: Vec::new(),
+      block_end: None,
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker_char: None,
       list_marker_lines_up: true,
@@ -325,12 +332,31 @@ impl<'a> Context<'a> {
   pub fn with_escaped_block_starts<T>(
     &mut self,
     starts: Vec<(usize, usize)>,
+    line_starts: Vec<usize>,
+    block_end: usize,
     func: impl FnOnce(&mut Context) -> T,
   ) -> T {
     let previous = std::mem::replace(&mut self.escaped_block_starts, starts);
+    let previous_line_starts = std::mem::replace(&mut self.line_start_texts, line_starts);
+    let previous_end = self.block_end.replace(block_end);
     let result = func(self);
     self.escaped_block_starts = previous;
+    self.line_start_texts = previous_line_starts;
+    self.block_end = previous_end;
     result
+  }
+
+  /// The text from `start` through to the end of the block being written,
+  /// which is how far a line of it can run on.
+  pub fn text_from(&self, start: usize, fallback_end: usize) -> &str {
+    let end = self.block_end.filter(|end| *end >= start).unwrap_or(fallback_end);
+    &self.file_text[start..end]
+  }
+
+  /// Whether the text starting here is written at the start of a line, which
+  /// is where nothing precedes it that a line break could be written at.
+  pub fn is_line_start_text(&self, start: usize) -> bool {
+    self.line_start_texts.contains(&start)
   }
 
   /// Where a backslash goes in the text starting here, when it is written

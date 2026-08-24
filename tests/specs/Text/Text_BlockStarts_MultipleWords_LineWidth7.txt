@@ -1,0 +1,16 @@
+~~ textWrap: always, lineWidth: 7 ~~
+!! should read the words past the markers a line within a block quote begins with !!
+> aaaaaaaa _ _ _ zz
+
+[expect]
+> aaaaaaaa _
+> _ _
+> zz
+
+!! should read them past the indentation of a list item !!
+- aaaaaaaa _ _ _ zz
+
+[expect]
+- aaaaaaaa _
+  _ _
+  zz

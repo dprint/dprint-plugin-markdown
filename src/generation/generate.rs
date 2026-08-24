@@ -146,7 +146,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
-              } else if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) {
+              } else if node
+                .starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
+              {
                 // text that would start a block can't be moved to the start of
                 // a line without changing what it means
                 items.push_space();
@@ -180,7 +182,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               };
 
               if needs_space {
-                if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) || node.starts_with_list_word() {
+                if node.starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
+                  || node.starts_with_list_word()
+                {
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
@@ -385,16 +389,19 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   // a paragraph begins where a block does, and a hard break puts what follows
   // it at the start of a line too, so neither can be left to read as the start
   // of a block of its own
-  let escaped = escaped_block_starts(&paragraph.children);
-  items.extend(context.with_escaped_block_starts(escaped, |context| {
-    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
-  }));
+  let (escaped, line_starts) = escaped_block_starts(&paragraph.children);
+  items.extend(
+    context.with_escaped_block_starts(escaped, line_starts, paragraph.span.end, |context| {
+      gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+    }),
+  );
   return items;
 
   /// Where each bit of the paragraph's text that is written at the start of a
   /// line starts, when it would be read as the start of a block.
-  fn escaped_block_starts(children: &[Node]) -> Vec<(usize, usize)> {
+  fn escaped_block_starts(children: &[Node]) -> (Vec<(usize, usize)>, Vec<usize>) {
     let mut starts = Vec::new();
+    let mut line_starts = Vec::new();
     // the first line of a paragraph has nothing above it to be read together
     // with, so less of what it holds is markup than on the lines after it
     let mut escape: fn(&str) -> Option<usize> = block_start_escape;
@@ -402,6 +409,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     for child in children {
       if at_line_start {
         if let Node::Text(text) = child {
+          line_starts.push(text.span.start);
           if let Some(position) = escape(text.text) {
             starts.push((text.span.start, position));
           }
@@ -412,7 +420,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
         escape = line_start_escape;
       }
     }
-    starts
+    (starts, line_starts)
   }
 }
 
@@ -802,7 +810,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     if !items.is_empty() {
       // only the chunk is looked at, since a code span's text is written out
       // in chunks rather than a line at a time
-      if utils::wrapping_word_starts_block(word, text_can_be_wrapped_away(context)) {
+      if utils::wrapping_word_starts_block(word, word, text_can_be_wrapped_away(context)) {
         items.push_space();
       } else if was_last_newline {
         items.push_signal(Signal::NewLine);
@@ -817,7 +825,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   if let Some(position) = context.block_start_escape_at(text.span.start) {
     let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
-    return gen_str(&escaped, context);
+    return gen_str(&escaped, None, context);
   }
   if context.is_escaping_closing_hashes(text.span.start) {
     // the hashes are escaped where they start, which is enough to keep the
@@ -828,9 +836,9 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
       &text.text[..text.text.len() - hashes],
       &text.text[text.text.len() - hashes..]
     );
-    return gen_str(&escaped, context);
+    return gen_str(&escaped, None, context);
   }
-  gen_str(text.text, context)
+  gen_str(text.text, Some(text.span.start), context)
 }
 
 /// Whether the node is a callout header (ex. `[!NOTE]`), which is only
@@ -850,8 +858,14 @@ fn is_callout_text(text: &str) -> bool {
   !kind.is_empty() && kind.chars().all(|c| c.is_ascii_uppercase())
 }
 
-fn gen_str(text: &str, context: &mut Context) -> PrintItems {
-  let mut text_builder = TextBuilder::new(text, context);
+/// Writes out text as the words it wraps at.
+///
+/// `text_start` is where the text was read from, which lets a word be looked at
+/// together with what follows it in the file rather than only what follows it
+/// in this node. It's left out where the text isn't what the file holds (ex.
+/// where a character has been escaped).
+fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> PrintItems {
+  let mut text_builder = TextBuilder::new(text, text_start, context);
 
   for (index, c) in text.char_indices() {
     text_builder.add_char(index, c);
@@ -864,6 +878,17 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     /// The text being written, which the words are read back out of in order
     /// to work out what a line would begin with.
     text: &'a str,
+    /// Where the text was read from, which a word is looked at from so that
+    /// what follows it in the file counts as well as what follows it here.
+    text_start: Option<usize>,
+    /// How far the words the text begins with run, where they would start a
+    /// block of their own on a line by themselves. Nothing before the end of
+    /// them can be written as a line break, since the text after them can be
+    /// wrapped away and leave them there alone.
+    leading_block_words_end: usize,
+    /// Where the last word written began, which says whether it belongs to
+    /// those leading words.
+    last_word_start: usize,
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
@@ -872,10 +897,13 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
   }
 
   impl<'a> TextBuilder<'a> {
-    pub fn new(text: &'a str, context: &'a Context) -> TextBuilder<'a> {
+    pub fn new(text: &'a str, text_start: Option<usize>, context: &'a Context) -> TextBuilder<'a> {
       TextBuilder {
         items: PrintItems::new(),
         text,
+        text_start,
+        leading_block_words_end: utils::leading_block_words_end(text).unwrap_or(0),
+        last_word_start: 0,
         last_char: None,
         current_word: None,
         context,
@@ -910,6 +938,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
           self.items.extend(self.space_items(start, &current_word));
         }
 
+        self.last_word_start = start;
         self.last_char = current_word.chars().last();
         self
           .items
@@ -919,7 +948,19 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
 
     /// What to write in place of the space that ran up to the next word.
     fn space_items(&self, next_word_start: usize, next_word: &str) -> PrintItems {
-      if utils::wrapping_word_starts_block(&self.text[next_word_start..], text_can_be_wrapped_away(self.context)) {
+      if self.last_word_start < self.leading_block_words_end && self.is_at_line_start() {
+        // the word before this one is one of the leading words, which have to
+        // be kept off a line of their own
+        return space();
+      }
+      let line_text = &self.text[next_word_start..];
+      // the words the line begins with can run on past the end of this node,
+      // since a line break within a block is written as a break of its own
+      let following_text = match self.text_start {
+        Some(start) => self.context.text_from(start + next_word_start, start + self.text.len()),
+        None => line_text,
+      };
+      if utils::wrapping_word_starts_block(line_text, following_text, text_can_be_wrapped_away(self.context)) {
         // the text would start a block of its own at the start of a line, so
         // it has to be kept off one
         return space();
@@ -931,6 +972,12 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
         return space();
       }
       get_space_or_newline_based_on_config(self.context)
+    }
+
+    /// Whether the text was written at the start of a line, which is where a
+    /// line break can't have been written before the words it begins with.
+    fn is_at_line_start(&self) -> bool {
+      matches!(self.text_start, Some(start) if self.context.is_line_start_text(start))
     }
 
     /// Whether the space sits between two characters of a script written
@@ -2179,6 +2226,13 @@ fn get_blank_lines(count: u32) -> PrintItems {
     items.push_signal(Signal::NewLine);
   }
   items
+}
+
+/// The node's text through to the end of the block it's written in, which is
+/// how far the line it begins can run on.
+fn following_text<'a>(node: &Node, context: &'a Context) -> &'a str {
+  let span = node.span();
+  context.text_from(span.start, span.end)
 }
 
 /// Whether the text after a word can be wrapped onto the line below it, which
