@@ -155,6 +155,10 @@
         "description": "Formats the code within a code block using spaces."
       }]
     },
+    "codeBlock.indentWidth": {
+      "description": "The indentation width the plugin that formats the code within a code block should use, overriding that plugin's own `indentWidth` configuration. When not specified, that plugin's configuration is left alone.",
+      "type": "number"
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -213,6 +217,9 @@
     },
     "codeBlock.useTabs": {
       "$ref": "#/definitions/codeBlock.useTabs"
+    },
+    "codeBlock.indentWidth": {
+      "$ref": "#/definitions/codeBlock.indentWidth"
     },
     "deno": {
       "$ref": "#/definitions/deno"

@@ -76,6 +76,7 @@ pub fn resolve_config(
     code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
     code_block_use_tabs: get_nullable_value(&mut config, "codeBlock.useTabs", &mut diagnostics),
+    code_block_indent_width: get_nullable_value(&mut config, "codeBlock.indentWidth", &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",

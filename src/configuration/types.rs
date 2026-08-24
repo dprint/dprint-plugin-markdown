@@ -28,6 +28,10 @@ pub struct Configuration {
   /// formats the code within a code block. `None` leaves it to that plugin.
   #[serde(rename = "codeBlock.useTabs")]
   pub code_block_use_tabs: Option<bool>,
+  /// Whether to override the `indentWidth` configuration of the plugin that
+  /// formats the code within a code block. `None` leaves it to that plugin.
+  #[serde(rename = "codeBlock.indentWidth")]
+  pub code_block_indent_width: Option<u8>,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,
