@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use dprint_core::formatting::PrintItemPath;
 use dprint_core::formatting::PrintItems;
@@ -12,6 +14,17 @@ use crate::format_text::FormatError;
 use crate::parser::Span;
 
 type FormatResult = Result<Option<String>, FormatError>;
+
+/// The error the plugin that formats the code within a code block ran into,
+/// along with where the code block was written.
+///
+/// The line it's reported on is worked out once the file has been generated,
+/// where the text the file began with is known.
+pub struct CodeBlockError {
+  /// Where the code block starts within the text being generated.
+  pub pos: usize,
+  pub error: FormatError,
+}
 
 /// The line breaks that aren't written out, and the characters that end up
 /// written against each other in their place.
@@ -122,6 +135,12 @@ pub struct Context<'a> {
   /// Where the node generated next sits.
   next_position: NodePosition,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
+  /// The first error a code block's plugin ran into, which fails the file once
+  /// it's been generated when `codeBlock.raiseSyntaxErrors` is on.
+  ///
+  /// It's held outside the context so that it's still there to be read once
+  /// the context has been dropped.
+  code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
   pub ignore_regex: Regex,
   pub ignore_start_regex: Regex,
   pub ignore_end_regex: Regex,
@@ -147,6 +166,7 @@ impl<'a> Context<'a> {
     file_text: &'a str,
     configuration: &'a Configuration,
     format_code_block_text: impl for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a,
+    code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
   ) -> Context<'a> {
     Context {
       file_text,
@@ -171,6 +191,7 @@ impl<'a> Context<'a> {
       },
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
+      code_block_error,
       ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
       ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
       ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
@@ -463,6 +484,15 @@ impl<'a> Context<'a> {
     self.text_wrap_disabled_count > 0
   }
 
+  /// Keeps the error a code block's plugin ran into, when it's the first, so
+  /// that it can fail the file once it's been generated.
+  pub fn mark_code_block_error(&mut self, pos: usize, error: FormatError) {
+    let mut code_block_error = self.code_block_error.borrow_mut();
+    if code_block_error.is_none() {
+      *code_block_error = Some(CodeBlockError { pos, error });
+    }
+  }
+
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
 
@@ -479,18 +509,6 @@ impl<'a> Context<'a> {
       return 0;
     } // ignore
 
-    // a line ends at a newline, at a carriage return written on its own, and
-    // at a carriage return and the newline that follows it, which is one line
-    // ending rather than two
-    let file_bytes = self.file_text.as_bytes();
-    let mut count = 0;
-    for (index, byte) in file_bytes[start..end].iter().enumerate() {
-      match byte {
-        b'\n' => count += 1,
-        b'\r' if file_bytes.get(start + index + 1) != Some(&b'\n') => count += 1,
-        _ => {}
-      }
-    }
-    count
+    count_new_lines(&self.file_text[start..end])
   }
 }

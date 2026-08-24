@@ -118,6 +118,14 @@ impl ConfigurationBuilder {
     self.insert("codeBlock.skipFormat", value.into())
   }
 
+  /// Whether to fail the file when the plugin that formats the code within a
+  /// code block reports an error, which is what it does when the code doesn't
+  /// parse, rather than leaving that code as it was written.
+  /// Default: `false`
+  pub fn code_block_raise_syntax_errors(&mut self, value: bool) -> &mut Self {
+    self.insert("codeBlock.raiseSyntaxErrors", value.into())
+  }
+
   /// Whether to keep the indentation the code within a code block was
   /// written with, rather than unindenting it.
   /// Default: `false`
@@ -227,6 +235,7 @@ mod tests {
       .list_unordered_marker(ListUnorderedMarker::Asterisks)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
       .code_block_skip_format(true)
+      .code_block_raise_syntax_errors(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
       .code_block_use_tabs(true)
@@ -239,7 +248,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 22);
+    assert_eq!(inner_config.len(), 23);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

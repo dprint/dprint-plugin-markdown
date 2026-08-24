@@ -3,6 +3,24 @@ use std::borrow::Cow;
 
 use regex::Regex;
 
+/// How many lines the text has beyond its first.
+///
+/// A line ends at a newline, at a carriage return written on its own, and at a
+/// carriage return and the newline that follows it, which is one line ending
+/// rather than two.
+pub fn count_new_lines(text: &str) -> u32 {
+  let bytes = text.as_bytes();
+  let mut count = 0;
+  for (index, byte) in bytes.iter().enumerate() {
+    match byte {
+      b'\n' => count += 1,
+      b'\r' if bytes.get(index + 1) != Some(&b'\n') => count += 1,
+      _ => {}
+    }
+  }
+  count
+}
+
 /// Whether the character belongs to a script written without spaces between
 /// its words, where a line break carries no meaning of its own.
 ///

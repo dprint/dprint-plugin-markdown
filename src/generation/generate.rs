@@ -749,10 +749,20 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
       if let Some(tag) = code_block.tag() {
         // allow situations like ```rust,ignore
         let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
-        if let Ok(Some(text)) = context.format_text(&tag, code) {
-          // Formatters produce a string with a trailing newline, which must be removed.
-          let text = text.strip_suffix("\n").unwrap_or(&text);
-          return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
+        match context.format_text(&tag, code) {
+          Ok(Some(text)) => {
+            // Formatters produce a string with a trailing newline, which must be removed.
+            let text = text.strip_suffix("\n").unwrap_or(&text);
+            return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
+          }
+          Ok(None) => {}
+          // code the plugin can't format is left as it was written, unless the
+          // configuration says an error it runs into should fail the file
+          Err(err) => {
+            if context.configuration.code_block_raise_syntax_errors {
+              context.mark_code_block_error(code_block.span.start, err);
+            }
+          }
         }
       }
     }

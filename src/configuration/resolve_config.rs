@@ -83,6 +83,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     code_block_skip_format: get_value(&mut config, "codeBlock.skipFormat", false, &mut diagnostics),
+    code_block_raise_syntax_errors: get_value(&mut config, "codeBlock.raiseSyntaxErrors", false, &mut diagnostics),
     code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
     code_block_use_tabs: get_nullable_value(&mut config, "codeBlock.useTabs", &mut diagnostics),
