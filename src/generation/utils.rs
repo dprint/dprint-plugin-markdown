@@ -174,15 +174,13 @@ pub fn leading_block_words_end(text: &str) -> Option<usize> {
 pub fn ends_sentence(text: &str) -> bool {
   let text = text.trim_end();
   let word = text.rsplit([' ', '\n', '\t']).next().unwrap_or(text);
-  // the line is broken after a terminator of a script written without spaces
-  // between its words, so the word that ends the text begins after the last of
-  // those as surely as it begins after a space
-  let word = match word
-    .char_indices()
-    .rev()
-    .find(|(_, c)| ends_unspaced_script_sentence(*c))
-  {
-    Some((index, terminator)) if index + terminator.len_utf8() < word.len() => &word[index + terminator.len_utf8()..],
+  // a script written without spaces between its words holds none for the word
+  // to begin after, and the line may be broken between any two of its
+  // characters, so the word that ends the text begins after the last of them.
+  // Where one ends the text it is the word, since that is what a sentence of
+  // that script ends with
+  let word = match word.char_indices().rev().find(|(_, c)| is_unspaced_script(*c)) {
+    Some((index, character)) if index + character.len_utf8() < word.len() => &word[index + character.len_utf8()..],
     _ => word,
   };
   let word = word.trim_end_matches(SENTENCE_TRAILING);
@@ -230,6 +228,9 @@ pub fn starts_sentence(text: &str) -> bool {
   let word = text.split([' ', '\n', '\t']).next().unwrap_or(text);
   let word = word.trim_start_matches(SENTENCE_LEADING);
   match word.chars().next() {
+    // a mark that closes or trails a phrase can't open one, and a line can't
+    // even be broken before some of them
+    Some(c) if SENTENCE_TRAILING.contains(&c) || forbids_line_break_before(c) => false,
     // a word that begins in lowercase carries on the sentence written before
     // it, whatever the word before it ended with
     Some(c) => !c.is_lowercase(),
@@ -588,6 +589,16 @@ mod test {
     assert!(!ends_sentence("See Figs."));
     // an escaped period is read as the period it writes
     assert!(!ends_sentence("Step 2\\."));
+    // the word begins after a script written without spaces between its words,
+    // whose characters the line may be broken between, so however much of one
+    // is drawn up in front of the word it reads the same
+    assert!(!ends_sentence("あe.g."));
+    assert!(!ends_sentence("ああe.g."));
+    assert!(ends_sentence("これは。Rust."));
+    // ...and a character of that script ending the text is the word, since
+    // that is what a sentence of it ends with
+    assert!(ends_sentence("あ。"));
+    assert!(!ends_sentence("あ"));
     // however the letter and its marks are written
     assert!(!ends_sentence("It was É."));
     assert!(!ends_sentence("It was É."));
@@ -606,6 +617,12 @@ mod test {
     assert!(!starts_sentence("then more text."));
     assert!(!starts_sentence("**bold** text."));
     assert!(!starts_sentence(""));
+    // a mark that closes or trails a phrase can't open one
+    assert!(!starts_sentence("」です"));
+    assert!(!starts_sentence("、==="));
+    assert!(!starts_sentence(")x"));
+    // ...but a mark that opens one is written before the word it opens
+    assert!(starts_sentence("「こんにちは"));
   }
 
   #[test]
