@@ -921,7 +921,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     /// `is_newline` says was written as a line ending.
     pub fn end_word(&mut self, is_newline: bool) {
       self.flush_word();
-      self.after_maintained_newline = is_newline && self.context.configuration.text_wrap == TextWrap::Maintain;
+      self.after_maintained_newline = is_newline && self.context.configuration.text_wrap.keeps_line_breaks();
     }
 
     /// Whether nothing has been written yet, where the whitespace that follows
@@ -1723,7 +1723,7 @@ fn gen_word_with_unspaced_script_breaks(word: String, context: &Context) -> Prin
   if context.configuration.text_wrap == TextWrap::Sentence && !context.is_text_wrap_disabled() {
     return gen_word_with_sentence_breaks(word);
   }
-  if context.configuration.text_wrap != TextWrap::Always || context.is_text_wrap_disabled() {
+  if !wraps_at_the_line_width(context) {
     return gen_text_with_tabs(word);
   }
 
@@ -2584,7 +2584,17 @@ fn starts_block_at_line_start(node: &Node, context: &Context) -> bool {
 /// checks that keep it off one read the word on its own rather than the line
 /// the file happened to write it on.
 fn text_can_be_wrapped_away(context: &Context) -> bool {
-  matches!(context.configuration.text_wrap, TextWrap::Always | TextWrap::Sentence) && !context.is_text_wrap_disabled()
+  wraps_at_the_line_width(context)
+    || (context.configuration.text_wrap == TextWrap::Sentence && !context.is_text_wrap_disabled())
+}
+
+/// Whether a line that runs past the line width is broken up, which is what
+/// the printer is left to decide the line breaks of.
+fn wraps_at_the_line_width(context: &Context) -> bool {
+  matches!(
+    context.configuration.text_wrap,
+    TextWrap::Always | TextWrap::MaintainAndWrap
+  ) && !context.is_text_wrap_disabled()
 }
 
 fn get_space_or_newline_based_on_config(context: &Context, ends_sentence: bool) -> PrintItems {
@@ -2592,7 +2602,9 @@ fn get_space_or_newline_based_on_config(context: &Context, ends_sentence: bool) 
     return space();
   }
   match context.configuration.text_wrap {
-    TextWrap::Always => Signal::SpaceOrNewLine.into(),
+    // the space was written within a line, so it's somewhere the printer may
+    // break the line even where the breaks that were written are kept
+    TextWrap::Always | TextWrap::MaintainAndWrap => Signal::SpaceOrNewLine.into(),
     TextWrap::Sentence if ends_sentence => new_line_or_space_if_newlines_disabled(),
     TextWrap::Sentence | TextWrap::Never | TextWrap::Maintain => space(),
   }
@@ -2708,7 +2720,7 @@ fn get_unspaced_script_newline_wrapping(context: &Context, ends_sentence: bool) 
     // where newlines are being forced off (ex. within a heading) the printer
     // drops this one, which is what should take the place of a break that read
     // as nothing anyway
-    TextWrap::Maintain => Signal::NewLine.into(),
+    TextWrap::Maintain | TextWrap::MaintainAndWrap => Signal::NewLine.into(),
   }
 }
 
@@ -2718,7 +2730,7 @@ fn get_newline_wrapping_based_on_config(context: &Context, ends_sentence: bool) 
     // being wrapped, but keeps the line breaks it has when text is maintained
     return match context.configuration.text_wrap {
       TextWrap::Always | TextWrap::Never | TextWrap::Sentence => space(),
-      TextWrap::Maintain => new_line_or_space_if_newlines_disabled(),
+      TextWrap::Maintain | TextWrap::MaintainAndWrap => new_line_or_space_if_newlines_disabled(),
     };
   }
   match context.configuration.text_wrap {
@@ -2731,7 +2743,7 @@ fn get_newline_wrapping_based_on_config(context: &Context, ends_sentence: bool) 
     // a line break can't be written where newlines are being forced off
     // (ex. within a heading), where it stands for the space between the words
     // it separated
-    TextWrap::Maintain => new_line_or_space_if_newlines_disabled(),
+    TextWrap::Maintain | TextWrap::MaintainAndWrap => new_line_or_space_if_newlines_disabled(),
   }
 }
 

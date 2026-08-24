@@ -71,6 +71,12 @@ pub enum TextWrap {
   Always,
   /// Maintains line breaks (default).
   Maintain,
+  /// Maintains line breaks, but wraps a line that runs past the line width.
+  ///
+  /// This is `Maintain` with the wrapping of `Always` layered on top: no line
+  /// is ever drawn up into the one above it, so the breaks that were written
+  /// stay where they are, while a line too long to fit is broken up.
+  MaintainAndWrap,
   /// Never wraps text.
   Never,
   /// Writes one sentence per line, ignoring the line width.
@@ -82,10 +88,20 @@ pub enum TextWrap {
   Sentence,
 }
 
+impl TextWrap {
+  /// Whether the line breaks the file was written with are kept where they
+  /// are, rather than the text being written back out over the lines it fits
+  /// on.
+  pub(crate) fn keeps_line_breaks(&self) -> bool {
+    matches!(self, TextWrap::Maintain | TextWrap::MaintainAndWrap)
+  }
+}
+
 generate_str_to_from![
   TextWrap,
   [Always, "always"],
   [Maintain, "maintain"],
+  [MaintainAndWrap, "maintainAndWrap"],
   [Never, "never"],
   [Sentence, "sentence"]
 ];

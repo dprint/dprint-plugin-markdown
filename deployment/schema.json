@@ -32,6 +32,9 @@
         "const": "maintain",
         "description": "Maintains line breaks."
       }, {
+        "const": "maintainAndWrap",
+        "description": "Maintains line breaks, but wraps a line that runs past the line width."
+      }, {
         "const": "never",
         "description": "Never wraps text."
       }, {
