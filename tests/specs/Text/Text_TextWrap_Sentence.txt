@@ -1,0 +1,126 @@
+~~ lineWidth: 40, textWrap: sentence ~~
+!! should write one sentence per line !!
+This is a sentence. This is another one that runs past the line width.
+A third one
+was written over
+two lines.
+
+[expect]
+This is a sentence.
+This is another one that runs past the line width.
+A third one was written over two lines.
+
+!! should keep a sentence on one line when the next word is lowercase !!
+The file is called foo.md so it is not a sentence end. more text here.
+
+[expect]
+The file is called foo.md so it is not a sentence end. more text here.
+
+!! should not break after an abbreviation or an initial !!
+Dr. Smith met J. Doe at 5 p.m. They talked about the U.S. economy.
+See the docs, e.g. the readme. Then continue.
+
+[expect]
+Dr. Smith met J. Doe at 5 p.m. They talked about the U.S. economy.
+See the docs, e.g. the readme.
+Then continue.
+
+!! should break after a sentence that ends in markup !!
+A sentence ending in **bold.** Then more text.
+See [the docs](https://example.com/a.md). Then continue.
+Run `format.` Then check.
+
+[expect]
+A sentence ending in **bold.**
+Then more text.
+See [the docs](https://example.com/a.md).
+Then continue.
+Run `format.`
+Then check.
+
+!! should break after other terminators !!
+Is this a sentence? Yes it is! Really...
+It is.
+
+[expect]
+Is this a sentence?
+Yes it is!
+Really...
+It is.
+
+!! should keep a heading on one line !!
+# One sentence. Another sentence.
+
+[expect]
+# One sentence. Another sentence.
+
+!! should not move text that would start a block to the start of a line !!
+A sentence. # Not a heading.
+
+A sentence. 1. Not a list.
+
+[expect]
+A sentence. # Not a heading.
+
+A sentence. 1. Not a list.
+
+!! should not break within a link, and read the sentence through it !!
+[A sentence. Another one.](https://example.com/) Then more.
+
+[expect]
+[A sentence. Another one.](https://example.com/)
+Then more.
+
+!! should keep the blank lines between paragraphs !!
+One. Two.
+
+Three. Four.
+
+[expect]
+One.
+Two.
+
+Three.
+Four.
+
+!! should write one sentence per line within a block quote and a list !!
+> One. Two.
+
+- One. Two.
+  Three.
+
+[expect]
+> One.
+> Two.
+
+- One.
+  Two.
+  Three.
+
+!! should keep a table cell on one line !!
+| a | b |
+|---|---|
+| One. Two. | Three. Four. |
+
+[expect]
+| a         | b            |
+| --------- | ------------ |
+| One. Two. | Three. Four. |
+
+!! should break after a sentence of an unspaced script !!
+これは文です。これも文です。
+続き。
+
+[expect]
+これは文です。
+これも文です。
+続き。
+
+!! should keep a hard break !!
+One.\
+Two. Three.
+
+[expect]
+One.\
+Two.
+Three.

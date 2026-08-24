@@ -54,9 +54,22 @@ pub enum TextWrap {
   Maintain,
   /// Never wraps text.
   Never,
+  /// Writes one sentence per line, ignoring the line width.
+  ///
+  /// This is the part of [semantic line breaks](https://sembr.org/) that can be
+  /// applied without knowing what the text means: a line break is written where
+  /// a sentence ends and nowhere else, which keeps a diff to the sentences that
+  /// were edited.
+  Sentence,
 }
 
-generate_str_to_from![TextWrap, [Always, "always"], [Maintain, "maintain"], [Never, "never"]];
+generate_str_to_from![
+  TextWrap,
+  [Always, "always"],
+  [Maintain, "maintain"],
+  [Never, "never"],
+  [Sentence, "sentence"]
+];
 
 /// The character to use for emphasis/italics.
 #[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]

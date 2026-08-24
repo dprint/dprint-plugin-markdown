@@ -34,6 +34,9 @@
       }, {
         "const": "never",
         "description": "Never wraps text."
+      }, {
+        "const": "sentence",
+        "description": "Writes one sentence per line, ignoring the line width."
       }]
     },
     "emphasisKind": {

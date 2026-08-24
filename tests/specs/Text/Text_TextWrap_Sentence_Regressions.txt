@@ -1,0 +1,129 @@
+~~ lineWidth: 40, textWrap: sentence ~~
+!! should not break a word where the break would read as a space !!
+これはテストです。Rustで書かれています。
+
+[expect]
+これはテストです。Rustで書かれています。
+
+!! should not break a word where the text after it would start a block !!
+あ。---
+
+あ。# H
+
+あ。- item
+
+あ。> quoted
+
+あ。|---|
+
+Done。---
+
+[expect]
+あ。---
+
+あ。# H
+
+あ。- item
+
+あ。> quoted
+
+あ。|---|
+
+Done。---
+
+!! should break a word at the halfwidth full stop as at the full width one !!
+あ｡い｡
+
+あ。い。
+
+[expect]
+あ｡
+い｡
+
+あ。
+い。
+
+!! should not break before a marker that would fuse into a list !!
+Foo.
+1.
+Trailing
+
+[expect]
+Foo. 1. Trailing
+
+!! should keep the line the same however the text after a block shape is written !!
+Foo. ---
+Trailing text
+
+[expect]
+Foo. --- Trailing text
+
+!! should read a sentence through the delimiters a node is written with !!
+See [the guide.](https://x.com/) Next sentence.
+
+[a](https://example.com/ "T.") Next sentence.
+
+Run `1.` Then stop.
+
+Run `format.` Then check.
+
+[expect]
+See [the guide.](https://x.com/)
+Next sentence.
+
+[a](https://example.com/ "T.") Next sentence.
+
+Run `1.` Then stop.
+
+Run `format.`
+Then check.
+
+!! should end a sentence at a domain or a file name !!
+Visit example.com. Then continue.
+
+See foo.md. Then continue.
+
+[expect]
+Visit example.com.
+Then continue.
+
+See foo.md.
+Then continue.
+
+!! should end a sentence at a word an abbreviation only spells !!
+The answer is no. Then continue.
+
+See No. 5 below.
+
+[expect]
+The answer is no.
+Then continue.
+
+See No. 5 below.
+
+!! should write a period the same however it is escaped !!
+Step 2. Then more.
+
+Step 2\. Then more.
+
+[expect]
+Step 2. Then more.
+
+Step 2\. Then more.
+
+!! should not depend on how a letter and its marks are written !!
+It was É. Then more.
+
+It was É. Then more.
+
+[expect]
+It was É. Then more.
+
+It was É. Then more.
+
+!! should read the word a sentence ends with off the script written without spaces !!
+あ
+ あe.g.   2.」
+
+[expect]
+ああe.g. 2.」

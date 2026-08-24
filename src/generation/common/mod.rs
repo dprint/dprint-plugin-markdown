@@ -46,29 +46,13 @@ impl<'a> Node<'a> {
   /// whitespace beside it is taken away is decided separately, since which
   /// character delimits it is chosen by what ends up written against it.
   pub fn first_read_char(&self) -> Option<char> {
-    match self {
-      Node::Text(node) => node.text.chars().next(),
-      Node::Code(node) => node.code.chars().next(),
-      Node::TextDecoration(node) => node.children.first().and_then(|child| child.first_read_char()),
-      Node::InlineLink(node) => node.children.first().and_then(|child| child.first_read_char()),
-      Node::ReferenceLink(node) => node.children.first().and_then(|child| child.first_read_char()),
-      Node::ShortcutLink(node) => node.children.first().and_then(|child| child.first_read_char()),
-      _ => None,
-    }
+    self.first_read_text().and_then(|text| text.chars().next())
   }
 
   /// The last character of the node that a reader sees, which is what the
   /// whitespace after the node reads against. See [`Self::first_read_char`].
   pub fn last_read_char(&self) -> Option<char> {
-    match self {
-      Node::Text(node) => node.text.chars().last(),
-      Node::Code(node) => node.code.chars().last(),
-      Node::TextDecoration(node) => node.children.last().and_then(|child| child.last_read_char()),
-      Node::InlineLink(node) => node.children.last().and_then(|child| child.last_read_char()),
-      Node::ReferenceLink(node) => node.children.last().and_then(|child| child.last_read_char()),
-      Node::ShortcutLink(node) => node.children.last().and_then(|child| child.last_read_char()),
-      _ => None,
-    }
+    self.last_read_text().and_then(|text| text.chars().next_back())
   }
 
   /// Whether the character the node begins with belongs to a script written
@@ -81,6 +65,50 @@ impl<'a> Node<'a> {
   /// without spaces between its words.
   pub fn ends_with_unspaced_script(&self) -> bool {
     matches!(self.last_read_char(), Some(c) if crate::generation::utils::is_unspaced_script(c))
+  }
+
+  /// Whether a sentence ends with this node, which is where a line break is
+  /// written when text is wrapped by sentence.
+  pub fn ends_sentence(&self) -> bool {
+    self
+      .last_read_text()
+      .is_some_and(crate::generation::utils::ends_sentence)
+  }
+
+  /// Whether the node could begin a sentence.
+  pub fn starts_sentence(&self) -> bool {
+    self
+      .first_read_text()
+      .is_some_and(crate::generation::utils::starts_sentence)
+  }
+
+  /// The text the node begins with that a reader sees, which
+  /// [`Self::first_read_char`] reads its character from and which tells whether
+  /// a sentence could begin with the node.
+  fn first_read_text(&self) -> Option<&str> {
+    match self {
+      Node::Text(node) => Some(node.text),
+      Node::Code(node) => Some(&node.code),
+      Node::TextDecoration(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::InlineLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::ReferenceLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::ShortcutLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      _ => None,
+    }
+  }
+
+  /// The text the node ends with that a reader sees. See
+  /// [`Self::first_read_text`].
+  fn last_read_text(&self) -> Option<&str> {
+    match self {
+      Node::Text(node) => Some(node.text),
+      Node::Code(node) => Some(&node.code),
+      Node::TextDecoration(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::InlineLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::ReferenceLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::ShortcutLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      _ => None,
+    }
   }
 
   /// Whether the node is text that starts with a word that would become a list
