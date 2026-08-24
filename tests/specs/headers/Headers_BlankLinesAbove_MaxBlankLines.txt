@@ -1,0 +1,51 @@
+~~ heading.blankLinesAbove: 2, maxBlankLines: 3 ~~
+!! should write the configured number above a heading rather than the ones written !!
+Text.
+
+
+
+# Heading
+
+Text.
+
+[expect]
+Text.
+
+
+# Heading
+
+Text.
+
+!! should write it when fewer were written !!
+Text.
+
+# Heading
+
+[expect]
+Text.
+
+
+# Heading
+
+!! should keep the blank lines above other blocks up to the maximum !!
+Text.
+
+
+
+Text.
+
+
+
+
+Text.
+
+[expect]
+Text.
+
+
+
+Text.
+
+
+
+Text.

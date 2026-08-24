@@ -20,6 +20,11 @@ pub struct Configuration {
   pub list_indent_kind: ListIndentKind,
   /// The maximum number of consecutive blank lines to keep between blocks.
   pub max_blank_lines: u32,
+  /// The number of blank lines to write above a heading, which is written even
+  /// where `max_blank_lines` is lower. `None` keeps the blank lines that were
+  /// written, the same as any other block.
+  #[serde(rename = "heading.blankLinesAbove")]
+  pub heading_blank_lines_above: Option<u32>,
   #[serde(rename = "codeBlock.skipFormat")]
   pub code_block_skip_format: bool,
   #[serde(rename = "codeBlock.preserveIndentation")]

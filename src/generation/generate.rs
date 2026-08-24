@@ -149,7 +149,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
     if let Some(Node::List(last_list)) = &last_node {
       if let Node::List(list) = &node {
         if last_list.start_index.is_some() == list.start_index.is_some() {
-          items.extend(get_conditional_blank_line(node.span(), context));
+          items.extend(get_conditional_blank_line(node, context));
           items.extend(gen_list(list, true, context));
           if let Some(current_node) = node_iterator.next() {
             last_node = Some(node);
@@ -175,7 +175,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
-        items.extend(get_conditional_blank_line(node.span(), context));
+        items.extend(get_conditional_blank_line(node, context));
       } else if !matches!(node, Node::HardBreak(_)) {
         match last_node {
           Node::Heading(_)
@@ -189,7 +189,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           | Node::MetadataBlock(_)
           | Node::BlockQuote(_)
           | Node::DisplayMath(_) => {
-            items.extend(get_conditional_blank_line(node.span(), context));
+            items.extend(get_conditional_blank_line(node, context));
           }
           Node::Code(_)
           | Node::SoftBreak(_)
@@ -277,7 +277,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
               let blank_lines = std::cmp::min(new_line_count.saturating_sub(1), context.configuration.max_blank_lines);
               items.extend(get_blank_lines(blank_lines));
             } else {
-              items.extend(get_conditional_blank_line(node.span(), context));
+              items.extend(get_conditional_blank_line(node, context));
             }
           }
           Node::SourceFile(_)
@@ -373,12 +373,11 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
 
   return items;
 
-  fn get_conditional_blank_line(span: Span, context: &mut Context) -> PrintItems {
+  fn get_conditional_blank_line(node: &Node, context: &mut Context) -> PrintItems {
     // within a list two blocks may sit on consecutive lines, which is what
     // keeps the list tight. Everywhere else a blank line is what separates them
     let minimum = if context.is_in_list() { 0 } else { 1 };
-    let blank_lines = std::cmp::max(context.get_leading_blank_lines(span.start), minimum);
-    get_blank_lines(blank_lines)
+    get_blank_lines(get_blank_lines_above(node, minimum, context))
   }
 }
 
@@ -2125,9 +2124,11 @@ fn gen_task_list_marker_children(
 
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != children.len() {
-    items.extend(get_blank_lines(
-      context.get_leading_blank_lines(children[indent_child_index_end].span().start),
-    ));
+    items.extend(get_blank_lines(get_blank_lines_above(
+      &children[indent_child_index_end],
+      0,
+      context,
+    )));
   }
   items.extend(gen_nodes(&children[indent_child_index_end..], context));
   items
@@ -2528,6 +2529,19 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
     .map(|line| UnicodeWidthStr::width(line.trim_end_matches(WHITESPACE)))
     .max()
     .unwrap_or(0)
+}
+
+/// The number of blank lines to write above `node`, which is at least
+/// `minimum` and otherwise however many were written above it.
+///
+/// A heading takes the configured number instead, unless it's drawn up against
+/// the block above it, which is what keeps a list tight.
+fn get_blank_lines_above(node: &Node, minimum: u32, context: &Context) -> u32 {
+  let written = std::cmp::max(context.get_leading_blank_lines(node.span().start), minimum);
+  match (node, context.configuration.heading_blank_lines_above) {
+    (Node::Heading(_), Some(count)) if written > 0 => count,
+    _ => written,
+  }
 }
 
 /// Ends the current line and writes `count` blank lines below it.

@@ -242,6 +242,11 @@
       "minimum": 1,
       "type": "number"
     },
+    "heading.blankLinesAbove": {
+      "description": "The number of blank lines to write above a heading, which is written even where `maxBlankLines` is lower. When not specified, the blank lines that were written above a heading are kept, up to `maxBlankLines`.",
+      "minimum": 1,
+      "type": "number"
+    },
     "codeBlock.skipFormat": {
       "$ref": "#/definitions/codeBlock.skipFormat"
     },
