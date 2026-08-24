@@ -214,9 +214,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
-              } else if node
-                .starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
-              {
+              } else if starts_block_at_line_start(node, context) {
                 // text that would start a block can't be moved to the start of
                 // a line without changing what it means
                 items.push_space();
@@ -258,10 +256,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
                   // spaces is rendered, so it's kept as one rather than being
                   // written as the line break that would read as nothing
                   items.push_space();
-                } else if node
-                  .starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
-                  || node.starts_with_list_word()
-                {
+                } else if starts_block_at_line_start(node, context) || node.starts_with_list_word() {
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
@@ -469,29 +464,29 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   // a paragraph begins where a block does, and a hard break puts what follows
   // it at the start of a line too, so neither can be left to read as the start
   // of a block of its own
-  let (escaped, line_starts) = escaped_block_starts(&paragraph.children);
-  items.extend(
-    context.with_escaped_block_starts(escaped, line_starts, paragraph.span.end, |context| {
-      gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
-    }),
-  );
+  items.extend(context.with_paragraph_escapes(paragraph_escapes(paragraph), |context| {
+    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+  }));
   return items;
 
-  /// Where each bit of the paragraph's text that is written at the start of a
-  /// line starts, when it would be read as the start of a block.
-  fn escaped_block_starts(children: &[Node]) -> (Vec<(usize, usize)>, Vec<usize>) {
-    let mut starts = Vec::new();
+  /// What the paragraph has to be written with so that the text it writes at
+  /// the start of a line isn't read as the start of a block.
+  fn paragraph_escapes(paragraph: &Paragraph) -> ParagraphEscapes {
+    let mut block_starts = Vec::new();
     let mut line_starts = Vec::new();
     // the first line of a paragraph has nothing above it to be read together
     // with, so less of what it holds is markup than on the lines after it
     let mut escape: fn(&str) -> Option<usize> = block_start_escape;
     let mut at_line_start = true;
-    for child in children {
+    for child in &paragraph.children {
       if at_line_start {
         line_starts.push(child.span().start);
         if let Node::Text(text) = child {
           if let Some(position) = escape(text.text) {
-            starts.push((text.span.start, position));
+            block_starts.push(BlockStartEscape {
+              text_start: text.span.start,
+              position,
+            });
           }
         }
       }
@@ -500,7 +495,11 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
         escape = line_start_escape;
       }
     }
-    (starts, line_starts)
+    ParagraphEscapes {
+      block_starts,
+      line_starts,
+      end: paragraph.span.end,
+    }
   }
 }
 
@@ -692,7 +691,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   // an indented code block can only be written with indentation where nothing
   // above it would take that indentation for its own content, and where the
   // indentation of the lines after the first can match the first line's
-  let lines_up = !position.beside_marker || position.marker_lines_up;
+  let lines_up = position.marker.is_none_or(|marker| marker.lines_up);
   let is_fenced = code_block.is_fenced() || position.after_list || !lines_up;
   let indent_level = if is_fenced { 0 } else { 4 };
 
@@ -716,7 +715,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   }
 
   // body
-  if !is_fenced && position.beside_marker {
+  if !is_fenced && position.marker.is_some() {
     // the item's marker took the place of the first line's indentation, which
     // the printer only writes out for the lines after it
     items.push_sc(sc!("    "));
@@ -850,18 +849,12 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
 /// single space or line ending is a place the text may be wrapped, but any
 /// longer run of whitespace has to be kept at its original width.
 fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  let mut current_word = String::new();
-  let mut word_start = 0;
-  let mut was_last_newline = false;
+  let mut builder = CodeTextBuilder::new(text, context);
   let mut chars = text.char_indices().peekable();
 
   while let Some((index, c)) = chars.next() {
     if c != ' ' && c != '\n' {
-      if current_word.is_empty() {
-        word_start = index;
-      }
-      current_word.push(c);
+      builder.add_char(index, c);
       continue;
     }
 
@@ -873,60 +866,100 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 
     // whitespace is only somewhere the span can be broken when there is a word
     // on either side of it -- the space a span opens with is text of its own
-    let is_leading = current_word.is_empty() && items.is_empty();
-    if whitespace_count == 1 && chars.peek().is_some() && !is_leading {
-      push_word(
-        &mut items,
-        &mut current_word,
-        word_start,
-        text,
-        was_last_newline,
-        context,
-      );
-      was_last_newline = c == '\n' && context.configuration.text_wrap == TextWrap::Maintain;
+    if whitespace_count == 1 && chars.peek().is_some() && !builder.is_leading() {
+      builder.end_word(c == '\n');
     } else {
-      if current_word.is_empty() {
-        word_start = index;
-      }
-      // keep the width the same because a line ending renders as a space
-      current_word.push_str(&" ".repeat(whitespace_count));
+      builder.add_spaces(index, whitespace_count);
     }
   }
 
-  push_word(
-    &mut items,
-    &mut current_word,
-    word_start,
-    text,
-    was_last_newline,
-    context,
-  );
+  return builder.build();
 
-  return items;
-
-  fn push_word(
-    items: &mut PrintItems,
-    word: &mut String,
+  struct CodeTextBuilder<'a> {
+    items: PrintItems,
+    /// The span's text, which the word being written is read together with the
+    /// rest of in order to work out what a line would begin with.
+    text: &'a str,
+    /// The word being gathered, and where in `text` it begins.
+    word: String,
     word_start: usize,
-    text: &str,
-    was_last_newline: bool,
-    context: &Context,
-  ) {
-    if word.is_empty() {
-      return;
-    }
-    if !items.is_empty() {
-      // the words the span goes on with count as well as this one, since a
-      // block can be written as several of them (ex. a table's delimiter row)
-      if utils::wrapping_word_starts_block(word, &text[word_start..], text_can_be_wrapped_away(context)) {
-        items.push_space();
-      } else if was_last_newline {
-        items.push_signal(Signal::NewLine);
-      } else {
-        items.extend(get_space_or_newline_based_on_config(context, false));
+    /// Whether the whitespace that ran up to the word being gathered was a line
+    /// ending that the configuration keeps where it was written.
+    after_maintained_newline: bool,
+    context: &'a Context<'a>,
+  }
+
+  impl<'a> CodeTextBuilder<'a> {
+    pub fn new(text: &'a str, context: &'a Context) -> CodeTextBuilder<'a> {
+      CodeTextBuilder {
+        items: PrintItems::new(),
+        text,
+        word: String::new(),
+        word_start: 0,
+        after_maintained_newline: false,
+        context,
       }
     }
-    items.push_string(std::mem::take(word));
+
+    pub fn build(mut self) -> PrintItems {
+      self.flush_word();
+      self.items
+    }
+
+    pub fn add_char(&mut self, index: usize, character: char) {
+      self.start_word_at(index);
+      self.word.push(character);
+    }
+
+    /// Adds whitespace the span can't be broken at, keeping its width because a
+    /// line ending renders as a space.
+    pub fn add_spaces(&mut self, index: usize, count: usize) {
+      self.start_word_at(index);
+      self.word.push_str(&" ".repeat(count));
+    }
+
+    /// Ends the word at whitespace the span can be broken at, which
+    /// `is_newline` says was written as a line ending.
+    pub fn end_word(&mut self, is_newline: bool) {
+      self.flush_word();
+      self.after_maintained_newline = is_newline && self.context.configuration.text_wrap == TextWrap::Maintain;
+    }
+
+    /// Whether nothing has been written yet, where the whitespace that follows
+    /// is text the span opens with rather than somewhere it can be broken.
+    pub fn is_leading(&self) -> bool {
+      self.word.is_empty() && self.items.is_empty()
+    }
+
+    fn start_word_at(&mut self, index: usize) {
+      if self.word.is_empty() {
+        self.word_start = index;
+      }
+    }
+
+    fn flush_word(&mut self) {
+      if self.word.is_empty() {
+        return;
+      }
+      if !self.items.is_empty() {
+        self.items.extend(self.space_items());
+      }
+      self.items.push_string(std::mem::take(&mut self.word));
+    }
+
+    /// What to write in place of the whitespace that ran up to the word.
+    fn space_items(&self) -> PrintItems {
+      // the words the span goes on with count as well as this one, since a
+      // block can be written as several of them (ex. a table's delimiter row)
+      let following_text = &self.text[self.word_start..];
+      if utils::wrapping_word_starts_block(&self.word, following_text, text_can_be_wrapped_away(self.context)) {
+        return space();
+      }
+      if self.after_maintained_newline {
+        return Signal::NewLine.into();
+      }
+      get_space_or_newline_based_on_config(self.context, false)
+    }
   }
 }
 
@@ -1154,8 +1187,8 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     };
     // an underscore isn't read as a delimiter at all within a word, so only
     // asterisks will do there
-    let (before, after) = surrounding_chars(decoration, parent_content, context);
-    let within_word = is_word(before) || is_word(after);
+    let outside = surroundings(decoration, parent_content, context);
+    let within_word = is_word(outside.before) || is_word(outside.after);
     let prefers_underscores = prefers_underscores && !within_word;
     let (preferred, other) = if prefers_underscores {
       (underscores, asterisks)
@@ -1166,12 +1199,12 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     // the delimiter of a decoration written directly against this one is read by
     // what sits beside it, so changing this one's character would change theirs.
     // What the file already had parsed as this decoration, so it is safe.
-    if is_delimiter(before) || is_delimiter(after) {
+    if is_delimiter(outside.before) || is_delimiter(outside.after) {
       return written_delimiter(decoration, context);
     }
 
     for candidate in [preferred, other] {
-      if delimits(decoration, candidate, before, after, context) && !collides(decoration, candidate, context) {
+      if delimits(decoration, candidate, outside, context) && !collides(decoration, candidate, context) {
         return candidate;
       }
     }
@@ -1188,11 +1221,7 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// Where the line break beside the decoration isn't written out, the
   /// character past it is what ends up against the delimiter, so that's what's
   /// read here.
-  fn surrounding_chars(
-    decoration: &TextDecoration,
-    parent_content: Option<Span>,
-    context: &Context,
-  ) -> (Option<char>, Option<char>) {
+  fn surroundings(decoration: &TextDecoration, parent_content: Option<Span>, context: &Context) -> Surroundings {
     let span = decoration.span;
     let before = match parent_content {
       Some(content) if content.start == span.start => None,
@@ -1206,7 +1235,7 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
         .char_written_after(span.end)
         .or_else(|| context.file_text[span.end..].chars().next()),
     };
-    (before, after)
+    Surroundings { before, after }
   }
 
   fn is_word(c: Option<char>) -> bool {
@@ -1220,18 +1249,23 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// Whether the character reads as a delimiter at all where the decoration is
   /// written, which the text on either side of it decides -- an underscore
   /// between two letters is one of them rather than a delimiter.
-  fn delimits(
-    decoration: &TextDecoration,
-    delimiter: &str,
-    before: Option<char>,
-    after: Option<char>,
-    context: &Context,
-  ) -> bool {
+  fn delimits(decoration: &TextDecoration, delimiter: &str, outside: Surroundings, context: &Context) -> bool {
     let character = delimiter.chars().next().unwrap();
     let content = content_span(&decoration.children);
     let first = written_first_char(decoration.children.first(), content, context);
     let last = written_last_char(decoration.children.last(), content, context);
-    run_can_open(before, first, character) && run_can_close(last, after, character)
+    // the opening run is written between what precedes the decoration and the
+    // content it wraps, and the closing run between that content and what
+    // follows the decoration
+    let opening = Surroundings {
+      before: outside.before,
+      after: first,
+    };
+    let closing = Surroundings {
+      before: last,
+      after: outside.after,
+    };
+    run_can_open(opening, character) && run_can_close(closing, character)
   }
 
   /// Whether the delimiter would run into the content it is written around,
@@ -1318,22 +1352,36 @@ fn can_pair_with_delimiter(text: &str, delimiter: char) -> bool {
     // another node's punctuation -- either way, not whitespace
     let before = text[..start].chars().next_back().unwrap_or(delimiter);
     let after = text[end..].chars().next().unwrap_or(delimiter);
-    if run_can_pair(Some(before), Some(after), delimiter) {
+    let surroundings = Surroundings {
+      before: Some(before),
+      after: Some(after),
+    };
+    if run_can_pair(surroundings, delimiter) {
       return true;
     }
   }
   false
 }
 
-/// Whether a run of the character surrounded by those two can open or close
-/// emphasis, which is the "flanking" rule of the CommonMark spec.
-fn run_can_pair(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
-  run_can_open(before, after, delimiter) || run_can_close(before, after, delimiter)
+/// The characters written on either side of a run of delimiters, which is what
+/// decides whether the run reads as a delimiter at all. `None` stands for the
+/// edge of the text, which reads the same as whitespace.
+#[derive(Clone, Copy)]
+struct Surroundings {
+  before: Option<char>,
+  after: Option<char>,
 }
 
-/// Whether a run of the character surrounded by those two opens emphasis.
-fn run_can_open(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
-  let flanking = Flanking::new(before, after);
+/// Whether a run of the character written within those surroundings can open or
+/// close emphasis, which is the "flanking" rule of the CommonMark spec.
+fn run_can_pair(surroundings: Surroundings, delimiter: char) -> bool {
+  run_can_open(surroundings, delimiter) || run_can_close(surroundings, delimiter)
+}
+
+/// Whether a run of the character written within those surroundings opens
+/// emphasis.
+fn run_can_open(surroundings: Surroundings, delimiter: char) -> bool {
+  let flanking = Flanking::new(surroundings);
   if delimiter == '_' {
     // `_` can't be used within a word
     flanking.left && (!flanking.right || flanking.before_punctuation)
@@ -1342,9 +1390,10 @@ fn run_can_open(before: Option<char>, after: Option<char>, delimiter: char) -> b
   }
 }
 
-/// Whether a run of the character surrounded by those two closes emphasis.
-fn run_can_close(before: Option<char>, after: Option<char>, delimiter: char) -> bool {
-  let flanking = Flanking::new(before, after);
+/// Whether a run of the character written within those surroundings closes
+/// emphasis.
+fn run_can_close(surroundings: Surroundings, delimiter: char) -> bool {
+  let flanking = Flanking::new(surroundings);
   if delimiter == '_' {
     flanking.right && (!flanking.left || flanking.after_punctuation)
   } else {
@@ -1362,7 +1411,7 @@ struct Flanking {
 }
 
 impl Flanking {
-  fn new(before: Option<char>, after: Option<char>) -> Flanking {
+  fn new(Surroundings { before, after }: Surroundings) -> Flanking {
     let before_whitespace = before.is_none_or(char::is_whitespace);
     let after_whitespace = after.is_none_or(char::is_whitespace);
     let before_punctuation = before.is_some_and(|c| c.is_ascii_punctuation());
@@ -1907,7 +1956,6 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
   context.mark_in_list(|context| {
     let mut items = PrintItems::new();
 
-    // generate items
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
         items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
@@ -1928,9 +1976,11 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         crate::configuration::ListIndentKind::CommonMark => marker_width,
         crate::configuration::ListIndentKind::PythonMarkdown => std::cmp::max(marker_width, 4),
       };
-      // only a bullet marker shares its character with a thematic break
-      let marker_char = list.start_index.is_none().then(|| prefix_text.chars().next()).flatten();
-      let marker_lines_up = indent_increment == marker_width;
+      let marker = ListItemMarker {
+        // only a bullet marker shares its character with a thematic break
+        char: list.start_index.is_none().then(|| prefix_text.chars().next()).flatten(),
+        lines_up: indent_increment == marker_width,
+      };
       context.indent_level += indent_increment;
       items.push_string(prefix_text);
       // the space is dropped where nothing follows it on the line, so an item
@@ -1938,7 +1988,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       // does follow is the item's to say, not something to measure: content of
       // no width is content all the same
       items.push_signal(Signal::SpaceIfNotTrailing);
-      let child_items = context.mark_in_list_item(marker_char, marker_lines_up, |context| generate(child, context));
+      let child_items = context.mark_in_list_item(marker, |context| generate(child, context));
       items.extend(with_indent_times(child_items, indent_increment));
       context.indent_level -= indent_increment;
     }
@@ -2098,10 +2148,11 @@ fn gen_horizontal_rule(_: &HorizontalRule, position: NodePosition) -> PrintItems
   // a break made of the same character as the marker beside it would read as
   // one long break instead (ex. `- ---`), and one made of dashes below a
   // paragraph would underline it into a heading
-  let runs_together = position.beside_marker && position.marker_char == Some('-');
-  match runs_together || position.after_paragraph {
-    true => "***".into(),
-    false => "---".into(),
+  let runs_together = position.marker.is_some_and(|marker| marker.char == Some('-'));
+  if runs_together || position.after_paragraph {
+    "***".into()
+  } else {
+    "---".into()
   }
 }
 
@@ -2268,12 +2319,10 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
       // + 1 in order to have at least one dash
       let mut max_width = get_column_alignment_properties(*column_alignment).count() + 1;
 
-      // get header width
       if let Some((_, width)) = header.get(i) {
         max_width = std::cmp::max(max_width, *width);
       }
 
-      // check each row width
       for row in rows.iter() {
         if let Some((_, width)) = row.get(i) {
           max_width = std::cmp::max(max_width, *width);
@@ -2420,11 +2469,14 @@ fn sentence_ends_between(last_node: &Node, node: &Node, context: &Context) -> bo
     && !node.starts_with_list_word()
 }
 
-/// The node's text through to the end of the block it's written in, which is
-/// how far the line it begins can run on.
-fn following_text<'a>(node: &Node, context: &'a Context) -> &'a str {
+/// Whether the node would start a block of its own, or turn the line above it
+/// into one, if it were moved to the start of a line by wrapping.
+fn starts_block_at_line_start(node: &Node, context: &Context) -> bool {
+  // the line the node begins can run on past the end of it, since a line break
+  // within a block is written as a break of its own
   let span = node.span();
-  context.text_from(span.start, span.end)
+  let following_text = context.text_from(span.start, span.end);
+  node.starts_block_at_line_start(following_text, text_can_be_wrapped_away(context))
 }
 
 /// Whether the text after a word can be written on the line below it, which is

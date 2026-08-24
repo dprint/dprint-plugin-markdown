@@ -327,11 +327,6 @@ pub fn is_list_word(word: &str) -> bool {
 
 /// The number of blank lines that precede the position at `index`, counting no
 /// further than `max` of them.
-///
-/// When `in_block_quote` is `true`, the block quote markers (`>`) that prefix an
-/// otherwise blank line are skipped while scanning backwards. Without this a blank
-/// line inside a block quote (which is written as `>`) would not be recognized as
-/// blank because of the leading `>` character.
 pub fn get_leading_blank_lines(index: usize, text: &str, in_block_quote: bool, max: u32) -> u32 {
   let mut newline_count = 0;
   // whether the character to the right of this one was a newline, which makes

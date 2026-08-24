@@ -59,10 +59,7 @@ fn format_text_inner(
   Ok(Some(dprint_core::formatting::format(
     || {
       let mut context = Context::new(markdown_text, config, format_code_block_text);
-      #[allow(clippy::let_and_return)]
-      let print_items = generate(&source_file.into(), &mut context);
-      // eprintln!("{}", print_items.get_as_text());
-      print_items
+      generate(&source_file.into(), &mut context)
     },
     config_to_print_options(file_text, config),
   )))
@@ -81,10 +78,7 @@ pub fn trace_file(
   dprint_core::formatting::trace_printing(
     || {
       let mut context = Context::new(markdown_text, config, format_code_block_text);
-      #[allow(clippy::let_and_return)]
-      let print_items = generate(&source_file.into(), &mut context);
-      // eprintln!("{}", print_items.get_as_text());
-      print_items
+      generate(&source_file.into(), &mut context)
     },
     config_to_print_options(file_text, config),
   )

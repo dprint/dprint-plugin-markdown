@@ -509,10 +509,10 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         // leaving the rest of the paragraph above the table
         if let Some(alignment) = table_delimiter_row(rest, content.last().unwrap().rest()) {
           self.push_paragraph(&content[..content.len() - 1], nodes);
-          return self.parse_table(lines, end - 1, end, alignment, nodes);
+          return self.parse_table(lines, end, alignment, nodes);
         }
         if is_definition_marker(rest) {
-          return self.parse_definition_list(lines, index, end, content, nodes);
+          return self.parse_definition_list(lines, end, content, nodes);
         }
       }
       if !line.is_lazy && line.indent_columns() < CODE_INDENT && self.interrupts_paragraph(lines, end) {
@@ -530,7 +530,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       && lines[after_blanks].indent_columns() < CODE_INDENT
       && is_definition_marker(lines[after_blanks].rest())
     {
-      return self.parse_definition_list(lines, index, after_blanks, content, nodes);
+      return self.parse_definition_list(lines, after_blanks, content, nodes);
     }
 
     self.push_paragraph(&content, nodes);
@@ -590,17 +590,19 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     index + found.min(content.len())
   }
 
+  /// Parses the table whose delimiter row is at `delimiter_index`, its header
+  /// being the line directly above that row.
   fn parse_table(
     &self,
     lines: &[ContentLine<'a>],
-    index: usize,
     delimiter_index: usize,
     column_alignment: Vec<ColumnAlignment>,
     nodes: &mut Vec<Node<'a>>,
   ) -> usize {
+    let header_line = lines[delimiter_index - 1];
     let header = TableHead {
-      span: lines[index].trim_end().span(),
-      cells: self.parse_table_cells(lines[index]),
+      span: header_line.trim_end().span(),
+      cells: self.parse_table_cells(header_line),
     };
 
     let mut rows = Vec::new();
@@ -633,7 +635,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
     nodes.push(
       Table {
-        span: Span::new(lines[index].rest_start(), lines[end - 1].trim_end().end()),
+        span: Span::new(header_line.rest_start(), lines[end - 1].trim_end().end()),
         header,
         column_alignment,
         rows,
@@ -658,16 +660,18 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     cells
   }
 
-  /// Parses the definition list whose terms are the lines gathered so far and
+  /// Parses the definition list whose first group of terms is `titles` and
   /// whose first definition marker is at `marker_index`.
   fn parse_definition_list(
     &self,
     lines: &[ContentLine<'a>],
-    index: usize,
     marker_index: usize,
     titles: Vec<ContentLine<'a>>,
     nodes: &mut Vec<Node<'a>>,
   ) -> usize {
+    // the list begins where its first term does, which has to be read before
+    // the loop below replaces `titles` with the next group of them
+    let list_start = titles.first().unwrap_or(&lines[marker_index]).rest_start();
     let mut children: Vec<Node<'a>> = Vec::new();
     let mut end = marker_index;
     let mut titles = titles;
@@ -704,7 +708,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
     nodes.push(
       DefinitionList {
-        span: Span::new(lines[index].rest_start(), children.last().unwrap().span().end),
+        span: Span::new(list_start, children.last().unwrap().span().end),
         children,
       }
       .into(),
