@@ -1,0 +1,42 @@
+~~ headingKind: setext ~~
+!! should not underline html, which begins a block of its own !!
+# <a>
+
+## <a href="y">
+
+[expect]
+# <a>
+
+## <a href="y">
+
+!! should not underline a list marker, which counts from anywhere where a block begins !!
+# 6. x
+
+## 6. x
+
+# - item
+
+[expect]
+# 6. x
+
+## 6. x
+
+# - item
+
+!! should not underline a link reference definition !!
+# [a]: /u
+
+[expect]
+# [a]: /u
+
+!! should still underline text that only looks like one of them !!
+# [a]
+
+# not: a definition
+
+[expect]
+[a]
+===
+
+not: a definition
+=================

@@ -52,14 +52,13 @@ impl<'a> Node<'a> {
     self.first_word().is_some_and(crate::generation::utils::is_list_word)
   }
 
-  /// Whether the node is text that would start a new block if it were moved to
-  /// the start of a line, which the formatter can't do to it.
-  pub fn starts_block_in_paragraph(&self) -> bool {
+  /// Whether the node would begin a block of its own where a block begins,
+  /// rather than being read as the paragraph it's written as (ex. the text a
+  /// setext heading's underline is written below).
+  pub fn starts_block_at_block_start(&self) -> bool {
     match self {
-      Node::Text(text) => crate::parser::starts_block_in_paragraph(text.text),
-      // a block of html already stands on its own, so nothing about where it
-      // is written can turn it into one
-      Node::Html(html) => !html.is_block && crate::parser::starts_block_in_paragraph(&html.text),
+      Node::Text(text) => crate::parser::starts_block_at_block_start(text.text),
+      Node::Html(html) => !html.is_block && crate::parser::starts_block_at_block_start(&html.text),
       _ => false,
     }
   }

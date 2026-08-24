@@ -306,13 +306,14 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   // setext headings only apply to level 1 and level 2, and only where the text
   // they underline reads as the paragraph a heading is made of -- an html
   // comment at the start of a line is a block of its own, which nothing can
-  // underline
+  // underline. The heading's text begins a block rather than interrupting one,
+  // so it's what a block start reads that decides this
   if heading.level < 3
     && context.configuration.heading_kind == HeadingKind::Setext
     && !heading
       .children
       .first()
-      .is_some_and(|child| child.starts_block_in_paragraph())
+      .is_some_and(|child| child.starts_block_at_block_start())
   {
     let children = gen_nodes(&heading.children, context);
     let (children, cloned_children) = clone_items(children);
