@@ -1,0 +1,15 @@
+~~ textWrap: always, lineWidth: 8 ~~
+!! should not leave the words of a table's delimiter row on a line of a code span's own !!
+`aa|bb | --- | --- | zz`
+
+[expect]
+`aa|bb | --- | ---
+| zz`
+
+!! should still break a span between its words !!
+`aa bb cc dd ee`
+
+[expect]
+`aa bb
+cc dd
+ee`

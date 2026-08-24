@@ -370,9 +370,9 @@ impl<'a> Context<'a> {
     &self.file_text[start..end]
   }
 
-  /// Whether the text starting here is written at the start of a line, which
-  /// is where nothing precedes it that a line break could be written at.
-  pub fn is_line_start_text(&self, start: usize) -> bool {
+  /// Whether what starts here is written at the start of a line, with nothing
+  /// before it on that line.
+  pub fn is_line_start(&self, start: usize) -> bool {
     self.line_start_texts.contains(&start)
   }
 
