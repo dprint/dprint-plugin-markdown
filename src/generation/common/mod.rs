@@ -42,14 +42,14 @@ impl<'a> Node<'a> {
   /// and so does a link whose text begins with one -- what's read there is the
   /// text of that node, not of the one after it.
   ///
-  /// Emphasis and the rest of the text decorations are not looked through:
-  /// which character delimits one is chosen from the whitespace beside it, so
-  /// taking that whitespace away would leave a delimiter that no longer reads
-  /// as one.
+  /// Whether a decoration read through this way keeps reading as one once the
+  /// whitespace beside it is taken away is decided separately, since which
+  /// character delimits it is chosen by what ends up written against it.
   pub fn first_read_char(&self) -> Option<char> {
     match self {
       Node::Text(node) => node.text.chars().next(),
       Node::Code(node) => node.code.chars().next(),
+      Node::TextDecoration(node) => node.children.first().and_then(|child| child.first_read_char()),
       Node::InlineLink(node) => node.children.first().and_then(|child| child.first_read_char()),
       Node::ReferenceLink(node) => node.children.first().and_then(|child| child.first_read_char()),
       Node::ShortcutLink(node) => node.children.first().and_then(|child| child.first_read_char()),
@@ -63,6 +63,7 @@ impl<'a> Node<'a> {
     match self {
       Node::Text(node) => node.text.chars().last(),
       Node::Code(node) => node.code.chars().last(),
+      Node::TextDecoration(node) => node.children.last().and_then(|child| child.last_read_char()),
       Node::InlineLink(node) => node.children.last().and_then(|child| child.last_read_char()),
       Node::ReferenceLink(node) => node.children.last().and_then(|child| child.last_read_char()),
       Node::ShortcutLink(node) => node.children.last().and_then(|child| child.last_read_char()),
@@ -154,13 +155,16 @@ impl<'a> Node<'a> {
   /// Unlike [`Self::starts_block_in_paragraph`] this counts what the node's
   /// first word would start on its own, since the text after it can wrap onto
   /// the line below and leave it there alone.
-  pub fn starts_block_at_line_start(&self, word_can_be_left_alone: bool) -> bool {
+  pub fn starts_block_at_line_start(&self, following_text: &str, word_can_be_left_alone: bool) -> bool {
     match self {
-      Node::Text(text) => crate::generation::utils::starts_block_at_line_start(text.text, word_can_be_left_alone),
+      Node::Text(text) => {
+        crate::generation::utils::starts_block_at_line_start(text.text, following_text, word_can_be_left_alone)
+      }
       // a block of html already stands on its own, so nothing about where it
       // is written can turn it into one
       Node::Html(html) => {
-        !html.is_block && crate::generation::utils::starts_block_at_line_start(&html.text, word_can_be_left_alone)
+        !html.is_block
+          && crate::generation::utils::starts_block_at_line_start(&html.text, following_text, word_can_be_left_alone)
       }
       _ => false,
     }

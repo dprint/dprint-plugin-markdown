@@ -7,11 +7,25 @@ use regex::Regex;
 
 use super::utils::*;
 use crate::configuration::Configuration;
+use crate::configuration::TextWrap;
 use crate::format_text;
 use crate::format_text::FormatError;
 use crate::parser::Span;
 
 type FormatResult = Result<Option<String>, FormatError>;
+
+/// The line breaks that aren't written out, and the characters that end up
+/// written against each other in their place.
+///
+/// Both are held by where the node beside the break begins or ends, in order,
+/// so that one can be looked up by that.
+#[derive(Default)]
+pub struct DroppedBreaks {
+  /// The last character written before the node beginning at each position.
+  pub before: Vec<(usize, char)>,
+  /// The first character written after the node ending at each position.
+  pub after: Vec<(usize, char)>,
+}
 
 /// Where a node sits among the ones around it, which decides how some of them
 /// have to be written.
@@ -67,6 +81,13 @@ pub struct Context<'a> {
   /// when it has to be escaped so that it isn't read as the start of a block
   /// of its own.
   escaped_block_starts: Vec<(usize, usize)>,
+  /// Where each bit of text written at the start of a line starts.
+  line_start_texts: Vec<usize>,
+  /// Where the block being written ends, which bounds how far the text of one
+  /// of its lines can run.
+  block_end: Option<usize>,
+  /// The line breaks between the nodes being written that aren't written out.
+  dropped_breaks: DroppedBreaks,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The character the list item being generated is marked with.
@@ -116,6 +137,9 @@ impl<'a> Context<'a> {
       enclosing_decoration: None,
       escaped_closing_hashes: None,
       escaped_block_starts: Vec::new(),
+      line_start_texts: Vec::new(),
+      block_end: None,
+      dropped_breaks: Default::default(),
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker_char: None,
       list_marker_lines_up: true,
@@ -325,12 +349,72 @@ impl<'a> Context<'a> {
   pub fn with_escaped_block_starts<T>(
     &mut self,
     starts: Vec<(usize, usize)>,
+    line_starts: Vec<usize>,
+    block_end: usize,
     func: impl FnOnce(&mut Context) -> T,
   ) -> T {
     let previous = std::mem::replace(&mut self.escaped_block_starts, starts);
+    let previous_line_starts = std::mem::replace(&mut self.line_start_texts, line_starts);
+    let previous_end = self.block_end.replace(block_end);
     let result = func(self);
     self.escaped_block_starts = previous;
+    self.line_start_texts = previous_line_starts;
+    self.block_end = previous_end;
     result
+  }
+
+  /// The text from `start` through to the end of the block being written,
+  /// which is how far a line of it can run on.
+  pub fn text_from(&self, start: usize, fallback_end: usize) -> &str {
+    let end = self.block_end.filter(|end| *end >= start).unwrap_or(fallback_end);
+    &self.file_text[start..end]
+  }
+
+  /// Whether the text starting here is written at the start of a line, which
+  /// is where nothing precedes it that a line break could be written at.
+  pub fn is_line_start_text(&self, start: usize) -> bool {
+    self.line_start_texts.contains(&start)
+  }
+
+  /// Generates a run of nodes, `dropped` holding the line breaks within it and
+  /// everything nested in it that aren't written out.
+  pub fn with_dropped_breaks<T>(&mut self, dropped: DroppedBreaks, func: impl FnOnce(&mut Context) -> T) -> T {
+    let previous = std::mem::replace(&mut self.dropped_breaks, dropped);
+    let result = func(self);
+    self.dropped_breaks = previous;
+    result
+  }
+
+  /// Whether the line break written before the node starting here is dropped
+  /// rather than written out.
+  pub fn drops_break_before(&self, start: usize) -> bool {
+    self
+      .dropped_breaks
+      .before
+      .binary_search_by_key(&start, |(at, _)| *at)
+      .is_ok()
+  }
+
+  /// The character written directly before the node starting here, where the
+  /// line break between them is dropped.
+  pub fn char_written_before(&self, start: usize) -> Option<char> {
+    self.written_char(&self.dropped_breaks.before, start)
+  }
+
+  /// The character written directly after the node ending here, where the line
+  /// break between them is dropped.
+  pub fn char_written_after(&self, end: usize) -> Option<char> {
+    self.written_char(&self.dropped_breaks.after, end)
+  }
+
+  fn written_char(&self, at: &[(usize, char)], position: usize) -> Option<char> {
+    // a break that is kept is still written out, so nothing moves against it
+    if self.configuration.text_wrap == TextWrap::Maintain {
+      return None;
+    }
+    at.binary_search_by_key(&position, |(at, _)| *at)
+      .ok()
+      .map(|index| at[index].1)
   }
 
   /// Where a backslash goes in the text starting here, when it is written

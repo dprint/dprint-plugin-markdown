@@ -30,7 +30,7 @@
 [expect]
 ![日](https://dprint.dev/a.png) 日本語
 
-!! should keep the line break beside a text decoration, whose delimiter is chosen from the whitespace around it !!
+!! should drop a line break beside a text decoration !!
 日本語
 *テスト*
 
@@ -38,9 +38,21 @@
 そして次へ
 
 [expect]
-日本語 _テスト_
+日本語*テスト*
 
-実行**します** そして次へ
+実行**します**そして次へ
+
+!! should keep it where the decoration's delimiter would stop reading as one !!
+**日本、**
+そして次へ
+
+日本語
+*テスト、*
+
+[expect]
+**日本、** そして次へ
+
+日本語 _テスト、_
 
 !! should keep the line break where the delimiters would run together !!
 **日本語**
@@ -77,3 +89,40 @@
 
 [expect]
 日本語 <https://例え.jp>
+
+!! should keep the line break where the delimiter isn't written against the text it holds !!
+日本語
+*`コード`*
+
+日本語
+**_テスト_**
+
+[expect]
+日本語 _`コード`_
+
+日本語 **_テスト_**
+
+!! should keep it where a delimiter written beside the decoration lengthens its run !!
+日本語
+*テスト**
+
+[expect]
+日本語 *テスト**
+
+!! should keep it where the same kind of decoration is written within !!
+日本語
+_テ*ス*ト_
+
+[expect]
+日本語 _テ*ス*ト_
+
+!! should keep it within a reference's label, which the reference is matched by !!
+[_日本_
+語です]
+
+[_日本_ 語です]: https://dprint.dev
+
+[expect]
+[_日本_ 語です]
+
+[_日本_ 語です]: https://dprint.dev

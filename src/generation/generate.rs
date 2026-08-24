@@ -68,10 +68,78 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 }
 
 fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
   if nodes.is_empty() {
-    return items;
+    return PrintItems::new();
   }
+  let dropped = dropped_breaks(nodes, context);
+  context.with_dropped_breaks(dropped, |context| gen_nodes_within_breaks(nodes, context))
+}
+
+/// The line breaks within the nodes, and everything nested in them, that
+/// aren't written out -- which is where a break between two characters of a
+/// script written without spaces reads as nothing at all.
+///
+/// These are worked out once for the whole tree before any of it is written,
+/// so that everything written from it agrees about what ends up beside what.
+/// The delimiters a text decoration is written with are chosen by the
+/// characters on either side of it, and a decoration nested within another is
+/// asked for its delimiters while the run it belongs to is still being
+/// measured -- so nothing below here may be left out.
+fn dropped_breaks(nodes: &[Node], context: &Context) -> DroppedBreaks {
+  let mut dropped = DroppedBreaks::default();
+  // a reference is matched by the text of its label, so a break written within
+  // one is part of what it's matched by and has to stay
+  if context.is_preserving_decorations() {
+    return dropped;
+  }
+  push_dropped_breaks(nodes, context, &mut dropped);
+  dropped.before.sort_by_key(|(at, _)| *at);
+  dropped.after.sort_by_key(|(at, _)| *at);
+  dropped
+}
+
+fn push_dropped_breaks(nodes: &[Node], context: &Context, dropped: &mut DroppedBreaks) {
+  let mut last_node: Option<&Node> = None;
+  for node in nodes.iter().filter(|node| !matches!(node, Node::SoftBreak(_))) {
+    if let Some(last_node) = last_node {
+      let between = (last_node.span().end, node.span().start);
+      if context.get_new_lines_in_range(between.0, between.1) == 1 && drops_break_between(last_node, node, context) {
+        let before = last_node.span().text(context.file_text).chars().last();
+        let after = node.span().text(context.file_text).chars().next();
+        if let (Some(before), Some(after)) = (before, after) {
+          dropped.before.push((node.span().start, before));
+          dropped.after.push((last_node.span().end, after));
+        }
+      }
+    }
+    last_node = Some(node);
+    if let Some(children) = written_children(node) {
+      push_dropped_breaks(children, context, dropped);
+    }
+  }
+}
+
+/// The nodes written within this one, which hold breaks of their own.
+fn written_children<'a>(node: &'a Node<'a>) -> Option<&'a [Node<'a>]> {
+  match node {
+    Node::TextDecoration(node) => Some(&node.children),
+    Node::InlineLink(node) => Some(&node.children),
+    // a reference link is matched by the text of its label, so a break written
+    // within one is part of what it's matched by and has to stay
+    _ => None,
+  }
+}
+
+/// Whether the line break between the two nodes reads as nothing, and so is
+/// dropped rather than written out as the space it would otherwise read as.
+fn drops_break_between(last_node: &Node, node: &Node, context: &Context) -> bool {
+  last_node.ends_with_unspaced_script()
+    && node.starts_with_unspaced_script()
+    && can_be_written_beside(last_node, node, context.file_text)
+}
+
+fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems {
+  let mut items = PrintItems::new();
 
   let mut last_node: Option<&Node> = None;
   let mut node_iterator = nodes.iter().filter(|n| !matches!(n, Node::SoftBreak(_)));
@@ -146,16 +214,15 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
-              } else if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) {
+              } else if node
+                .starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
+              {
                 // text that would start a block can't be moved to the start of
                 // a line without changing what it means
                 items.push_space();
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
-              } else if last_node.ends_with_unspaced_script()
-                && node.starts_with_unspaced_script()
-                && can_be_written_beside(last_node, node, context.file_text)
-              {
+              } else if context.drops_break_before(node.span().start) {
                 items.extend(get_unspaced_script_newline_wrapping(
                   context,
                   sentence_ends_between(last_node, node, context),
@@ -186,7 +253,15 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               };
 
               if needs_space {
-                if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) || node.starts_with_list_word() {
+                if drops_break_between(last_node, node, context) {
+                  // a space between two characters of a script written without
+                  // spaces is rendered, so it's kept as one rather than being
+                  // written as the line break that would read as nothing
+                  items.push_space();
+                } else if node
+                  .starts_block_at_line_start(following_text(node, context), text_can_be_wrapped_away(context))
+                  || node.starts_with_list_word()
+                {
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
@@ -394,16 +469,19 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   // a paragraph begins where a block does, and a hard break puts what follows
   // it at the start of a line too, so neither can be left to read as the start
   // of a block of its own
-  let escaped = escaped_block_starts(&paragraph.children);
-  items.extend(context.with_escaped_block_starts(escaped, |context| {
-    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
-  }));
+  let (escaped, line_starts) = escaped_block_starts(&paragraph.children);
+  items.extend(
+    context.with_escaped_block_starts(escaped, line_starts, paragraph.span.end, |context| {
+      gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+    }),
+  );
   return items;
 
   /// Where each bit of the paragraph's text that is written at the start of a
   /// line starts, when it would be read as the start of a block.
-  fn escaped_block_starts(children: &[Node]) -> Vec<(usize, usize)> {
+  fn escaped_block_starts(children: &[Node]) -> (Vec<(usize, usize)>, Vec<usize>) {
     let mut starts = Vec::new();
+    let mut line_starts = Vec::new();
     // the first line of a paragraph has nothing above it to be read together
     // with, so less of what it holds is markup than on the lines after it
     let mut escape: fn(&str) -> Option<usize> = block_start_escape;
@@ -411,6 +489,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
     for child in children {
       if at_line_start {
         if let Node::Text(text) = child {
+          line_starts.push(text.span.start);
           if let Some(position) = escape(text.text) {
             starts.push((text.span.start, position));
           }
@@ -421,7 +500,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
         escape = line_start_escape;
       }
     }
-    starts
+    (starts, line_starts)
   }
 }
 
@@ -811,7 +890,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     if !items.is_empty() {
       // only the chunk is looked at, since a code span's text is written out
       // in chunks rather than a line at a time
-      if utils::wrapping_word_starts_block(word, text_can_be_wrapped_away(context)) {
+      if utils::wrapping_word_starts_block(word, word, text_can_be_wrapped_away(context)) {
         items.push_space();
       } else if was_last_newline {
         items.push_signal(Signal::NewLine);
@@ -826,7 +905,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
   if let Some(position) = context.block_start_escape_at(text.span.start) {
     let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
-    return gen_str(&escaped, context);
+    return gen_str(&escaped, None, context);
   }
   if context.is_escaping_closing_hashes(text.span.start) {
     // the hashes are escaped where they start, which is enough to keep the
@@ -837,9 +916,9 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
       &text.text[..text.text.len() - hashes],
       &text.text[text.text.len() - hashes..]
     );
-    return gen_str(&escaped, context);
+    return gen_str(&escaped, None, context);
   }
-  gen_str(text.text, context)
+  gen_str(text.text, Some(text.span.start), context)
 }
 
 /// Whether the node is a callout header (ex. `[!NOTE]`), which is only
@@ -859,8 +938,14 @@ fn is_callout_text(text: &str) -> bool {
   !kind.is_empty() && kind.chars().all(|c| c.is_ascii_uppercase())
 }
 
-fn gen_str(text: &str, context: &mut Context) -> PrintItems {
-  let mut text_builder = TextBuilder::new(text, context);
+/// Writes out text as the words it wraps at.
+///
+/// `text_start` is where the text was read from, which lets a word be looked at
+/// together with what follows it in the file rather than only what follows it
+/// in this node. It's left out where the text isn't what the file holds (ex.
+/// where a character has been escaped).
+fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> PrintItems {
+  let mut text_builder = TextBuilder::new(text, text_start, context);
 
   for (index, c) in text.char_indices() {
     text_builder.add_char(index, c);
@@ -873,6 +958,17 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     /// The text being written, which the words are read back out of in order
     /// to work out what a line would begin with.
     text: &'a str,
+    /// Where the text was read from, which a word is looked at from so that
+    /// what follows it in the file counts as well as what follows it here.
+    text_start: Option<usize>,
+    /// How far the words the text begins with run, where they would start a
+    /// block of their own on a line by themselves. Nothing before the end of
+    /// them can be written as a line break, since the text after them can be
+    /// wrapped away and leave them there alone.
+    leading_block_words_end: usize,
+    /// Where the last word written began, which says whether it belongs to
+    /// those leading words.
+    last_word_start: usize,
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
@@ -881,10 +977,13 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
   }
 
   impl<'a> TextBuilder<'a> {
-    pub fn new(text: &'a str, context: &'a Context) -> TextBuilder<'a> {
+    pub fn new(text: &'a str, text_start: Option<usize>, context: &'a Context) -> TextBuilder<'a> {
       TextBuilder {
         items: PrintItems::new(),
         text,
+        text_start,
+        leading_block_words_end: utils::leading_block_words_end(text).unwrap_or(0),
+        last_word_start: 0,
         last_char: None,
         current_word: None,
         context,
@@ -919,6 +1018,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
           self.items.extend(self.space_items(start, &current_word));
         }
 
+        self.last_word_start = start;
         self.last_char = current_word.chars().last();
         self
           .items
@@ -928,7 +1028,19 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
 
     /// What to write in place of the space that ran up to the next word.
     fn space_items(&self, next_word_start: usize, next_word: &str) -> PrintItems {
-      if utils::wrapping_word_starts_block(&self.text[next_word_start..], text_can_be_wrapped_away(self.context)) {
+      if self.last_word_start < self.leading_block_words_end && self.is_at_line_start() {
+        // the word before this one is one of the leading words, which have to
+        // be kept off a line of their own
+        return space();
+      }
+      let line_text = &self.text[next_word_start..];
+      // the words the line begins with can run on past the end of this node,
+      // since a line break within a block is written as a break of its own
+      let following_text = match self.text_start {
+        Some(start) => self.context.text_from(start + next_word_start, start + self.text.len()),
+        None => line_text,
+      };
+      if utils::wrapping_word_starts_block(line_text, following_text, text_can_be_wrapped_away(self.context)) {
         // the text would start a block of its own at the start of a line, so
         // it has to be kept off one
         return space();
@@ -949,6 +1061,12 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
       self.context.configuration.text_wrap == TextWrap::Sentence
         && utils::ends_sentence(&self.text[..next_word_start])
         && utils::starts_sentence(next_word)
+    }
+
+    /// Whether the text was written at the start of a line, which is where a
+    /// line break can't have been written before the words it begins with.
+    fn is_at_line_start(&self) -> bool {
+      matches!(self.text_start, Some(start) if self.context.is_line_start_text(start))
     }
 
     /// Whether the space sits between two characters of a script written
@@ -1020,7 +1138,7 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     // the delimiter of a decoration written directly against this one is read by
     // what sits beside it, so changing this one's character would change theirs.
     // What the file already had parsed as this decoration, so it is safe.
-    if within_word || is_delimiter(before) || is_delimiter(after) {
+    if is_delimiter(before) || is_delimiter(after) {
       return written_delimiter(decoration, context);
     }
 
@@ -1038,6 +1156,10 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// delimiters of the decoration it is nested directly within -- those are
   /// written out here too, so they are chosen to sit beside this one rather
   /// than being something this one has to avoid.
+  ///
+  /// Where the line break beside the decoration isn't written out, the
+  /// character past it is what ends up against the delimiter, so that's what's
+  /// read here.
   fn surrounding_chars(
     decoration: &TextDecoration,
     parent_content: Option<Span>,
@@ -1046,11 +1168,15 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     let span = decoration.span;
     let before = match parent_content {
       Some(content) if content.start == span.start => None,
-      _ => context.file_text[..span.start].chars().next_back(),
+      _ => context
+        .char_written_before(span.start)
+        .or_else(|| context.file_text[..span.start].chars().next_back()),
     };
     let after = match parent_content {
       Some(content) if content.end == span.end => None,
-      _ => context.file_text[span.end..].chars().next(),
+      _ => context
+        .char_written_after(span.end)
+        .or_else(|| context.file_text[span.end..].chars().next()),
     };
     (before, after)
   }
@@ -2253,6 +2379,13 @@ fn sentence_ends_between(last_node: &Node, node: &Node, context: &Context) -> bo
     && !node.starts_with_list_word()
 }
 
+/// The node's text through to the end of the block it's written in, which is
+/// how far the line it begins can run on.
+fn following_text<'a>(node: &Node, context: &'a Context) -> &'a str {
+  let span = node.span();
+  context.text_from(span.start, span.end)
+}
+
 /// Whether the text after a word can be written on the line below it, which is
 /// what would leave the word by itself at the start of a line.
 ///
@@ -2318,7 +2451,54 @@ fn space() -> PrintItems {
 fn can_be_written_beside(last_node: &Node, node: &Node, file_text: &str) -> bool {
   let last = last_node.span().text(file_text).chars().last();
   let next = node.span().text(file_text).chars().next();
-  !matches!((last, next), (Some(last), Some(next)) if last.is_ascii_punctuation() && next.is_ascii_punctuation())
+  if matches!((last, next), (Some(last), Some(next)) if last.is_ascii_punctuation() && next.is_ascii_punctuation()) {
+    return false;
+  }
+  keeps_its_delimiters(last_node, file_text) && keeps_its_delimiters(node, file_text)
+}
+
+/// Whether the node's delimiters would still read as delimiters with the
+/// whitespace beside it taken away.
+fn keeps_its_delimiters(node: &Node, file_text: &str) -> bool {
+  match node {
+    Node::TextDecoration(decoration) => decoration_keeps_its_delimiters(decoration, file_text),
+    _ => true,
+  }
+}
+
+/// Whether the decoration's delimiters would still read as delimiters with the
+/// whitespace beside it taken away.
+///
+/// Which characters sit on either side of a delimiter is what decides whether
+/// it reads as one, so the text it holds has to begin and end with a word
+/// character, and nothing written against it from outside may be read as part
+/// of its delimiters.
+fn decoration_keeps_its_delimiters(decoration: &TextDecoration, file_text: &str) -> bool {
+  // it has to be text that's written against the delimiter: anything with
+  // delimiters of its own there (ex. a code span's backticks, or a decoration
+  // nested at the edge) is read together with it rather than beside it
+  let holds_a_word = |node: Option<&Node>, character: fn(&str) -> Option<char>| match node {
+    Some(Node::Text(text)) => character(text.text).is_some_and(char::is_alphanumeric),
+    _ => false,
+  };
+  // a delimiter character written against the run lengthens it, and how long
+  // the runs on either side of the text are is what pairs them up
+  let is_delimiter = |character: Option<char>| matches!(character, Some('*') | Some('_') | Some('~'));
+  holds_a_word(decoration.children.first(), |text| text.chars().next())
+    && holds_a_word(decoration.children.last(), last_unescaped_char)
+    && !is_delimiter(file_text[..decoration.span.start].chars().next_back())
+    && !is_delimiter(file_text[decoration.span.end..].chars().next())
+    && !holds_the_same_kind(&decoration.children, decoration.kind)
+}
+
+/// Whether a decoration of the same kind is written within these nodes, whose
+/// delimiter would be the same character as the one around them and so would
+/// be paired up with it rather than read on its own.
+fn holds_the_same_kind(nodes: &[Node], kind: TextDecorationKind) -> bool {
+  nodes.iter().any(|node| match node {
+    Node::TextDecoration(decoration) => decoration.kind == kind || holds_the_same_kind(&decoration.children, kind),
+    _ => false,
+  })
 }
 
 /// What takes the place of a line break that falls between two characters of
