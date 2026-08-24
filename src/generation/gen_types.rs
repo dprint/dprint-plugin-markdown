@@ -102,12 +102,6 @@ pub struct Context<'a> {
   block_quote_base_indents: Vec<u32>,
   /// The start position of the first child of each surrounding block quote.
   block_quote_content_starts: Vec<Option<usize>>,
-  /// The indentation level the block that indents its content with a tab began
-  /// at, where one surrounds what's being written.
-  ///
-  /// Everything within the block is indented from beyond the tab, so the tab
-  /// goes at that indentation, before anything else a line begins with.
-  tab_indent_base: Option<u32>,
   text_wrap_disabled_count: u32,
   decorations_preserved_count: u32,
   enclosing_decoration: Option<Span>,
@@ -167,7 +161,6 @@ impl<'a> Context<'a> {
       is_in_list_count: 0,
       block_quote_base_indents: Vec::new(),
       block_quote_content_starts: Vec::new(),
-      tab_indent_base: None,
       text_wrap_disabled_count: 0,
       decorations_preserved_count: 0,
       enclosing_decoration: None,
@@ -255,22 +248,6 @@ impl<'a> Context<'a> {
     self.block_quote_base_indents.pop();
     self.is_in_list_count = original_is_in_list_count;
     items
-  }
-
-  /// Generates the content of a block that indents its lines with a tab, so
-  /// that whatever writes a line's prefix itself (ex. a block quote's markers)
-  /// writes the tab before it.
-  pub fn mark_in_tab_indent<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
-    let previous = self.tab_indent_base.replace(self.indent_level);
-    let result = func(self);
-    self.tab_indent_base = previous;
-    result
-  }
-
-  /// The indentation the tab of a surrounding block that indents with tabs is
-  /// written at, or `None` where no such block surrounds what's being written.
-  pub fn tab_indent_base(&self) -> Option<u32> {
-    self.tab_indent_base
   }
 
   pub fn mark_in_list<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {

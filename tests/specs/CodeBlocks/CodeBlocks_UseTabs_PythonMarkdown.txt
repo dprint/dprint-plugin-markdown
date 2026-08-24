@@ -1,0 +1,32 @@
+~~ useTabs: true, list.indentKind: pythonMarkdown ~~
+!! should write the tab after the spaces a list indents the code block by !!
+- one
+
+      code
+
+[expect]
+- one
+
+    	code
+
+!! should write the tab after the spaces a definition indents the code block by !!
+term
+
+: one
+
+      code
+
+[expect]
+term
+
+: one
+
+    	code
+
+!! should not write a tab where a definition's marker is written on the line !!
+term
+:       code
+
+[expect]
+term
+: code

@@ -548,19 +548,34 @@ fn gen_block_quote(block_quote: &BlockQuote, context: &mut Context) -> PrintItem
         continue;
       }
 
-      if let PrintItem::Signal(Signal::NewLine) = print_item {
-        needs_opening_marker = false;
-        items.push_condition(if_true(
-          "angleBracketIfStartOfLine",
-          condition_resolvers::is_start_of_line(),
-          gen_block_quote_markers(&base_indents, indent_level, MarkersTrailing::BlankLine, context),
-        ));
-        items.push_signal(Signal::NewLine);
-        continue;
+      match print_item {
+        PrintItem::Signal(Signal::NewLine) => {
+          needs_opening_marker = false;
+          items.push_condition(if_true(
+            "angleBracketIfStartOfLine",
+            condition_resolvers::is_start_of_line(),
+            gen_block_quote_markers(&base_indents, indent_level, MarkersTrailing::BlankLine, context),
+          ));
+          items.push_signal(Signal::NewLine);
+        }
+        PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => {
+          indent_level += 1;
+          items.push_item(print_item)
+        }
+        PrintItem::Signal(Signal::FinishIndent) => {
+          indent_level -= 1;
+          items.push_item(print_item)
+        }
+        // a nested block quote's markers indent from within a path of their
+        // own, which counts towards the indentation the markers here go before
+        PrintItem::RcPath(path) => {
+          if let Some(delta) = context.memoized_path_indent_delta(path) {
+            indent_level = indent_level.saturating_add_signed(delta);
+          }
+          items.push_item(print_item)
+        }
+        _ => items.push_item(print_item),
       }
-
-      track_content_indent(&print_item, &mut indent_level, context);
-      items.push_item(print_item);
     }
 
     // an empty block quote generates no print items, so there is nothing above to
@@ -598,23 +613,6 @@ fn get_content_print_items(items: PrintItems, context: &Context) -> Vec<PrintIte
   result
 }
 
-/// Follows what a print item does to the indentation the content has opened
-/// within itself, which whatever prefixes a line has to be written before.
-fn track_content_indent(print_item: &PrintItem, indent_level: &mut u32, context: &Context) {
-  match print_item {
-    PrintItem::Signal(Signal::StartIndent | Signal::QueueStartIndent) => *indent_level += 1,
-    PrintItem::Signal(Signal::FinishIndent) => *indent_level -= 1,
-    // indentation held in a path of its own (ex. a nested block quote's
-    // markers) counts towards it just as the signals do
-    PrintItem::RcPath(path) => {
-      if let Some(delta) = context.memoized_path_indent_delta(path) {
-        *indent_level = indent_level.saturating_add_signed(delta);
-      }
-    }
-    _ => {}
-  }
-}
-
 enum MarkersTrailing {
   /// Text follows the markers on the same line.
   Text { space: bool },
@@ -634,21 +632,12 @@ fn gen_block_quote_markers(
   let mut items = PrintItems::new();
   let outermost_indent = *base_indents.first().unwrap();
   let current_indent = *base_indents.last().unwrap() + inner_indent_level;
-  // a block that indents with a tab writes it into the content rather than as
-  // indentation, so it isn't there yet and everything here goes after it
-  let tab_indent_base = context.tab_indent_base().filter(|base| *base <= outermost_indent);
 
-  // go back to where the tab or the outermost marker belongs, write the tab
-  // there, then write each marker at the indentation its block quote started at
-  items.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(
-    current_indent - tab_indent_base.unwrap_or(outermost_indent),
-  )));
-  if let Some(base) = tab_indent_base {
-    items.push_signal(Signal::Tab);
-    items.push_optional_path(
-      context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(outermost_indent - base)),
-    );
-  }
+  // go back to where the outermost marker belongs, then write each
+  // marker at the indentation its block quote started at
+  items.push_optional_path(
+    context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(current_indent - outermost_indent)),
+  );
   let mut written_indent = outermost_indent;
   for base_indent in base_indents {
     if *base_indent > written_indent {
@@ -709,7 +698,11 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   // indentation of the lines after the first can match the first line's
   let lines_up = position.marker.is_none_or(|marker| marker.lines_up);
   let is_fenced = code_block.is_fenced() || position.after_list || !lines_up;
-  let uses_tab_indent = !is_fenced && indents_with_tab(context);
+  // a tab only stands for the four columns of indentation where it is written
+  // at the start of a line, and a block written beside a marker or a label
+  // begins partway along one
+  let starts_line = position.marker.is_none() && !position.after_label;
+  let uses_tab_indent = !is_fenced && starts_line && indents_with_tab(context);
   let indent_level = if is_fenced || uses_tab_indent { 0 } else { CODE_INDENT };
 
   // header
@@ -733,7 +726,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
 
   // body
   if uses_tab_indent {
-    items.extend(gen_tab_indented_code(&code_text, position));
+    items.extend(gen_tab_indented_code(&code_text));
   } else {
     if !is_fenced && position.marker.is_some() {
       // the item's marker took the place of the first line's indentation, which
@@ -810,53 +803,31 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   }
 }
 
-/// Whether a tab written where the four columns of indentation of an indented
-/// code block or a footnote definition's body go reaches the column their
-/// content has to begin at.
+/// Whether a tab written where an indented code block's four columns of
+/// indentation go reaches the column its code has to begin at.
 ///
 /// A tab reaches to the next multiple of four, so it stands for those columns
 /// only where the content around the block begins at a multiple of four
-/// itself. Two things keep that from being known here, and a block written
-/// within either of them keeps its spaces: a block quote writes its markers
-/// into the item stream rather than as indentation, and the tab of a block
-/// that indents with tabs is written into the item stream in the same way.
+/// itself. A block quote writes its markers into the item stream rather than
+/// as indentation, so what column its content begins at isn't known here and a
+/// block within one keeps its spaces.
 fn indents_with_tab(context: &Context) -> bool {
   context.configuration.use_tabs && !context.is_in_block_quote() && context.indent_level.is_multiple_of(TAB_STOP)
-}
-
-/// Whether the tab a block writes into its own content reaches the column that
-/// content has to begin at.
-///
-/// The tab of a block whose content is written out for it (ex. a footnote
-/// definition's body, which holds whatever blocks were written within it) is
-/// written within a condition, which a block written around it steps over
-/// rather than reading, so only the outermost of them indents with a tab. A
-/// block that writes its own lines (ex. an indented code block) has no such
-/// trouble, since the tab it writes is one the block around it can see.
-fn indents_content_with_tab(context: &Context) -> bool {
-  indents_with_tab(context) && context.tab_indent_base().is_none()
 }
 
 /// Writes out the lines of an indented code block with a tab where the columns
 /// of indentation go.
 ///
-/// The tab is written as a plain signal rather than through [`with_tab_indent`]
-/// so that a block that indents the code block with a tab of its own knows the
-/// tab is what begins the line and writes its own before it.
-///
 /// A blank line is left blank rather than written with the tab, which would
-/// only be trailing whitespace, and nothing is written on a first line that a
-/// label is already written on.
-fn gen_tab_indented_code(text: &str, position: NodePosition) -> PrintItems {
+/// only be trailing whitespace.
+fn gen_tab_indented_code(text: &str) -> PrintItems {
   let mut items = PrintItems::new();
   for (index, line) in text.lines().enumerate() {
     if index > 0 {
       items.push_signal(Signal::NewLine);
     }
     if !line.is_empty() {
-      if index > 0 || !position.after_label {
-        items.push_signal(Signal::Tab);
-      }
+      items.push_signal(Signal::Tab);
       items.extend(gen_text_with_tabs(line.to_string()));
     }
   }
@@ -1624,59 +1595,11 @@ fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &m
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE)));
   if !footnote_definition.children.is_empty() {
+    // the label is written where the first line's indentation would go, which
+    // it doesn't reach as far as
     context.mark_after_label();
   }
-  if indents_content_with_tab(context) {
-    let content = context.mark_in_tab_indent(|context| gen_nodes(&footnote_definition.children, context));
-    items.extend(with_tab_indent(content, context));
-  } else {
-    items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
-  }
-  items
-}
-
-/// Writes out content whose lines are indented with a tab, which the printer
-/// can't be asked for because it only indents with spaces.
-///
-/// The tab has to go before the indentation the content opened within itself,
-/// so that it is written at the column the block begins at and reaches the tab
-/// stop beyond it. The indentation of whatever the block is written within
-/// stays where it is, ahead of the tab, which is what puts the block on a tab
-/// stop in the first place.
-fn with_tab_indent(content: PrintItems, context: &mut Context) -> PrintItems {
-  let mut items = PrintItems::new();
-  let mut indent_level = 0;
-  // raw text (ex. an html block) is written with the indentation it was
-  // written with in the file, which the printer leaves alone and so does this
-  let mut ignoring_indent_count = 0;
-
-  for print_item in get_content_print_items(content, context) {
-    // a tab begins a line just as text does, so the indentation belongs before
-    // either of them
-    if ignoring_indent_count == 0 && matches!(&print_item, PrintItem::String(_) | PrintItem::Signal(Signal::Tab)) {
-      let mut tab = PrintItems::new();
-      tab.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::FinishIndent(indent_level)));
-      tab.push_signal(Signal::Tab);
-      tab.push_optional_path(context.get_memoized_rc_path(MemoizedRcPathKind::StartWithSingleIndent(indent_level)));
-      items.push_condition(if_true(
-        "tabIfStartOfLine",
-        condition_resolvers::is_start_of_line(),
-        tab,
-      ));
-      items.push_item(print_item);
-      continue;
-    }
-
-    // a new line needs nothing written on it: a blank line is left blank
-    // rather than given a tab that would only be trailing whitespace
-    match print_item {
-      PrintItem::Signal(Signal::StartIgnoringIndent) => ignoring_indent_count += 1,
-      PrintItem::Signal(Signal::FinishIgnoringIndent) => ignoring_indent_count -= 1,
-      _ => track_content_indent(&print_item, &mut indent_level, context),
-    }
-    items.push_item(print_item);
-  }
-
+  items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
   items
 }
 

@@ -121,7 +121,10 @@ fn config_to_print_options(file_text: &str, config: &Configuration) -> PrintOpti
   PrintOptions {
     indent_width: 1, // force
     max_width: config.line_width,
-    use_tabs: false, // ignore tabs, always use spaces
+    // the printer indents by columns, which it can only write out as spaces.
+    // A tab is written into the content instead, where one stands for the
+    // columns it reaches (see `indents_with_tab`)
+    use_tabs: false,
     new_line_text: resolve_new_line_kind(file_text, config.new_line_kind),
   }
 }

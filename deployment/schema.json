@@ -22,15 +22,15 @@
       }]
     },
     "useTabs": {
-      "description": "Whether to write the four columns of indentation that an indented code block and the body of a footnote definition are written with as a tab. Either keeps its spaces within a block quote, and anywhere else a tab wouldn't reach the column its content has to begin at.",
+      "description": "Whether to write the four columns of indentation of an indented code block as a tab. The block keeps its spaces within a block quote, and anywhere else a tab wouldn't reach the column its code has to begin at. Indentation of anything else, such as a list's or a footnote definition's, is always written with spaces. This is not inherited from the top-level `useTabs`, and does not change the plugin that formats the code within a fenced code block -- see `codeBlock.useTabs` for that.",
       "type": "boolean",
       "default": false,
       "oneOf": [{
         "const": true,
-        "description": "Indents an indented code block and a footnote definition's body with a tab."
+        "description": "Indents an indented code block with a tab."
       }, {
         "const": false,
-        "description": "Indents an indented code block and a footnote definition's body with four spaces."
+        "description": "Indents an indented code block with four spaces."
       }]
     },
     "textWrap": {
@@ -163,7 +163,7 @@
       }]
     },
     "codeBlock.useTabs": {
-      "description": "Whether the plugin that formats the code within a code block should use tabs, overriding that plugin's own `useTabs` configuration. When not specified, that plugin's configuration is left alone.",
+      "description": "Whether the plugin that formats the code within a code block should use tabs, overriding that plugin's own `useTabs` configuration. When not specified, that plugin's configuration is left alone. This is unrelated to the top-level `useTabs`, which is about the indentation markdown is written with.",
       "type": "boolean",
       "oneOf": [{
         "const": true,

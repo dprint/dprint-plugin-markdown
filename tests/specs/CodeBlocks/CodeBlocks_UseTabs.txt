@@ -97,10 +97,30 @@ Test:
 	one
 		two
 
-!! should not write a tab where a definition's marker is written on the line !!
-term
-:       code
+!! should write the tab after the spaces a footnote definition indents by !!
+[^1]: Test:
+
+        code
 
 [expect]
-term
-: code
+[^1]: Test:
+
+    	code
+
+!! should not write a tab where a footnote's label is written on the line !!
+text[^a]
+
+[^a]:
+
+        code
+
+[expect]
+text[^a]
+
+[^a]: code
+
+!! should keep the spaces of a code block beside a marker a label shifted !!
+1000. [^5]: -     o
+
+[expect]
+1000. [^5]: -     o

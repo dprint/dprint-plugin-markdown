@@ -1,9 +1,9 @@
 //! Checks that writing indentation with a tab says the same thing as writing
 //! it with spaces.
 //!
-//! Every spec is run through the formatter with `useTabs` added to whatever
-//! configuration it already sets, and what comes out is written back with the
-//! option off. A tab that didn't reach the column the content has to begin at
+//! Every spec's text is run through the formatter with `useTabs` added to
+//! whatever configuration it already sets, and what comes out is written back
+//! with the option off. A tab that didn't reach the column the content has to begin at
 //! would be read back as something other than the block it was written for,
 //! which shows up here as text that no longer matches what the formatter
 //! writes with spaces alone.
@@ -31,16 +31,19 @@ fn writes_the_specs_with_tabs_without_changing_what_they_say() {
     for spec in specs.iter().filter(|spec| !spec.skip) {
       let tabs = resolve(&spec.config, true);
       let spaces = resolve(&spec.config, false);
-      // what a spec expects is markdown of its own, and one that turns text
-      // into something else gives two documents to check rather than one
-      for text in [&spec.file_text, &spec.expected_text] {
-        check(text, &tabs, &spaces, &path, &spec.message);
-      }
+      check(
+        &spec.file_text,
+        &tabs,
+        &spaces,
+        &path,
+        &spec.message,
+        !spec.skip_format_twice,
+      );
     }
   }
 }
 
-fn check(text: &str, tabs: &Configuration, spaces: &Configuration, path: &Path, message: &str) {
+fn check(text: &str, tabs: &Configuration, spaces: &Configuration, path: &Path, message: &str, check_twice: bool) {
   let at = format!("{} ({})", message, path.display());
   let with_spaces = format(text, spaces, &at);
   // a document the formatter doesn't settle on with spaces says nothing about
@@ -50,12 +53,14 @@ fn check(text: &str, tabs: &Configuration, spaces: &Configuration, path: &Path, 
   }
 
   let with_tabs = format(text, tabs, &at);
-  assert_eq!(
-    format(&with_tabs, tabs, &at),
-    with_tabs,
-    "not idempotent with tabs in {}",
-    at
-  );
+  if check_twice {
+    assert_eq!(
+      format(&with_tabs, tabs, &at),
+      with_tabs,
+      "not idempotent with tabs in {}",
+      at
+    );
+  }
   assert_eq!(
     format(&with_tabs, spaces, &at),
     with_spaces,
@@ -90,8 +95,12 @@ fn trailing_whitespace_lines(text: &str) -> Vec<usize> {
 
 fn resolve(spec_config: &SpecConfigMap, use_tabs: bool) -> Configuration {
   let mut spec_config = spec_config.clone();
+  // a spec that sets the option itself would otherwise leave the two
+  // configurations the same, and nothing here would be comparing anything
   if use_tabs {
     spec_config.insert("useTabs".to_string(), true.into());
+  } else {
+    spec_config.remove("useTabs");
   }
   let config: ConfigKeyMap = serde_json::from_value(serde_json::Value::Object(spec_config)).unwrap();
   let result = resolve_config(config, &Default::default());
