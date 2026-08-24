@@ -1968,7 +1968,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         };
         format!("{}{}", display_index, end_char)
       } else {
-        String::from(context.configuration.unordered_list_kind.list_char(is_alternate))
+        String::from(context.configuration.list_unordered_marker.list_char(is_alternate))
       };
       let marker_width = prefix_text.chars().count() as u32 + 1;
       let indent_increment = match context.configuration.list_indent_kind {

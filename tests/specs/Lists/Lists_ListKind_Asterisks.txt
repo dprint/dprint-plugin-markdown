@@ -1,4 +1,4 @@
-~~ lineWidth: 40, unorderedListKind: asterisks ~~
+~~ lineWidth: 40, list.unorderedMarker: asterisks ~~
 !! should format an unordered list with asterisks !!
 - A
 - B

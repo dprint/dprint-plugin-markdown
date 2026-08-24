@@ -1,4 +1,4 @@
-~~ headingKind: setext ~~
+~~ heading.kind: setext ~~
 !! should keep the markers of a setext heading !!
 > some words here that are quite long and more text again that keeps going on and on
 > ===

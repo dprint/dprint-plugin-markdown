@@ -73,28 +73,10 @@ impl ConfigurationBuilder {
     self.insert("strongKind", value.to_string().into())
   }
 
-  /// The character to use for lists.
-  /// Default: `UnorderedListKind::Dashes`
-  pub fn unordered_list_kind(&mut self, value: UnorderedListKind) -> &mut Self {
-    self.insert("unorderedListKind", value.to_string().into())
-  }
-
-  /// The type of heading to use.
-  /// Default: `HeadingKind::Atx`
-  pub fn heading_kind(&mut self, value: HeadingKind) -> &mut Self {
-    self.insert("headingKind", value.to_string().into())
-  }
-
   /// The style of hard line break to use.
   /// Default: `HardBreakKind::Backslash`
   pub fn hard_break_kind(&mut self, value: HardBreakKind) -> &mut Self {
     self.insert("hardBreakKind", value.to_string().into())
-  }
-
-  /// The style of list indentation to use.
-  /// Default: `ListIndentKind::CommonMark`
-  pub fn list_indent_kind(&mut self, value: ListIndentKind) -> &mut Self {
-    self.insert("listIndentKind", value.to_string().into())
   }
 
   /// The maximum number of consecutive blank lines to keep between blocks.
@@ -103,12 +85,30 @@ impl ConfigurationBuilder {
     self.insert("maxBlankLines", (value as i32).into())
   }
 
+  /// The type of heading to use.
+  /// Default: `HeadingKind::Atx`
+  pub fn heading_kind(&mut self, value: HeadingKind) -> &mut Self {
+    self.insert("heading.kind", value.to_string().into())
+  }
+
   /// The number of blank lines to write above a heading. That many are written
   /// even where `maxBlankLines` is lower, though a heading drawn up against the
   /// block above it within a list is left there, which keeps the list tight.
   /// Default: the blank lines that were written are kept, up to `maxBlankLines`
   pub fn heading_blank_lines_above(&mut self, value: u32) -> &mut Self {
     self.insert("heading.blankLinesAbove", (value as i32).into())
+  }
+
+  /// The character to write the marker of an unordered list's items with.
+  /// Default: `ListUnorderedMarker::Dashes`
+  pub fn list_unordered_marker(&mut self, value: ListUnorderedMarker) -> &mut Self {
+    self.insert("list.unorderedMarker", value.to_string().into())
+  }
+
+  /// The style of list indentation to use.
+  /// Default: `ListIndentKind::CommonMark`
+  pub fn list_indent_kind(&mut self, value: ListIndentKind) -> &mut Self {
+    self.insert("list.indentKind", value.to_string().into())
   }
 
   /// Whether to leave the code within a code block as it was written rather
@@ -220,12 +220,12 @@ mod tests {
       .text_wrap(TextWrap::Always)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
-      .unordered_list_kind(UnorderedListKind::Asterisks)
-      .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
-      .list_indent_kind(ListIndentKind::PythonMarkdown)
       .max_blank_lines(2)
+      .heading_kind(HeadingKind::Atx)
       .heading_blank_lines_above(2)
+      .list_unordered_marker(ListUnorderedMarker::Asterisks)
+      .list_indent_kind(ListIndentKind::PythonMarkdown)
       .code_block_skip_format(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
@@ -318,6 +318,31 @@ mod tests {
     assert_eq!(result.diagnostics[0].property_name, "heading.blankLinesAbove");
     assert!(result.diagnostics[0].message.contains("at least 1"));
     assert_eq!(result.config.heading_blank_lines_above, Some(1));
+  }
+
+  #[test]
+  fn deprecated_names_still_resolve() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "setext".into());
+    config.insert("unorderedListKind".into(), "asterisks".into());
+    config.insert("listIndentKind".into(), "pythonMarkdown".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert!(result.config.heading_kind == HeadingKind::Setext);
+    assert!(result.config.list_unordered_marker == ListUnorderedMarker::Asterisks);
+    assert!(result.config.list_indent_kind == ListIndentKind::PythonMarkdown);
+  }
+
+  #[test]
+  fn deprecated_names_lose_to_current_names() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "atx".into());
+    config.insert("heading.kind".into(), "setext".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert!(result.config.heading_kind == HeadingKind::Setext);
   }
 
   #[test]

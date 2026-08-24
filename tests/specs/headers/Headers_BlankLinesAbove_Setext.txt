@@ -1,4 +1,4 @@
-~~ heading.blankLinesAbove: 2, headingKind: setext ~~
+~~ heading.blankLinesAbove: 2, heading.kind: setext ~~
 !! should write the configured number above a setext heading !!
 Text.
 

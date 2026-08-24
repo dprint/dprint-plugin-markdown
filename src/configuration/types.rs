@@ -14,12 +14,11 @@ pub struct Configuration {
   pub text_wrap: TextWrap,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,
-  pub unordered_list_kind: UnorderedListKind,
-  pub heading_kind: HeadingKind,
   pub hard_break_kind: HardBreakKind,
-  pub list_indent_kind: ListIndentKind,
   /// The maximum number of consecutive blank lines to keep between blocks.
   pub max_blank_lines: u32,
+  #[serde(rename = "heading.kind")]
+  pub heading_kind: HeadingKind,
   /// The number of blank lines to write above a heading. That many are written
   /// even where `max_blank_lines` is lower, though a heading drawn up against
   /// the block above it within a list is left there, which keeps the list
@@ -27,6 +26,11 @@ pub struct Configuration {
   /// other block.
   #[serde(rename = "heading.blankLinesAbove")]
   pub heading_blank_lines_above: Option<u32>,
+  /// The character to write the marker of an unordered list's items with.
+  #[serde(rename = "list.unorderedMarker")]
+  pub list_unordered_marker: ListUnorderedMarker,
+  #[serde(rename = "list.indentKind")]
+  pub list_indent_kind: ListIndentKind,
   #[serde(rename = "codeBlock.skipFormat")]
   pub code_block_skip_format: bool,
   #[serde(rename = "codeBlock.preserveIndentation")]
@@ -110,41 +114,6 @@ pub enum StrongKind {
 
 generate_str_to_from![StrongKind, [Asterisks, "asterisks"], [Underscores, "underscores"]];
 
-/// The character to use primarily for lists.
-///
-/// Unnumbered lists will be formatted to use a common list character, i.e., the primary list
-/// character. Additionally, an alternate list character is used to separate lists which are not
-/// separated by other paragraphs. This parameter defines which character should be used as primary
-/// list character, i.e., either '-' (default) or '*'. The alternate list character will be the one
-/// which is _not_ primary.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum UnorderedListKind {
-  /// Uses dashes (-) as primary character for lists (default).
-  ///
-  /// In this case, asterisks are used as alternate list characters.
-  Dashes,
-  /// Uses asterisks (*) as primary character for lists.
-  ///
-  /// In this case, dashes are used as alternate list characters.
-  Asterisks,
-}
-
-impl UnorderedListKind {
-  /// Determine the character to use for a list, i.e., '-' or '*'.
-  ///
-  /// The result depends on the configuration and whether the primary or alternate character is
-  /// requested. See [`Self`].
-  pub fn list_char(&self, is_alternate: bool) -> char {
-    match (self, is_alternate) {
-      (Self::Dashes, true) | (Self::Asterisks, false) => '*',
-      _ => '-',
-    }
-  }
-}
-
-generate_str_to_from![UnorderedListKind, [Dashes, "dashes"], [Asterisks, "asterisks"]];
-
 /// The style of heading to use for level 1 and level 2 headings:
 /// [setext](https://spec.commonmark.org/0.31.2/#setext-headings) or
 /// [ATX](https://spec.commonmark.org/0.31.2/#atx-headings). Level 3 and
@@ -195,6 +164,41 @@ pub enum TableCellPadding {
 }
 
 generate_str_to_from![TableCellPadding, [Align, "align"], [Space, "space"], [None, "none"]];
+
+/// The character to use primarily for lists.
+///
+/// Unnumbered lists will be formatted to use a common list character, i.e., the primary list
+/// character. Additionally, an alternate list character is used to separate lists which are not
+/// separated by other paragraphs. This parameter defines which character should be used as primary
+/// list character, i.e., either '-' (default) or '*'. The alternate list character will be the one
+/// which is _not_ primary.
+#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ListUnorderedMarker {
+  /// Uses dashes (-) as primary character for lists (default).
+  ///
+  /// In this case, asterisks are used as alternate list characters.
+  Dashes,
+  /// Uses asterisks (*) as primary character for lists.
+  ///
+  /// In this case, dashes are used as alternate list characters.
+  Asterisks,
+}
+
+impl ListUnorderedMarker {
+  /// Determine the character to use for a list, i.e., '-' or '*'.
+  ///
+  /// The result depends on the configuration and whether the primary or alternate character is
+  /// requested. See [`Self`].
+  pub fn list_char(&self, is_alternate: bool) -> char {
+    match (self, is_alternate) {
+      (Self::Dashes, true) | (Self::Asterisks, false) => '*',
+      _ => '-',
+    }
+  }
+}
+
+generate_str_to_from![ListUnorderedMarker, [Dashes, "dashes"], [Asterisks, "asterisks"]];
 
 /// The style of indentation to use for list items.
 ///

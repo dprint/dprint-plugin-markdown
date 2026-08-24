@@ -63,19 +63,7 @@
         "description": "Uses underscores (__) for strong emphasis."
       }]
     },
-    "unorderedListKind": {
-      "description": "The character to use for unordered lists.",
-      "type": "string",
-      "default": "dashes",
-      "oneOf": [{
-        "const": "dashes",
-        "description": "Uses dashes (-) as primary character for lists."
-      }, {
-        "const": "asterisks",
-        "description": "Uses asterisks (*) as primary character for lists."
-      }]
-    },
-    "headingKind": {
+    "heading.kind": {
       "description": "The style of heading to use for level 1 and level 2 headings. Level 3 and higher always use ATX headings.",
       "type": "string",
       "default": "atx",
@@ -99,7 +87,19 @@
         "description": "Uses two trailing spaces for hard line breaks. Note that some tools strip trailing whitespace, which would silently remove these hard line breaks."
       }]
     },
-    "listIndentKind": {
+    "list.unorderedMarker": {
+      "description": "The character to write the marker of an unordered list's items with.",
+      "type": "string",
+      "default": "dashes",
+      "oneOf": [{
+        "const": "dashes",
+        "description": "Uses dashes (-) as primary character for lists."
+      }, {
+        "const": "asterisks",
+        "description": "Uses asterisks (*) as primary character for lists."
+      }]
+    },
+    "list.indentKind": {
       "description": "The style of indentation to use for list items. CommonMark aligns to the content column after the marker. PythonMarkdown uses a fixed 4-space indent, required by tools like mkdocs-material.",
       "type": "string",
       "default": "commonMark",
@@ -224,17 +224,8 @@
     "strongKind": {
       "$ref": "#/definitions/strongKind"
     },
-    "unorderedListKind": {
-      "$ref": "#/definitions/unorderedListKind"
-    },
-    "headingKind": {
-      "$ref": "#/definitions/headingKind"
-    },
     "hardBreakKind": {
       "$ref": "#/definitions/hardBreakKind"
-    },
-    "listIndentKind": {
-      "$ref": "#/definitions/listIndentKind"
     },
     "maxBlankLines": {
       "description": "The maximum number of consecutive blank lines to keep between blocks.",
@@ -242,10 +233,19 @@
       "minimum": 1,
       "type": "number"
     },
+    "heading.kind": {
+      "$ref": "#/definitions/heading.kind"
+    },
     "heading.blankLinesAbove": {
       "description": "The number of blank lines to write above a heading. That many are written even where `maxBlankLines` is lower, though a heading drawn up against the block above it within a list is left there, which keeps the list tight. When not specified, the blank lines that were written above a heading are kept, up to `maxBlankLines`.",
       "minimum": 1,
       "type": "number"
+    },
+    "list.unorderedMarker": {
+      "$ref": "#/definitions/list.unorderedMarker"
+    },
+    "list.indentKind": {
+      "$ref": "#/definitions/list.indentKind"
     },
     "codeBlock.skipFormat": {
       "$ref": "#/definitions/codeBlock.skipFormat"
@@ -290,6 +290,24 @@
       "description": "The text to use for an ignore end directive (ex. `<!-- dprint-ignore-end -->`).",
       "default": "dprint-ignore-end",
       "type": "string"
+    },
+    "headingKind": {
+      "description": "Deprecated: renamed to `heading.kind`.",
+      "deprecated": true,
+      "deprecationMessage": "Renamed to `heading.kind`.",
+      "allOf": [{ "$ref": "#/definitions/heading.kind" }]
+    },
+    "unorderedListKind": {
+      "description": "Deprecated: renamed to `list.unorderedMarker`.",
+      "deprecated": true,
+      "deprecationMessage": "Renamed to `list.unorderedMarker`.",
+      "allOf": [{ "$ref": "#/definitions/list.unorderedMarker" }]
+    },
+    "listIndentKind": {
+      "description": "Deprecated: renamed to `list.indentKind`.",
+      "deprecated": true,
+      "deprecationMessage": "Renamed to `list.indentKind`.",
+      "allOf": [{ "$ref": "#/definitions/list.indentKind" }]
     },
     "tags": {
       "description": "Custom tag to file extension mappings for formatting code blocks. For example: { \"markdown\": \"md\" }",
