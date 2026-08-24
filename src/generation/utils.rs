@@ -100,6 +100,87 @@ pub fn starts_block_at_line_start(line_text: &str, word_can_be_left_alone: bool)
     || crate::parser::starts_block_in_paragraph(line_text)
 }
 
+/// Whether the text ends a sentence, which is where a line break is written
+/// when text is wrapped by sentence.
+///
+/// Only the word the text ends with decides it. Markup and the marks that close
+/// a phrase (ex. the `**` of `**Done.**`) are written after the terminator, so
+/// the check looks past them.
+pub fn ends_sentence(text: &str) -> bool {
+  let text = text.trim_end();
+  let word = text.rsplit([' ', '\n', '\t']).next().unwrap_or(text);
+  let word = word.trim_end_matches(SENTENCE_TRAILING);
+  let Some(last_char) = word.chars().next_back() else {
+    return false;
+  };
+  if matches!(last_char, '!' | '?' | '…' | '‼' | '⁇' | '⁈' | '⁉' | '。' | '！' | '？') {
+    return true;
+  }
+  if last_char != '.' {
+    return false;
+  }
+  // a run of periods is the one terminator, which is what an ellipsis is
+  // written as
+  let stem = word.trim_end_matches('.');
+  // ex. `e.g.` or `U.S.`, whose periods belong to the word
+  if stem.contains('.') {
+    return false;
+  }
+  // ex. the `J.` of a name, which is only an initial
+  if stem.chars().count() == 1 && stem.chars().all(char::is_alphabetic) {
+    return false;
+  }
+  // ex. the `1.` of a step written within a line, which is a marker rather
+  // than the end of anything
+  if !stem.is_empty() && stem.chars().all(|c| c.is_numeric()) {
+    return false;
+  }
+  !ABBREVIATIONS
+    .iter()
+    .any(|abbreviation| abbreviation.eq_ignore_ascii_case(stem))
+}
+
+/// Whether the text could begin a sentence, which is what tells a period that
+/// ends one apart from a period written in the middle of one.
+pub fn starts_sentence(text: &str) -> bool {
+  let word = text.split([' ', '\n', '\t']).next().unwrap_or(text);
+  let word = word.trim_start_matches(SENTENCE_LEADING);
+  match word.chars().next() {
+    // a word that begins in lowercase carries on the sentence written before
+    // it, whatever the word before it ended with
+    Some(c) => !c.is_lowercase(),
+    None => false,
+  }
+}
+
+/// Whether the character ends a sentence of a script written without spaces
+/// between its words, where there is no space for the line to be broken at.
+pub fn ends_unspaced_script_sentence(c: char) -> bool {
+  matches!(c, '。' | '！' | '？' | '｡')
+}
+
+/// The characters written after a sentence's terminator, which are the markup
+/// that closes around it and the marks that close a phrase.
+const SENTENCE_TRAILING: [char; 18] = [
+  '*', '_', '~', '`', ')', ']', '}', '"', '\'', '»', '›', '”', '’', '）', '〕', '」', '』', '】',
+];
+
+/// The characters written before a sentence's first word, which are the markup
+/// that opens around it and the marks that open a phrase.
+const SENTENCE_LEADING: [char; 17] = [
+  '*', '_', '~', '`', '(', '[', '{', '"', '\'', '«', '‹', '“', '‘', '（', '〔', '「', '『',
+];
+
+/// The words whose trailing period doesn't end a sentence.
+///
+/// Only the ones written often enough in prose to be worth the false break are
+/// listed. An abbreviation with a period within it (ex. `e.g.`) doesn't need
+/// one, since the period inside it is what gives it away.
+const ABBREVIATIONS: &[&str] = &[
+  "al", "approx", "ca", "cf", "co", "corp", "dept", "dr", "ed", "eds", "est", "etc", "fig", "figs", "inc", "jr", "ltd",
+  "mr", "mrs", "ms", "no", "nos", "pp", "prof", "resp", "sr", "st", "vol", "vols", "vs",
+];
+
 /// Whether the text would start a block of its own if the word that begins it
 /// were moved to the start of a line by wrapping.
 ///
@@ -361,6 +442,51 @@ mod test {
     assert_eq!(starts_block_at_line_start("-- text", false), false);
     assert_eq!(starts_block_at_line_start("--", false), true);
     assert_eq!(starts_block_at_line_start("=== not a heading", false), false);
+  }
+
+  #[test]
+  fn should_find_where_a_sentence_ends() {
+    assert!(ends_sentence("This is a sentence."));
+    assert!(ends_sentence("Is it?"));
+    assert!(ends_sentence("It is!"));
+    assert!(ends_sentence("It ended..."));
+    // the space up to the next word is written before the check runs
+    assert!(ends_sentence("This is a sentence.  "));
+    // the markup and the marks that close a phrase are written after the
+    // terminator
+    assert!(ends_sentence("It was **bold.**"));
+    assert!(ends_sentence(r#"He said "hi.""#));
+    assert!(ends_sentence("(An aside.)"));
+    // an abbreviation, which is written mid-sentence
+    assert!(!ends_sentence("See e.g."));
+    assert!(!ends_sentence("It is in the U.S."));
+    assert!(!ends_sentence("Ask Dr."));
+    assert!(!ends_sentence("Foo, bar, etc."));
+    assert!(!ends_sentence("Written by J."));
+    // a marker rather than the end of anything
+    assert!(!ends_sentence("Step 1."));
+    // a period is only the end of a sentence at the end of a word
+    assert!(!ends_sentence("The file is foo.md"));
+    assert!(!ends_sentence("No terminator here"));
+    assert!(!ends_sentence(""));
+    // the terminator on its own, which is what a sentence that ends in a link
+    // leaves behind
+    assert!(ends_sentence("."));
+  }
+
+  #[test]
+  fn should_find_what_could_begin_a_sentence() {
+    assert!(starts_sentence("This"));
+    assert!(starts_sentence("Then more text."));
+    assert!(starts_sentence("42 is the answer."));
+    // the markup and the marks that open a phrase are written before the word
+    assert!(starts_sentence("**Bold** text."));
+    assert!(starts_sentence("[A link](https://example.com/)"));
+    assert!(starts_sentence("これは"));
+    // a word written in lowercase carries on the sentence before it
+    assert!(!starts_sentence("then more text."));
+    assert!(!starts_sentence("**bold** text."));
+    assert!(!starts_sentence(""));
   }
 
   #[test]

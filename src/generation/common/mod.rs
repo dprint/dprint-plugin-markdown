@@ -9,6 +9,8 @@ pub trait NodeSurroundings {
   fn ends_with_punctuation(&self, file_text: &str) -> bool;
   fn starts_with_unspaced_script(&self, file_text: &str) -> bool;
   fn ends_with_unspaced_script(&self, file_text: &str) -> bool;
+  fn ends_sentence(&self, file_text: &str) -> bool;
+  fn starts_sentence(&self, file_text: &str) -> bool;
 }
 
 impl<T: Ranged> NodeSurroundings for T {
@@ -30,6 +32,17 @@ impl<T: Ranged> NodeSurroundings for T {
 
   fn ends_with_punctuation(&self, file_text: &str) -> bool {
     matches!(self.span().text(file_text).chars().last(), Some(c) if c.is_ascii_punctuation())
+  }
+
+  /// Whether a sentence ends with this node, which is where a line break is
+  /// written when text is wrapped by sentence.
+  fn ends_sentence(&self, file_text: &str) -> bool {
+    crate::generation::utils::ends_sentence(self.span().text(file_text))
+  }
+
+  /// Whether the node could begin a sentence.
+  fn starts_sentence(&self, file_text: &str) -> bool {
+    crate::generation::utils::starts_sentence(self.span().text(file_text))
   }
 
   /// Whether the node begins with a character of a script written without
