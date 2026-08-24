@@ -918,7 +918,12 @@ fn escape_position(text: &str, is_markup: bool) -> Option<usize> {
 /// Whether the text is made of the characters a table's delimiter row is, which
 /// is what it takes for the line above it to become a header.
 fn is_table_delimiter_shape(text: &str) -> bool {
-  text.contains('-') && has_unescaped_pipe(text) && text.bytes().all(|b| matches!(b, b'-' | b':' | b'|' | b' ' | b'\t'))
+  // the first byte rules most text out before the scans that look through all
+  // of it, which the formatter asks about a line at a time as it wraps one
+  matches!(text.as_bytes().first(), Some(b'-' | b':' | b'|' | b' ' | b'\t'))
+    && text.contains('-')
+    && has_unescaped_pipe(text)
+    && text.bytes().all(|b| matches!(b, b'-' | b':' | b'|' | b' ' | b'\t'))
 }
 
 // ==== block recognition ====

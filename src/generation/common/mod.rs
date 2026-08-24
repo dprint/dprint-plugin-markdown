@@ -64,6 +64,24 @@ impl<'a> Node<'a> {
     }
   }
 
+  /// Whether the node would start a block of its own, or turn the line above
+  /// it into one, if it were moved to the start of a line by wrapping.
+  ///
+  /// Unlike [`Self::starts_block_in_paragraph`] this counts what the node's
+  /// first word would start on its own, since the text after it can wrap onto
+  /// the line below and leave it there alone.
+  pub fn starts_block_at_line_start(&self, word_can_be_left_alone: bool) -> bool {
+    match self {
+      Node::Text(text) => crate::generation::utils::starts_block_at_line_start(text.text, word_can_be_left_alone),
+      // a block of html already stands on its own, so nothing about where it
+      // is written can turn it into one
+      Node::Html(html) => {
+        !html.is_block && crate::generation::utils::starts_block_at_line_start(&html.text, word_can_be_left_alone)
+      }
+      _ => false,
+    }
+  }
+
   fn first_word(&self) -> Option<&'a str> {
     let Node::Text(text) = self else {
       return None;

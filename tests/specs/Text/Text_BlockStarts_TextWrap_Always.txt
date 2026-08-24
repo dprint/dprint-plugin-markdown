@@ -1,0 +1,43 @@
+~~ textWrap: always, lineWidth: 12 ~~
+!! should not wrap two dashes to the start of a line, which underline the line above into a heading !!
+aaaaaaaaaa bbbbbbbbbb --
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbbb --
+
+!! should not wrap html to the start of a line, where it becomes a block of its own !!
+aaaaaaaaaa bbbbbbbbbb <div>
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbbb <div>
+
+!! should not wrap a comment to the start of a line !!
+aaaaaaaaaa bbbbbbbbbb <!-- x -->
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbbb <!-- x -->
+
+!! should not wrap a footnote definition to the start of a line !!
+aaaaaaaaaa bbbbbbbbbb [^note]:
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbbb [^note]:
+
+!! should not wrap a row of dashes and pipes to the start of a line, which turns the line above into a table header !!
+aaaaaaaaaa bbbbbbbbbb |---|
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbbb |---|
+
+!! should not wrap two dashes from the line below to the start of a line !!
+aaaaaaaaaa
+-- bbbbbbbbbb
+
+[expect]
+aaaaaaaaaa --
+bbbbbbbbbb
