@@ -1448,11 +1448,10 @@ fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
   if let Some(line) = lines.next() {
     items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
   }
-  // raw text isn't prose, so a sentence within it says nothing about where its
-  // line breaks belong -- the ones it was written with are kept
-  let keeps_its_breaks = context.configuration.text_wrap == TextWrap::Sentence;
   for line in lines {
-    items.extend(get_newline_wrapping_based_on_config(context, keeps_its_breaks));
+    // a label, a title, and an image's alt text are not prose, so a sentence
+    // within one says nothing about where its line breaks belong
+    items.extend(get_newline_wrapping_based_on_config(context, false));
     // the printer provides the indentation and block quote markers of a
     // continued line, so drop the ones this picked up from the file
     let line = strip_block_quote_markers(line, context);
@@ -1478,14 +1477,17 @@ fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
 /// A run of a script written without spaces between its words holds no space
 /// for the sentences in it to be separated at, so without this they would be
 /// written on the one line however many of them there were.
+///
+/// Only a break with one of that script's characters on either side can be
+/// written, the same as in [`gen_word_with_unspaced_script_breaks`]: anywhere
+/// else the break would be read back as a space that wasn't written, and the
+/// text after it could begin a block of its own at the start of the line.
 fn gen_word_with_sentence_breaks(word: String) -> PrintItems {
   let mut items = PrintItems::new();
   let mut segment_start = 0;
   let mut last_char: Option<char> = None;
   for (index, character) in word.char_indices() {
-    if matches!(last_char, Some(last) if utils::ends_unspaced_script_sentence(last))
-      && !utils::forbids_line_break_before(character)
-    {
+    if matches!(last_char, Some(last) if breaks_between_sentences(last, character)) {
       items.extend(gen_text_with_tabs(word[segment_start..index].to_string()));
       items.extend(new_line_or_nothing_if_newlines_disabled());
       segment_start = index;
@@ -1493,7 +1495,19 @@ fn gen_word_with_sentence_breaks(word: String) -> PrintItems {
     last_char = Some(character);
   }
   items.extend(gen_text_with_tabs(word[segment_start..].to_string()));
-  items
+  return items;
+
+  /// Only the character beside the terminator decides this. What a longer look
+  /// ahead would read stops at the end of the word, which the line below can be
+  /// drawn up into, so the same text would be read two ways on two passes.
+  fn breaks_between_sentences(last: char, next: char) -> bool {
+    utils::ends_unspaced_script_sentence(last)
+      && utils::is_unspaced_script(next)
+      && !utils::forbids_line_break_before(next)
+      // a mark that opens a phrase says nothing about whether a sentence begins
+      // after it, so it stays with the sentence it was written against
+      && !utils::forbids_line_break_after(next)
+  }
 }
 
 /// Writes the word, breaking it up where a line can be broken within a script
@@ -2232,14 +2246,22 @@ fn get_blank_lines(count: u32) -> PrintItems {
 /// is written when text is wrapped by sentence.
 fn sentence_ends_between(last_node: &Node, node: &Node, context: &Context) -> bool {
   context.configuration.text_wrap == TextWrap::Sentence
-    && last_node.ends_sentence(context.file_text)
-    && node.starts_sentence(context.file_text)
+    && last_node.ends_sentence()
+    && node.starts_sentence()
+    // a break writes the node at the start of a line, where a marker fuses with
+    // whatever is drawn up beside it into a list of its own
+    && !node.starts_with_list_word()
 }
 
-/// Whether the text after a word can be wrapped onto the line below it, which
-/// is what would leave the word by itself on a line of its own.
+/// Whether the text after a word can be written on the line below it, which is
+/// what would leave the word by itself at the start of a line.
+///
+/// Wrapping moves whatever doesn't fit; a sentence break moves whatever follows
+/// the sentence. Either way the word can be left where a block begins, so the
+/// checks that keep it off one read the word on its own rather than the line
+/// the file happened to write it on.
 fn text_can_be_wrapped_away(context: &Context) -> bool {
-  context.configuration.text_wrap == TextWrap::Always && !context.is_text_wrap_disabled()
+  matches!(context.configuration.text_wrap, TextWrap::Always | TextWrap::Sentence) && !context.is_text_wrap_disabled()
 }
 
 fn get_space_or_newline_based_on_config(context: &Context, ends_sentence: bool) -> PrintItems {

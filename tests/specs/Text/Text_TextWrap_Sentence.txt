@@ -64,11 +64,12 @@ A sentence. # Not a heading.
 
 A sentence. 1. Not a list.
 
-!! should not break within a link !!
+!! should not break within a link, and read the sentence through it !!
 [A sentence. Another one.](https://example.com/) Then more.
 
 [expect]
-[A sentence. Another one.](https://example.com/) Then more.
+[A sentence. Another one.](https://example.com/)
+Then more.
 
 !! should keep the blank lines between paragraphs !!
 One. Two.

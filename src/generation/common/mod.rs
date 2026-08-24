@@ -7,8 +7,6 @@ pub trait NodeSurroundings {
   fn has_preceding_whitespace(&self, file_text: &str) -> bool;
   fn starts_with_punctuation(&self, file_text: &str) -> bool;
   fn ends_with_punctuation(&self, file_text: &str) -> bool;
-  fn ends_sentence(&self, file_text: &str) -> bool;
-  fn starts_sentence(&self, file_text: &str) -> bool;
 }
 
 impl<T: Ranged> NodeSurroundings for T {
@@ -30,17 +28,6 @@ impl<T: Ranged> NodeSurroundings for T {
 
   fn ends_with_punctuation(&self, file_text: &str) -> bool {
     matches!(self.span().text(file_text).chars().last(), Some(c) if c.is_ascii_punctuation())
-  }
-
-  /// Whether a sentence ends with this node, which is where a line break is
-  /// written when text is wrapped by sentence.
-  fn ends_sentence(&self, file_text: &str) -> bool {
-    crate::generation::utils::ends_sentence(self.span().text(file_text))
-  }
-
-  /// Whether the node could begin a sentence.
-  fn starts_sentence(&self, file_text: &str) -> bool {
-    crate::generation::utils::starts_sentence(self.span().text(file_text))
   }
 }
 
@@ -93,6 +80,55 @@ impl<'a> Node<'a> {
   /// without spaces between its words.
   pub fn ends_with_unspaced_script(&self) -> bool {
     matches!(self.last_read_char(), Some(c) if crate::generation::utils::is_unspaced_script(c))
+  }
+
+  /// Whether a sentence ends with this node, which is where a line break is
+  /// written when text is wrapped by sentence.
+  pub fn ends_sentence(&self) -> bool {
+    self
+      .last_read_text()
+      .is_some_and(crate::generation::utils::ends_sentence)
+  }
+
+  /// Whether the node could begin a sentence.
+  pub fn starts_sentence(&self) -> bool {
+    self
+      .first_read_text()
+      .is_some_and(crate::generation::utils::starts_sentence)
+  }
+
+  /// The text the node begins with that a reader sees, which is what tells
+  /// whether a sentence could begin with it.
+  ///
+  /// The delimiters a node is written with are looked through the way
+  /// [`Self::first_read_char`] looks through them, and so are the text
+  /// decorations: which character delimits one says nothing about the sentence
+  /// written within it, so a sentence that begins in emphasis (ex. `**Done.**`)
+  /// begins where its text does.
+  fn first_read_text(&self) -> Option<&str> {
+    match self {
+      Node::Text(node) => Some(node.text),
+      Node::Code(node) => Some(&node.code),
+      Node::TextDecoration(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::InlineLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::ReferenceLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      Node::ShortcutLink(node) => node.children.first().and_then(|child| child.first_read_text()),
+      _ => None,
+    }
+  }
+
+  /// The text the node ends with that a reader sees, which is what tells
+  /// whether a sentence ends with it. See [`Self::first_read_text`].
+  fn last_read_text(&self) -> Option<&str> {
+    match self {
+      Node::Text(node) => Some(node.text),
+      Node::Code(node) => Some(&node.code),
+      Node::TextDecoration(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::InlineLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::ReferenceLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      Node::ShortcutLink(node) => node.children.last().and_then(|child| child.last_read_text()),
+      _ => None,
+    }
   }
 
   /// Whether the node is text that starts with a word that would become a list

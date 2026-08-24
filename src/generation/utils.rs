@@ -109,25 +109,44 @@ pub fn starts_block_at_line_start(line_text: &str, word_can_be_left_alone: bool)
 pub fn ends_sentence(text: &str) -> bool {
   let text = text.trim_end();
   let word = text.rsplit([' ', '\n', '\t']).next().unwrap_or(text);
+  // the line is broken after a terminator of a script written without spaces
+  // between its words, so the word that ends the text begins after the last of
+  // those as surely as it begins after a space
+  let word = match word
+    .char_indices()
+    .rev()
+    .find(|(_, c)| ends_unspaced_script_sentence(*c))
+  {
+    Some((index, terminator)) if index + terminator.len_utf8() < word.len() => &word[index + terminator.len_utf8()..],
+    _ => word,
+  };
   let word = word.trim_end_matches(SENTENCE_TRAILING);
   let Some(last_char) = word.chars().next_back() else {
     return false;
   };
-  if matches!(last_char, '!' | '?' | '…' | '‼' | '⁇' | '⁈' | '⁉' | '。' | '！' | '？') {
+  if matches!(last_char, '!' | '?' | '…' | '‼' | '⁇' | '⁈' | '⁉') || ends_unspaced_script_sentence(last_char)
+  {
     return true;
   }
   if last_char != '.' {
     return false;
   }
   // a run of periods is the one terminator, which is what an ellipsis is
-  // written as
-  let stem = word.trim_end_matches('.');
-  // ex. `e.g.` or `U.S.`, whose periods belong to the word
-  if stem.contains('.') {
+  // written as, and a backslash before one only escapes it
+  let stem = word.trim_end_matches('.').trim_end_matches('\\');
+  // ex. `e.g.` or `U.S.`, whose periods belong to the word. Only a word written
+  // in parts that short is one: a longer part makes it a domain or a file name
+  // (ex. `example.com`), which a sentence ends with like any other word
+  if stem.contains('.') && stem.split('.').all(|part| part.chars().count() <= 2) {
     return false;
   }
-  // ex. the `J.` of a name, which is only an initial
-  if stem.chars().count() == 1 && stem.chars().all(char::is_alphabetic) {
+  // ex. the `J.` of a name, which is only an initial. A mark that combines with
+  // a letter is written as part of it rather than as a letter of its own, and
+  // an initial is written in an alphabet that has a case -- a word of a script
+  // without one (ex. a single ideograph) is a whole word
+  let mut letters = stem.chars().filter(|c| !is_combining_mark(*c));
+  if matches!((letters.next(), letters.next()), (Some(letter), None) if letter.is_uppercase() || letter.is_lowercase())
+  {
     return false;
   }
   // ex. the `1.` of a step written within a line, which is a marker rather
@@ -135,9 +154,9 @@ pub fn ends_sentence(text: &str) -> bool {
   if !stem.is_empty() && stem.chars().all(|c| c.is_numeric()) {
     return false;
   }
-  !ABBREVIATIONS
-    .iter()
-    .any(|abbreviation| abbreviation.eq_ignore_ascii_case(stem))
+  // an abbreviation is matched as it is written, so that the ordinary word a
+  // shorter one spells (ex. `no` beside `No.`) still ends a sentence
+  !ABBREVIATIONS.contains(&stem)
 }
 
 /// Whether the text could begin a sentence, which is what tells a period that
@@ -167,19 +186,32 @@ const SENTENCE_TRAILING: [char; 18] = [
 
 /// The characters written before a sentence's first word, which are the markup
 /// that opens around it and the marks that open a phrase.
-const SENTENCE_LEADING: [char; 17] = [
-  '*', '_', '~', '`', '(', '[', '{', '"', '\'', '«', '‹', '“', '‘', '（', '〔', '「', '『',
+const SENTENCE_LEADING: [char; 18] = [
+  '*', '_', '~', '`', '(', '[', '{', '"', '\'', '«', '‹', '“', '‘', '（', '〔', '「', '『', '【',
 ];
 
-/// The words whose trailing period doesn't end a sentence.
+/// The words whose trailing period doesn't end a sentence, written the way a
+/// document writes them.
 ///
 /// Only the ones written often enough in prose to be worth the false break are
 /// listed. An abbreviation with a period within it (ex. `e.g.`) doesn't need
 /// one, since the period inside it is what gives it away.
 const ABBREVIATIONS: &[&str] = &[
-  "al", "approx", "ca", "cf", "co", "corp", "dept", "dr", "ed", "eds", "est", "etc", "fig", "figs", "inc", "jr", "ltd",
-  "mr", "mrs", "ms", "no", "nos", "pp", "prof", "resp", "sr", "st", "vol", "vols", "vs",
+  "Ch", "Co", "Corp", "Dept", "Dr", "Ed", "Eds", "Fig", "Figs", "Inc", "Jr", "Ltd", "Mr", "Mrs", "Ms", "No", "Nos",
+  "Prof", "Sec", "Sr", "St", "Vol", "Vols", "al", "approx", "ca", "cf", "est", "etc", "pp", "resp", "vs",
 ];
+
+/// Whether the character is a mark that combines with the character before it,
+/// which is written as part of that character rather than as one of its own.
+fn is_combining_mark(c: char) -> bool {
+  matches!(
+    c as u32,
+    // combining diacritical marks, and the extended and supplement blocks
+    0x0300..=0x036F | 0x1AB0..=0x1AFF | 0x1DC0..=0x1DFF
+    // combining diacritical marks for symbols, and the half marks
+    | 0x20D0..=0x20FF | 0xFE20..=0xFE2F
+  )
+}
 
 /// Whether the text would start a block of its own if the word that begins it
 /// were moved to the start of a line by wrapping.
@@ -472,6 +504,26 @@ mod test {
     // the terminator on its own, which is what a sentence that ends in a link
     // leaves behind
     assert!(ends_sentence("."));
+    // the halfwidth full stop, which ends a sentence like the full width one
+    assert!(ends_sentence("あ｡"));
+    // a domain or a file name is a word like any other, however many periods
+    // are written within it
+    assert!(ends_sentence("Visit example.com."));
+    assert!(ends_sentence("The file is foo.md."));
+    // ...but the parts of an abbreviation are short
+    assert!(!ends_sentence("It happened at 5 p.m."));
+    assert!(!ends_sentence("It is version 1.2."));
+    // an abbreviation is read as it is written, so the ordinary word a shorter
+    // one spells still ends a sentence
+    assert!(ends_sentence("The answer is no."));
+    assert!(!ends_sentence("See No."));
+    assert!(ends_sentence("I ate the figs."));
+    assert!(!ends_sentence("See Figs."));
+    // an escaped period is read as the period it writes
+    assert!(!ends_sentence("Step 2\\."));
+    // however the letter and its marks are written
+    assert!(!ends_sentence("It was É."));
+    assert!(!ends_sentence("It was É."));
   }
 
   #[test]
