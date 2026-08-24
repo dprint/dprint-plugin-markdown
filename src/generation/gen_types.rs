@@ -218,7 +218,18 @@ impl<'a> Context<'a> {
   /// Whether the position at `index` is preceded by a blank line, accounting for
   /// the block quote markers that prefix a blank line inside a block quote.
   pub fn has_leading_blankline(&self, index: usize) -> bool {
-    has_leading_blankline(index, self.file_text, self.is_in_block_quote())
+    self.get_leading_blank_lines(index) > 0
+  }
+
+  /// The number of blank lines that precede the position at `index`, limited to
+  /// the configured maximum.
+  pub fn get_leading_blank_lines(&self, index: usize) -> u32 {
+    get_leading_blank_lines(
+      index,
+      self.file_text,
+      self.is_in_block_quote(),
+      self.configuration.max_blank_lines,
+    )
   }
 
   pub fn with_no_text_wrap<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {

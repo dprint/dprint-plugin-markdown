@@ -206,6 +206,12 @@
     "listIndentKind": {
       "$ref": "#/definitions/listIndentKind"
     },
+    "maxBlankLines": {
+      "description": "The maximum number of consecutive blank lines to keep between blocks.",
+      "default": 1,
+      "minimum": 1,
+      "type": "number"
+    },
     "codeBlock.skipFormat": {
       "$ref": "#/definitions/codeBlock.skipFormat"
     },

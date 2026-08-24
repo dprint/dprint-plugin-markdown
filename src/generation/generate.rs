@@ -146,7 +146,7 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
-              } else if node.starts_block_in_paragraph() {
+              } else if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) {
                 // text that would start a block can't be moved to the start of
                 // a line without changing what it means
                 items.push_space();
@@ -160,8 +160,8 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
                 items.extend(get_newline_wrapping_based_on_config(context));
               }
             } else if new_line_count > 1 {
-              items.push_signal(Signal::NewLine);
-              items.push_signal(Signal::NewLine);
+              let blank_lines = std::cmp::min(new_line_count - 1, context.configuration.max_blank_lines);
+              items.extend(get_blank_lines(blank_lines));
             } else {
               let needs_space = if let Node::Html(_) = last_node {
                 node.has_preceding_space(context.file_text)
@@ -179,7 +179,9 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
               };
 
               if needs_space {
-                if node.starts_with_list_word() {
+                if node.starts_block_at_line_start(text_can_be_wrapped_away(context)) || node.starts_with_list_word() {
+                  // the node would start a block of its own at the start of a
+                  // line, so it has to be kept off one
                   items.push_space();
                 } else {
                   items.extend(get_space_or_newline_based_on_config(context));
@@ -190,11 +192,10 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
           Node::LinkReference(_) => {
             if matches!(node, Node::LinkReference(_)) {
               // definitions are kept on their own lines, with whatever blank
-              // line separated them in the file
-              if context.get_new_lines_in_range(last_node.span().end, node.span().start) > 1 {
-                items.push_signal(Signal::NewLine);
-              }
-              items.push_signal(Signal::NewLine);
+              // lines separated them in the file
+              let new_line_count = context.get_new_lines_in_range(last_node.span().end, node.span().start);
+              let blank_lines = std::cmp::min(new_line_count.saturating_sub(1), context.configuration.max_blank_lines);
+              items.extend(get_blank_lines(blank_lines));
             } else {
               items.extend(get_conditional_blank_line(node.span(), context));
             }
@@ -293,12 +294,11 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
   return items;
 
   fn get_conditional_blank_line(span: Span, context: &mut Context) -> PrintItems {
-    let mut items = PrintItems::new();
-    if !context.is_in_list() || context.has_leading_blankline(span.start) {
-      items.push_signal(Signal::NewLine);
-    }
-    items.push_signal(Signal::NewLine);
-    items
+    // within a list two blocks may sit on consecutive lines, which is what
+    // keeps the list tight. Everywhere else a blank line is what separates them
+    let minimum = if context.is_in_list() { 0 } else { 1 };
+    let blank_lines = std::cmp::max(context.get_leading_blank_lines(span.start), minimum);
+    get_blank_lines(blank_lines)
   }
 }
 
@@ -798,10 +798,9 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
       return;
     }
     if !items.is_empty() {
-      // a chunk may have significant whitespace merged into it, so only the
-      // leading token decides whether it could start a block
-      let leading_token = word.split(' ').next().unwrap_or(word);
-      if utils::is_block_start_word(leading_token) {
+      // only the chunk is looked at, since a code span's text is written out
+      // in chunks rather than a line at a time
+      if utils::wrapping_word_starts_block(word, text_can_be_wrapped_away(context)) {
         items.push_space();
       } else if was_last_newline {
         items.push_signal(Signal::NewLine);
@@ -850,27 +849,31 @@ fn is_callout_text(text: &str) -> bool {
 }
 
 fn gen_str(text: &str, context: &mut Context) -> PrintItems {
-  let mut text_builder = TextBuilder::new(context);
+  let mut text_builder = TextBuilder::new(text, context);
 
-  for c in text.chars() {
-    text_builder.add_char(c);
+  for (index, c) in text.char_indices() {
+    text_builder.add_char(index, c);
   }
 
   return text_builder.build();
 
   struct TextBuilder<'a> {
     items: PrintItems,
+    /// The text being written, which the words are read back out of in order
+    /// to work out what a line would begin with.
+    text: &'a str,
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
-    current_word: Option<String>,
+    current_word: Option<(usize, String)>,
     context: &'a Context<'a>,
   }
 
   impl<'a> TextBuilder<'a> {
-    pub fn new(context: &'a Context) -> TextBuilder<'a> {
+    pub fn new(text: &'a str, context: &'a Context) -> TextBuilder<'a> {
       TextBuilder {
         items: PrintItems::new(),
+        text,
         last_char: None,
         current_word: None,
         context,
@@ -882,7 +885,7 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
       self.items
     }
 
-    pub fn add_char(&mut self, character: char) {
+    pub fn add_char(&mut self, index: usize, character: char) {
       // a line break within a block reaches the formatter as a soft break of
       // its own, so a space is the only whitespace that gets here
       if character == ' ' {
@@ -890,19 +893,19 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
         return;
       }
 
-      if let Some(current_word) = self.current_word.as_mut() {
+      if let Some((_, current_word)) = self.current_word.as_mut() {
         current_word.push(character);
       } else {
-        let mut text = String::new();
-        text.push(character);
-        self.current_word = Some(text);
+        let mut word = String::new();
+        word.push(character);
+        self.current_word = Some((index, word));
       }
     }
 
     fn flush_current_word(&mut self) {
-      if let Some(current_word) = self.current_word.take() {
+      if let Some((start, current_word)) = self.current_word.take() {
         if !self.items.is_empty() {
-          self.items.extend(self.space_items(&current_word));
+          self.items.extend(self.space_items(start, &current_word));
         }
 
         self.last_char = current_word.chars().last();
@@ -913,9 +916,9 @@ fn gen_str(text: &str, context: &mut Context) -> PrintItems {
     }
 
     /// What to write in place of the space that ran up to the next word.
-    fn space_items(&self, next_word: &str) -> PrintItems {
-      if utils::is_block_start_word(next_word) {
-        // the word would start a block of its own at the start of a line, so
+    fn space_items(&self, next_word_start: usize, next_word: &str) -> PrintItems {
+      if utils::wrapping_word_starts_block(&self.text[next_word_start..], text_can_be_wrapped_away(self.context)) {
+        // the text would start a block of its own at the start of a line, so
         // it has to be kept off one
         return space();
       }
@@ -1690,10 +1693,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
     // generate items
     for (index, child) in list.children.iter().enumerate() {
       if index > 0 {
-        items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.span().start) {
-          items.push_signal(Signal::NewLine);
-        }
+        items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
@@ -1754,10 +1754,9 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
   ));
 
   if !item.sub_lists.is_empty() {
-    items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(item.sub_lists.first().unwrap().span().start) {
-      items.push_signal(Signal::NewLine);
-    }
+    items.extend(get_blank_lines(
+      context.get_leading_blank_lines(item.sub_lists.first().unwrap().span().start),
+    ));
     items.extend(gen_nodes(&item.sub_lists, context));
   }
 
@@ -1770,10 +1769,7 @@ fn gen_definition_list(definition_list: &DefinitionList, context: &mut Context) 
 
     for (index, child) in definition_list.children.iter().enumerate() {
       if index > 0 {
-        items.push_signal(Signal::NewLine);
-        if context.has_leading_blankline(child.span().start) {
-          items.push_signal(Signal::NewLine);
-        }
+        items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
 
       items.extend(match child {
@@ -1856,10 +1852,9 @@ fn gen_task_list_marker_children(
 
   // insert the remaining children without indent
   if indent_child_index_end > 0 && indent_child_index_end != children.len() {
-    items.push_signal(Signal::NewLine);
-    if context.has_leading_blankline(children[indent_child_index_end].span().start) {
-      items.push_signal(Signal::NewLine);
-    }
+    items.extend(get_blank_lines(
+      context.get_leading_blank_lines(children[indent_child_index_end].span().start),
+    ));
   }
   items.extend(gen_nodes(&children[indent_child_index_end..], context));
   items
@@ -1895,6 +1890,10 @@ fn gen_hard_break(context: &mut Context) -> PrintItems {
   /// The two spaces a double space hard break leaves behind, measured as zero
   /// columns because trailing whitespace isn't visible.
   const DOUBLE_SPACE: StringContainer = StringContainer::proc_macro_new_with_char_count("  ", 0);
+  /// Stands in for the text a hard break writes, which is otherwise hidden
+  /// within a condition where nothing rewriting the line can see it (ex. a
+  /// block quote, which writes its markers in front of a line's text).
+  const WRITES_TEXT: StringContainer = StringContainer::proc_macro_new_with_char_count("", 0);
 
   let hard_break = {
     let mut items = PrintItems::new();
@@ -1908,13 +1907,15 @@ fn gen_hard_break(context: &mut Context) -> PrintItems {
     items.push_signal(Signal::NewLine);
     items
   };
-  if_true_or(
+  let mut items = PrintItems::new();
+  items.push_sc(&WRITES_TEXT);
+  items.push_condition(if_true_or(
     "hardBreakOrSpaceIfNewlinesDisabled",
     condition_resolvers::is_forcing_no_newlines(),
     space(),
     hard_break,
-  )
-  .into()
+  ));
+  items
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
@@ -2167,6 +2168,21 @@ fn measure_longest_line_width(items: PrintItems, max_width: u32) -> usize {
     .map(|line| UnicodeWidthStr::width(line.trim_end_matches(WHITESPACE)))
     .max()
     .unwrap_or(0)
+}
+
+/// Ends the current line and writes `count` blank lines below it.
+fn get_blank_lines(count: u32) -> PrintItems {
+  let mut items = PrintItems::new();
+  for _ in 0..count + 1 {
+    items.push_signal(Signal::NewLine);
+  }
+  items
+}
+
+/// Whether the text after a word can be wrapped onto the line below it, which
+/// is what would leave the word by itself on a line of its own.
+fn text_can_be_wrapped_away(context: &Context) -> bool {
+  context.configuration.text_wrap == TextWrap::Always && !context.is_text_wrap_disabled()
 }
 
 fn get_space_or_newline_based_on_config(context: &Context) -> PrintItems {

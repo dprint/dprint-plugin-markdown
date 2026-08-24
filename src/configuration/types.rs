@@ -18,6 +18,8 @@ pub struct Configuration {
   pub heading_kind: HeadingKind,
   pub hard_break_kind: HardBreakKind,
   pub list_indent_kind: ListIndentKind,
+  /// The maximum number of consecutive blank lines to keep between blocks.
+  pub max_blank_lines: u32,
   #[serde(rename = "codeBlock.skipFormat")]
   pub code_block_skip_format: bool,
   #[serde(rename = "codeBlock.preserveIndentation")]

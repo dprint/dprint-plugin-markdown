@@ -72,6 +72,7 @@ pub fn resolve_config(
       ListIndentKind::CommonMark,
       &mut diagnostics,
     ),
+    max_blank_lines: get_max_blank_lines(&mut config, &mut diagnostics),
     code_block_skip_format: get_value(&mut config, "codeBlock.skipFormat", false, &mut diagnostics),
     code_block_preserve_indentation: get_value(&mut config, "codeBlock.preserveIndentation", false, &mut diagnostics),
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
@@ -115,6 +116,20 @@ pub fn resolve_config(
     config: resolved_config,
     diagnostics,
   }
+}
+
+/// A block is always separated from the one above it by a blank line, so a
+/// maximum below one isn't something the formatter could ever stay under.
+fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> u32 {
+  let value = get_value(config, "maxBlankLines", 1, diagnostics);
+  if value < 1 {
+    diagnostics.push(ConfigurationDiagnostic {
+      property_name: "maxBlankLines".to_string(),
+      message: "Expected a value of at least 1.".to_string(),
+    });
+    return 1;
+  }
+  value
 }
 
 fn get_tags(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> HashMap<String, String> {

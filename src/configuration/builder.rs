@@ -97,6 +97,12 @@ impl ConfigurationBuilder {
     self.insert("listIndentKind", value.to_string().into())
   }
 
+  /// The maximum number of consecutive blank lines to keep between blocks.
+  /// Default: 1
+  pub fn max_blank_lines(&mut self, value: u32) -> &mut Self {
+    self.insert("maxBlankLines", (value as i32).into())
+  }
+
   /// Whether to leave the code within a code block as it was written rather
   /// than formatting it with the plugin that handles the code's language.
   /// Default: `false`
@@ -197,6 +203,7 @@ mod tests {
       .heading_kind(HeadingKind::Atx)
       .hard_break_kind(HardBreakKind::DoubleSpace)
       .list_indent_kind(ListIndentKind::PythonMarkdown)
+      .max_blank_lines(2)
       .code_block_skip_format(true)
       .code_block_preserve_indentation(true)
       .code_block_preserve_blank_lines(true)
@@ -208,7 +215,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 18);
+    assert_eq!(inner_config.len(), 19);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -254,6 +261,18 @@ mod tests {
 
     let config = ConfigurationBuilder::new().code_block_indent_width(2).build();
     assert_eq!(config.code_block_indent_width, Some(2));
+  }
+
+  #[test]
+  fn max_blank_lines_below_one() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("maxBlankLines".into(), 0.into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "maxBlankLines");
+    assert!(result.diagnostics[0].message.contains("at least 1"));
+    assert_eq!(result.config.max_blank_lines, 1);
   }
 
   #[test]
