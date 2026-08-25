@@ -406,3 +406,70 @@ impl Random {
     self.0 % bound
   }
 }
+
+/// Hunts for html that changes what the markdown around it says, by putting
+/// the generated html in a document and formatting that.
+///
+/// The html sweep above works the fragment on its own, where the only thing
+/// that can go wrong is what the printer writes. In a document there is more:
+/// an html block ends where markdown says it does, so text moved onto a line
+/// past what closes the block stops being html and starts being markdown, and
+/// text moved onto the line of a marker starts being html. Neither shows up
+/// until the document is read again.
+#[test]
+fn markdown_holding_html_is_written_back_out_whole() {
+  let first = env_count("FUZZ_FROM").unwrap_or(0);
+  let count = env_count("FUZZ_CASES").unwrap_or(50_000);
+  let config = crate::configuration::ConfigurationBuilder::new().build();
+  let mut failures = Vec::new();
+
+  for case in first..first + count {
+    let html = generate(case);
+    // An ignore directive turns off the formatting of whatever follows it,
+    // which is a tangle of its own that this doesn't hunt for: a document
+    // holding one doesn't settle even with the html left alone entirely. The
+    // sweep above covers the html a directive is written in.
+    if html.contains("dprint-ignore") {
+      continue;
+    }
+    // the html is written as a block of its own, with markdown on either side
+    // of it that has to still be there and still be markdown
+    let source = format!("before *a*\n\n{}\n\nafter *b*\n", html);
+
+    let Ok(once) = crate::format_text(&source, &config, |_, _, _| Ok(None)) else {
+      continue; // a document the formatter won't take is not what is hunted here
+    };
+    let once = once.unwrap_or_else(|| source.clone());
+    let Ok(twice) = crate::format_text(&once, &config, |_, _, _| Ok(None)) else {
+      failures.push(format!(
+        "case {}: {:?}\n  came out as text that won't format",
+        case, source
+      ));
+      continue;
+    };
+    let twice = twice.unwrap_or_else(|| once.clone());
+
+    if written_letters(&once) != written_letters(&source) {
+      failures.push(format!(
+        "case {}: {:?}\n  came out as {:?}, which doesn't say the same thing",
+        case, source, once,
+      ));
+    } else if twice != once {
+      failures.push(format!(
+        "case {}: {:?}\n  came out as {:?} and then as {:?}, so formatting it doesn't settle",
+        case, source, once, twice,
+      ));
+    }
+    if failures.len() >= 10 {
+      break;
+    }
+  }
+
+  assert!(
+    failures.is_empty(),
+    "the formatter was wrong about {} of {} generated documents:\n\n{}",
+    failures.len(),
+    count,
+    failures.join("\n\n"),
+  );
+}
