@@ -149,11 +149,18 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       content_end = end;
     }
 
-    let content: Vec<ContentLine<'a>> = lines[index + 1..content_end]
-      .iter()
-      .map(|line| line.strip_columns(indent))
-      .collect();
-    let code = join_lines(&content, self.source, !content.is_empty());
+    let stripped: Vec<ContentLine<'a>>;
+    let content: &[ContentLine<'a>] = if indent == 0 {
+      // the fence sits at the margin, so its lines carry nothing to strip
+      &lines[index + 1..content_end]
+    } else {
+      stripped = lines[index + 1..content_end]
+        .iter()
+        .map(|line| line.strip_columns(indent))
+        .collect();
+      &stripped
+    };
+    let code = join_lines(content, self.source, !content.is_empty());
 
     nodes.push(
       CodeBlock {
@@ -238,7 +245,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
   // ==== container blocks ====
 
   fn parse_block_quote(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
-    let mut content = Vec::new();
+    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
     let mut end = index;
     let mut paragraph = OpenParagraph::default();
 
@@ -276,7 +283,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
   fn parse_list(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
     let first = list_marker(lines[index].rest()).unwrap();
-    let mut items = Vec::new();
+    let mut items: Vec<Node<'a>> = Vec::new();
     let mut end = index;
 
     while end < lines.len() {
@@ -299,18 +306,18 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         break;
       }
       let (item, next) = self.parse_item(lines, end, &marker);
-      items.push(item);
+      items.push(item.into());
       end = next;
     }
 
     // any blank lines that followed the last item aren't part of the list
-    let last_line = items.last().map(|item| item.span.end).unwrap_or(lines[index].end());
+    let last_line = items.last().map(|item| item.span().end).unwrap_or(lines[index].end());
     nodes.push(
       List {
         span: Span::new(lines[index].rest_start(), last_line),
         start_index: first.is_ordered.then_some(first.start_index),
         marker_char: first.char,
-        children: items.into_iter().map(Into::into).collect(),
+        children: items,
       }
       .into(),
     );
@@ -334,7 +341,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     // its lines have already had stripped off them
     let content_indent = lines[index].indent_columns() + marker.len + spaces;
 
-    let mut content = vec![after_marker.strip_columns(spaces)];
+    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    content.push(after_marker.strip_columns(spaces));
     // an item may begin with at most one blank line, so a second one before
     // any content ends it
     let begins_blank = content[0].is_blank();
@@ -405,7 +413,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     let name = footnote_definition_name(start_line.text).unwrap();
     let marker_len = name.len() + 4; // `[^` + name + `]:`
 
-    let mut content = vec![start_line.strip_bytes(marker_len).strip_columns(usize::MAX)];
+    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    content.push(start_line.strip_bytes(marker_len).strip_columns(usize::MAX));
     let mut paragraph = OpenParagraph::default();
     paragraph.push(content[0]);
     let mut end = index + 1;
@@ -480,7 +489,9 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       after_definitions
     };
 
-    let mut content = vec![lines[index]];
+    // the lines of a paragraph are taken as they are, so the content is the
+    // run of them that it reaches rather than a gathered up copy
+    let content_start = index;
     let mut end = index + 1;
 
     while end < lines.len() {
@@ -494,12 +505,13 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       // the paragraph, never the start of one of these
       if line.indent_columns() < CODE_INDENT && !line.is_lazy {
         if let Some(level) = setext_heading_level(rest) {
+          let content = &lines[content_start..end];
           nodes.push(
             Heading {
               span: Span::new(content[0].rest_start(), line.trim_end().end()),
               level,
               style: HeadingStyle::Setext,
-              children: self.parse_inlines(&content),
+              children: self.parse_inlines(content),
             }
             .into(),
           );
@@ -507,21 +519,21 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         }
         // a delimiter row turns the line above it into a table's header,
         // leaving the rest of the paragraph above the table
-        if let Some(alignment) = table_delimiter_row(rest, content.last().unwrap().rest()) {
-          self.push_paragraph(&content[..content.len() - 1], nodes);
+        if let Some(alignment) = table_delimiter_row(rest, lines[end - 1].rest()) {
+          self.push_paragraph(&lines[content_start..end - 1], nodes);
           return self.parse_table(lines, end, alignment, nodes);
         }
         if is_definition_marker(rest) {
-          return self.parse_definition_list(lines, end, content, nodes);
+          return self.parse_definition_list(lines, end, &lines[content_start..end], nodes);
         }
       }
       if !line.is_lazy && line.indent_columns() < CODE_INDENT && self.interrupts_paragraph(lines, end) {
         break;
       }
 
-      content.push(line);
       end += 1;
     }
+    let content = &lines[content_start..end];
 
     // a blank line may separate the terms of a definition list from their
     // definitions
@@ -533,7 +545,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       return self.parse_definition_list(lines, after_blanks, content, nodes);
     }
 
-    self.push_paragraph(&content, nodes);
+    self.push_paragraph(content, nodes);
     end
   }
 
@@ -562,6 +574,12 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     index: usize,
     nodes: &mut Vec<Node<'a>>,
   ) -> usize {
+    // a definition opens with its label, so a block that starts with anything
+    // else holds none and doesn't have to be gathered up to be looked through
+    if !lines[index].starts_with("[") {
+      return index;
+    }
+
     let mut block_end = index + 1;
     while block_end < lines.len()
       && !lines[block_end].is_blank()
@@ -605,7 +623,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       cells: self.parse_table_cells(header_line),
     };
 
-    let mut rows = Vec::new();
+    let mut rows = Vec::with_capacity(lines.len() - delimiter_index - 1);
     let mut end = delimiter_index + 1;
     while end < lines.len() {
       let line = lines[end];
@@ -666,7 +684,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     &self,
     lines: &[ContentLine<'a>],
     marker_index: usize,
-    titles: Vec<ContentLine<'a>>,
+    titles: &[ContentLine<'a>],
     nodes: &mut Vec<Node<'a>>,
   ) -> usize {
     // the list begins where its first term does, which has to be read before
@@ -677,7 +695,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     let mut titles = titles;
 
     loop {
-      for title in &titles {
+      for title in titles {
         let title = title.trimmed().trim_end();
         children.push(
           DefinitionListTitle {
@@ -702,7 +720,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       let Some(group_end) = self.definition_group_end(lines, next) else {
         break;
       };
-      titles = lines[next..group_end].to_vec();
+      titles = &lines[next..group_end];
       end = group_end;
     }
 
@@ -727,7 +745,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     };
     let content_indent = lines[index].indent_columns() + 1 + spaces;
 
-    let mut content = vec![after_marker.strip_columns(spaces)];
+    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    content.push(after_marker.strip_columns(spaces));
     let mut paragraph = OpenParagraph::default();
     paragraph.push(content[0]);
     let mut end = index + 1;
@@ -1486,6 +1505,14 @@ fn table_delimiter_row(text: &str, header: &str) -> Option<Vec<ColumnAlignment>>
 }
 
 // ==== small helpers ====
+
+/// How much room to make for the lines a container is about to gather up.
+///
+/// Most of them run to only a few lines, so this is what it takes to hold one
+/// of those without growing rather than a guess at how long this one runs.
+fn gathered_line_capacity(lines: &[ContentLine<'_>], index: usize) -> usize {
+  (lines.len() - index).min(8)
+}
 
 fn skip_blank_lines(lines: &[ContentLine<'_>], index: usize) -> usize {
   let mut index = index;

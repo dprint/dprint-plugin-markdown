@@ -6,8 +6,8 @@ use dprint_core::formatting::*;
 
 use super::configuration::Configuration;
 use super::generation::count_new_lines;
-use super::generation::file_has_ignore_file_directive;
 use super::generation::generate;
+use super::generation::is_ignore_comment;
 use super::generation::strip_metadata_header;
 use super::generation::Context;
 
@@ -137,7 +137,7 @@ enum ParseFileResult<'a> {
 
 fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
   // check for the presence of a dprint-ignore-file comment before parsing
-  if file_has_ignore_file_directive(strip_metadata_header(file_text), &config.ignore_file_directive) {
+  if is_ignore_comment(strip_metadata_header(file_text), &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }
 

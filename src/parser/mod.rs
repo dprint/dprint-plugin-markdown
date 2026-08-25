@@ -60,12 +60,7 @@ pub fn parse(source: &str) -> Result<SourceFile<'_>, ParseError> {
   let (metadata, body_start) = parse_metadata_block(source, &lines);
 
   let (link_labels, footnote_labels) = collect_labels(source, &lines[body_start..]);
-  let context = InlineContext {
-    source,
-    link_labels,
-    footnote_labels,
-    collect_only: false,
-  };
+  let context = InlineContext::new(source, link_labels, footnote_labels, false);
   let parser = BlockParser {
     source,
     context: &context,
@@ -144,12 +139,7 @@ fn collect_labels(source: &str, lines: &[ContentLine<'_>]) -> (HashSet<String>, 
     return (link_labels, footnote_labels);
   }
 
-  let context = InlineContext {
-    source,
-    link_labels: HashSet::new(),
-    footnote_labels: HashSet::new(),
-    collect_only: true,
-  };
+  let context = InlineContext::new(source, HashSet::new(), HashSet::new(), true);
   let parser = BlockParser {
     source,
     context: &context,
@@ -164,10 +154,10 @@ fn collect_node_labels(nodes: &[Node<'_>], link_labels: &mut HashSet<String>, fo
   for node in nodes {
     match node {
       Node::LinkReference(reference) => {
-        link_labels.insert(links::normalize_label(&reference.name));
+        link_labels.insert(links::normalize_label(&reference.name).into_owned());
       }
       Node::FootnoteDefinition(definition) => {
-        footnote_labels.insert(links::normalize_label(definition.name));
+        footnote_labels.insert(links::normalize_label(definition.name).into_owned());
       }
       _ => {}
     }

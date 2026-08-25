@@ -324,7 +324,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
     // check for ignore comment
     if let Node::Html(html) = node {
       let html_text = html.span.text(context.file_text);
-      if context.ignore_regex.is_match(html_text) {
+      if context.is_ignore_comment(html_text) {
         items.push_signal(Signal::NewLine);
         if let Some(node) = node_iterator.next() {
           if context.has_leading_blankline(node.span().start) {
@@ -340,7 +340,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
 
           last_node = Some(node);
         }
-      } else if context.ignore_start_regex.is_match(html_text) {
+      } else if context.is_ignore_start_comment(html_text) {
         let mut end_comment = None;
         let start = html.span().end;
         for node in node_iterator.by_ref() {
@@ -348,7 +348,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
 
           if let Node::Html(html) = node {
             let html_text = html.span.text(context.file_text);
-            if context.ignore_end_regex.is_match(html_text) {
+            if context.is_ignore_end_comment(html_text) {
               end_comment = Some(html);
               break;
             }
@@ -443,7 +443,14 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
 
 fn gen_atx_heading(level: u8, children: PrintItems) -> PrintItems {
   let mut items = PrintItems::new();
-  items.push_string("#".repeat(level as usize));
+  items.push_sc(match level {
+    1 => sc!("#"),
+    2 => sc!("##"),
+    3 => sc!("###"),
+    4 => sc!("####"),
+    5 => sc!("#####"),
+    _ => sc!("######"),
+  });
   // an empty heading is just the number signs, so don't leave a trailing space
   items.push_signal(Signal::SpaceIfNotTrailing);
   items.extend(with_no_new_lines(children));
@@ -472,7 +479,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   /// the start of a line isn't read as the start of a block.
   fn paragraph_escapes(paragraph: &Paragraph) -> ParagraphEscapes {
     let mut block_starts = Vec::new();
-    let mut line_starts = Vec::new();
+    let mut line_starts = LineStarts::default();
     // the first line of a paragraph has nothing above it to be read together
     // with, so less of what it holds is markup than on the lines after it
     let mut escape: fn(&str) -> Option<usize> = block_start_escape;
@@ -705,7 +712,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
       }
       // the info string may hold a tab, which the printer measures itself
       if tag.contains('\t') {
-        items.extend(gen_text_with_tabs(tag.to_string()));
+        items.extend(gen_text_with_tabs(tag));
       } else {
         items.push_str(tag);
       }
@@ -802,7 +809,7 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   // a code span holds its text as it is, so the only choice here is how to
   // write the delimiters so that the text is read back out of them
   let text = code.code.as_ref();
-  let backtick_text = "`".repeat(get_backtick_count(text));
+  let backticks = get_backtick_count(text);
   // a reader takes one space off each end of a span that has one at both, and
   // a backtick written against the delimiter would make the delimiter longer.
   // A space on each end handles either: the reader takes it straight back off
@@ -818,9 +825,9 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   // only the text is run through the text builder so that the backticks
   // always stay attached to it when the text is wrapped
   let mut items = PrintItems::new();
-  items.push_string(format!("{}{}", backtick_text, separator));
+  push_code_delimiter(&mut items, backticks, separator, true);
   items.extend(gen_code_str(text, context));
-  items.push_string(format!("{}{}", separator, backtick_text));
+  push_code_delimiter(&mut items, backticks, separator, false);
   return items;
 
   /// A code span ends at the first run of backticks with the same length as
@@ -889,9 +896,10 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     /// The span's text, which the word being written is read together with the
     /// rest of in order to work out what a line would begin with.
     text: &'a str,
-    /// The word being gathered, and where in `text` it begins.
-    word: String,
-    word_start: usize,
+    /// Where the word being gathered runs from and to. It is a slice of
+    /// `text`, apart from the line endings within it that are written as the
+    /// spaces they render as.
+    word: Option<(usize, usize)>,
     /// Whether the whitespace that ran up to the word being gathered was a line
     /// ending that the configuration keeps where it was written.
     after_maintained_newline: bool,
@@ -903,8 +911,7 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
       CodeTextBuilder {
         items: PrintItems::new(),
         text,
-        word: String::new(),
-        word_start: 0,
+        word: None,
         after_maintained_newline: false,
         context,
       }
@@ -916,15 +923,15 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     }
 
     pub fn add_char(&mut self, index: usize, character: char) {
-      self.start_word_at(index);
-      self.word.push(character);
+      self.extend_word(index, character.len_utf8());
     }
 
     /// Adds whitespace the span can't be broken at, keeping its width because a
     /// line ending renders as a space.
     pub fn add_spaces(&mut self, index: usize, count: usize) {
-      self.start_word_at(index);
-      self.word.push_str(&" ".repeat(count));
+      // a space and a line ending are one byte each, so the run is as many
+      // bytes long as it has characters
+      self.extend_word(index, count);
     }
 
     /// Ends the word at whitespace the span can be broken at, which
@@ -937,37 +944,74 @@ fn gen_code_str(text: &str, context: &mut Context) -> PrintItems {
     /// Whether nothing has been written yet, where the whitespace that follows
     /// is text the span opens with rather than somewhere it can be broken.
     pub fn is_leading(&self) -> bool {
-      self.word.is_empty() && self.items.is_empty()
+      self.word.is_none() && self.items.is_empty()
     }
 
-    fn start_word_at(&mut self, index: usize) {
-      if self.word.is_empty() {
-        self.word_start = index;
+    fn extend_word(&mut self, index: usize, len: usize) {
+      match self.word.as_mut() {
+        Some((_, end)) => *end = index + len,
+        None => self.word = Some((index, index + len)),
       }
     }
 
     fn flush_word(&mut self) {
-      if self.word.is_empty() {
+      let Some((start, end)) = self.word.take() else {
         return;
-      }
+      };
+      let word = word_text(self.text, start, end);
       if !self.items.is_empty() {
-        self.items.extend(self.space_items());
+        self.items.extend(self.space_items(start, &word));
       }
-      self.items.push_string(std::mem::take(&mut self.word));
+      self.items.push_str(&word);
     }
 
     /// What to write in place of the whitespace that ran up to the word.
-    fn space_items(&self) -> PrintItems {
+    fn space_items(&self, word_start: usize, word: &str) -> PrintItems {
       // the words the span goes on with count as well as this one, since a
       // block can be written as several of them (ex. a table's delimiter row)
-      let following_text = &self.text[self.word_start..];
-      if utils::wrapping_word_starts_block(&self.word, following_text, text_can_be_wrapped_away(self.context)) {
+      let following_text = &self.text[word_start..];
+      if utils::wrapping_word_starts_block(word, following_text, text_can_be_wrapped_away(self.context)) {
         return space();
       }
       if self.after_maintained_newline {
         return Signal::NewLine.into();
       }
       get_space_or_newline_based_on_config(self.context, false)
+    }
+  }
+}
+
+/// The text of a code span's word, which is written as it stands apart from
+/// the line endings within it, each of which renders as the space it becomes.
+fn word_text<'a>(text: &'a str, start: usize, end: usize) -> Cow<'a, str> {
+  let word = &text[start..end];
+  match word.contains('\n') {
+    true => Cow::Owned(word.replace('\n', " ")),
+    false => Cow::Borrowed(word),
+  }
+}
+
+/// Writes the backticks a code span is delimited by, along with the space that
+/// holds them off its text where one is needed.
+fn push_code_delimiter(items: &mut PrintItems, backticks: usize, separator: &str, leading: bool) {
+  // almost every span is written with a single backtick and nothing between it
+  // and the text, which is worth not building a string for
+  let known = match (backticks, separator, leading) {
+    (1, "", _) => Some(sc!("`")),
+    (2, "", _) => Some(sc!("``")),
+    (3, "", _) => Some(sc!("```")),
+    (1, " ", true) => Some(sc!("` ")),
+    (1, " ", false) => Some(sc!(" `")),
+    _ => None,
+  };
+  match known {
+    Some(text) => items.push_sc(text),
+    None => {
+      let backticks = "`".repeat(backticks);
+      items.push_string(match leading {
+        true => format!("{}{}", backticks, separator),
+        false => format!("{}{}", separator, backticks),
+      });
     }
   }
 }
@@ -1042,7 +1086,8 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
-    current_word: Option<(usize, String)>,
+    /// Where the word being read runs from and to.
+    current_word: Option<(usize, usize)>,
     context: &'a Context<'a>,
   }
 
@@ -1073,23 +1118,22 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
         return;
       }
 
-      if let Some((_, current_word)) = self.current_word.as_mut() {
-        current_word.push(character);
-      } else {
-        let mut word = String::new();
-        word.push(character);
-        self.current_word = Some((index, word));
+      let end = index + character.len_utf8();
+      match self.current_word.as_mut() {
+        Some((_, word_end)) => *word_end = end,
+        None => self.current_word = Some((index, end)),
       }
     }
 
     fn flush_current_word(&mut self) {
-      if let Some((start, current_word)) = self.current_word.take() {
+      if let Some((start, end)) = self.current_word.take() {
+        let current_word = &self.text[start..end];
         if !self.items.is_empty() {
-          self.items.extend(self.space_items(start, &current_word));
+          self.items.extend(self.space_items(start, current_word));
         }
 
         self.last_word_start = start;
-        self.last_char = current_word.chars().last();
+        self.last_char = current_word.chars().next_back();
         self
           .items
           .extend(gen_word_with_unspaced_script_breaks(current_word, self.context));
@@ -1591,7 +1635,7 @@ fn gen_link_destination_text(text: Cow<'_, str>) -> PrintItems {
   } else {
     text
   };
-  gen_text_with_tabs(text.into_owned())
+  gen_text_with_tabs(&text)
 }
 
 /// Generates an image's alt text, which is the raw text from the file.
@@ -1658,7 +1702,7 @@ fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
   // and skip the empty text a carriage return and line feed pair leaves behind
   let mut lines = text.split(['\r', '\n']).filter(|line| !line.is_empty());
   if let Some(line) = lines.next() {
-    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES)));
   }
   for line in lines {
     // a label, a title, and an image's alt text are not prose, so a sentence
@@ -1667,7 +1711,7 @@ fn gen_raw_text(text: &str, context: &Context) -> PrintItems {
     // the printer provides the indentation and block quote markers of a
     // continued line, so drop the ones this picked up from the file
     let line = strip_block_quote_markers(line, context);
-    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES)));
   }
   items
 }
@@ -1694,19 +1738,19 @@ fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
 /// written, the same as in [`gen_word_with_unspaced_script_breaks`]: anywhere
 /// else the break would be read back as a space that wasn't written, and the
 /// text after it could begin a block of its own at the start of the line.
-fn gen_word_with_sentence_breaks(word: String) -> PrintItems {
+fn gen_word_with_sentence_breaks(word: &str) -> PrintItems {
   let mut items = PrintItems::new();
   let mut segment_start = 0;
   let mut last_char: Option<char> = None;
   for (index, character) in word.char_indices() {
     if matches!(last_char, Some(last) if breaks_between_sentences(last, character)) {
-      items.extend(gen_text_with_tabs(word[segment_start..index].to_string()));
+      items.extend(gen_text_with_tabs(&word[segment_start..index]));
       items.extend(new_line_or_nothing_if_newlines_disabled());
       segment_start = index;
     }
     last_char = Some(character);
   }
-  items.extend(gen_text_with_tabs(word[segment_start..].to_string()));
+  items.extend(gen_text_with_tabs(&word[segment_start..]));
   return items;
 
   /// Only the character beside the terminator decides this. What a longer look
@@ -1729,7 +1773,7 @@ fn gen_word_with_sentence_breaks(word: String) -> PrintItems {
 /// without this it would be written on one line however long it ran. Only a
 /// break with one of its characters on either side can be written: anywhere
 /// else the break would be read back as a space that wasn't written.
-fn gen_word_with_unspaced_script_breaks(word: String, context: &Context) -> PrintItems {
+fn gen_word_with_unspaced_script_breaks(word: &str, context: &Context) -> PrintItems {
   if context.configuration.text_wrap == TextWrap::Sentence && !context.is_text_wrap_disabled() {
     return gen_word_with_sentence_breaks(word);
   }
@@ -1742,13 +1786,13 @@ fn gen_word_with_unspaced_script_breaks(word: String, context: &Context) -> Prin
   let mut last_char: Option<char> = None;
   for (index, character) in word.char_indices() {
     if matches!(last_char, Some(last) if breaks_between(last, character)) {
-      items.extend(gen_text_with_tabs(word[segment_start..index].to_string()));
+      items.extend(gen_text_with_tabs(&word[segment_start..index]));
       items.push_signal(Signal::PossibleNewLine);
       segment_start = index;
     }
     last_char = Some(character);
   }
-  items.extend(gen_text_with_tabs(word[segment_start..].to_string()));
+  items.extend(gen_text_with_tabs(&word[segment_start..]));
 
   return items;
 
@@ -1765,10 +1809,10 @@ fn gen_word_with_unspaced_script_breaks(word: String, context: &Context) -> Prin
 
 /// Writes out text, sending any tab it has as a signal, since the printer
 /// can't be handed one as part of a string.
-fn gen_text_with_tabs(text: String) -> PrintItems {
+fn gen_text_with_tabs(text: &str) -> PrintItems {
   let mut items = PrintItems::new();
   if !text.contains('\t') {
-    items.push_string(text);
+    items.push_str(text);
     return items;
   }
 
@@ -1961,6 +2005,37 @@ fn gen_shortcut_image(image: &ShortcutImage, context: &mut Context) -> PrintItem
   })
 }
 
+/// Somewhere to write a list item's marker that costs nothing to have.
+///
+/// The printer copies what it is given into its own memory, so a marker only
+/// has to be spelled out somewhere long enough to hand over -- and every marker
+/// is short enough to spell out on the stack.
+#[derive(Default)]
+struct MarkerBuffer {
+  bytes: [u8; MarkerBuffer::LEN],
+}
+
+impl MarkerBuffer {
+  /// Room for the longest marker, which is a `u64` written out in full
+  /// followed by the character that ends it.
+  const LEN: usize = 24;
+
+  /// Writes a numbered marker (ex. `12.`).
+  fn write(&mut self, index: u64, end_char: &str) -> &str {
+    use std::io::Write;
+    let mut rest = &mut self.bytes[..];
+    // the buffer has room for the longest of these, so writing can't fail
+    let _ = write!(rest, "{}{}", index, end_char);
+    let written = MarkerBuffer::LEN - rest.len();
+    std::str::from_utf8(&self.bytes[..written]).unwrap()
+  }
+
+  /// Writes a bullet marker (ex. `-`).
+  fn write_char(&mut self, marker: char) -> &str {
+    marker.encode_utf8(&mut self.bytes)
+  }
+}
+
 fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItems {
   context.mark_in_list(|context| {
     let mut items = PrintItems::new();
@@ -1969,6 +2044,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
       if index > 0 {
         items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
+      let mut buffer = MarkerBuffer::default();
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
         let display_index = if is_all_ones_list(list, context) {
@@ -1976,9 +2052,9 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         } else {
           start_index + index as u64
         };
-        format!("{}{}", display_index, end_char)
+        buffer.write(display_index, end_char)
       } else {
-        String::from(context.configuration.list_unordered_marker.list_char(is_alternate))
+        buffer.write_char(context.configuration.list_unordered_marker.list_char(is_alternate))
       };
       let marker_width = prefix_text.chars().count() as u32 + 1;
       let indent_increment = match context.configuration.list_indent_kind {
@@ -1991,7 +2067,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         lines_up: indent_increment == marker_width,
       };
       context.indent_level += indent_increment;
-      items.push_string(prefix_text);
+      items.push_str(prefix_text);
       // the space is dropped where nothing follows it on the line, so an item
       // with nothing in it is written as the marker alone. Whether anything
       // does follow is the item's to say, not something to measure: content of
@@ -2452,12 +2528,12 @@ fn gen_table_rows_as_written(table: &Table, context: &Context) -> PrintItems {
     .split(['\r', '\n'])
     .filter(|line| !line.is_empty());
   if let Some(line) = lines.next() {
-    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES)));
   }
   for line in lines {
     items.push_signal(Signal::NewLine);
     let line = strip_block_quote_markers(line, context);
-    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES).to_string()));
+    items.extend(gen_text_with_tabs(line.trim_end_matches(SPACES)));
   }
   items
 }

@@ -25,6 +25,34 @@ pub struct InlineContext<'a> {
   /// Whether this is the pass that only looks for definitions, in which case
   /// there's no point in doing the work of parsing inlines.
   pub collect_only: bool,
+  /// The buffers the blocks of the document are parsed in, kept here so that
+  /// each of them doesn't have to ask for its own.
+  scratch: std::cell::RefCell<InlineScratch<'a>>,
+}
+
+impl<'a> InlineContext<'a> {
+  pub fn new(
+    source: &'a str,
+    link_labels: HashSet<String>,
+    footnote_labels: HashSet<String>,
+    collect_only: bool,
+  ) -> InlineContext<'a> {
+    InlineContext {
+      source,
+      link_labels,
+      footnote_labels,
+      collect_only,
+      scratch: Default::default(),
+    }
+  }
+}
+
+/// The working memory of a single block's inline parse, which holds nothing
+/// between blocks and is cleared before each of them.
+#[derive(Default)]
+struct InlineScratch<'a> {
+  nodes: Vec<Option<Node<'a>>>,
+  delimiters: Vec<Delimiter>,
 }
 
 pub fn parse_inlines<'a>(lines: &[ContentLine<'a>], context: &InlineContext<'a>) -> Vec<Node<'a>> {
@@ -32,13 +60,22 @@ pub fn parse_inlines<'a>(lines: &[ContentLine<'a>], context: &InlineContext<'a>)
     return Vec::new();
   }
   let text = InlineText::new(lines, context.source);
+  // inline parsing never begins again while it's underway, so the buffers on
+  // the context are always free; taking fresh ones rather than unwrapping
+  // keeps that an implementation detail rather than something to uphold
+  let mut borrowed = context.scratch.try_borrow_mut().ok();
+  let mut fallback = InlineScratch::default();
+  let scratch = borrowed.as_deref_mut().unwrap_or(&mut fallback);
+  scratch.nodes.clear();
+  scratch.delimiters.clear();
+
   let mut parser = InlineParser {
     text: &text,
     context,
     pos: 0,
     pending_text_start: 0,
-    nodes: Vec::new(),
-    delimiters: Vec::new(),
+    nodes: &mut scratch.nodes,
+    delimiters: &mut scratch.delimiters,
   };
   parser.parse();
   parser.finish()
@@ -70,8 +107,15 @@ impl<'a> InlineText<'a> {
       };
     }
 
-    let mut text = String::new();
-    let mut offsets: Vec<u32> = Vec::new();
+    // the content is as long as the lines it is built from, plus the line
+    // ending written between each pair of them
+    let len = lines
+      .iter()
+      .map(|line| line.virtual_spaces + line.text.len())
+      .sum::<usize>()
+      + lines.len().saturating_sub(1);
+    let mut text = String::with_capacity(len);
+    let mut offsets: Vec<u32> = Vec::with_capacity(len + 1);
     for (index, line) in lines.iter().enumerate() {
       if index > 0 {
         text.push('\n');
@@ -201,8 +245,8 @@ struct InlineParser<'a, 'b> {
   pending_text_start: usize,
   /// The nodes parsed so far. Emphasis leaves holes behind when it wraps the
   /// nodes it spans, so a slot may be empty.
-  nodes: Vec<Option<Node<'a>>>,
-  delimiters: Vec<Delimiter>,
+  nodes: &'b mut Vec<Option<Node<'a>>>,
+  delimiters: &'b mut Vec<Delimiter>,
 }
 
 /// An unmatched `*`, `_`, `~`, `[` or `![` that a later character may pair
@@ -254,7 +298,8 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     self.flush_text(self.text.len());
     self.process_emphasis(0);
     let source = self.text.source();
-    merge_adjacent_text(self.nodes.into_iter().flatten().collect(), source)
+    let nodes = compact(self.nodes);
+    merge_adjacent_text(nodes, source)
   }
 
   // ---- text ----
@@ -553,7 +598,8 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     } else {
       // the text within the brackets is the link's content
       self.process_emphasis(opener_index + 1);
-      let children: Vec<Node<'a>> = self.nodes.drain(node_index + 1..).flatten().collect();
+      let mut children: Vec<Node<'a>> = Vec::with_capacity(self.nodes.len() - node_index - 1);
+      children.extend(self.nodes.drain(node_index + 1..).flatten());
       let children = merge_adjacent_text(children, self.text.source());
       self.nodes[node_index] = None;
       match reference.kind {
@@ -766,10 +812,9 @@ impl<'a, 'b> InlineParser<'a, 'b> {
       self.text.abs(content_start - use_len),
       self.text.abs(content_end + use_len),
     );
-    let children: Vec<Node<'a>> = self.nodes[open_node + 1..close_node]
-      .iter_mut()
-      .filter_map(|slot| slot.take())
-      .collect();
+    let slots = &mut self.nodes[open_node + 1..close_node];
+    let mut children: Vec<Node<'a>> = Vec::with_capacity(slots.len());
+    children.extend(slots.iter_mut().filter_map(|slot| slot.take()));
     let children = merge_adjacent_text(children, self.text.source());
     let decoration: Node<'a> = TextDecoration { span, kind, children }.into();
 
@@ -827,6 +872,14 @@ impl<'a, 'b> InlineParser<'a, 'b> {
   fn run_length(&self, start: usize, byte: u8) -> usize {
     self.text.bytes()[start..].iter().take_while(|b| **b == byte).count()
   }
+}
+
+/// Drops the holes emphasis left behind, keeping the nodes in order and
+/// leaving the buffer they were read into empty for the next block.
+fn compact<'a>(nodes: &mut Vec<Option<Node<'a>>>) -> Vec<Node<'a>> {
+  let mut result = Vec::with_capacity(nodes.len());
+  result.extend(nodes.drain(..).flatten());
+  result
 }
 
 /// Joins the text nodes that ended up beside each other, which happens when a

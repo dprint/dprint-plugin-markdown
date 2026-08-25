@@ -1,8 +1,6 @@
 use crate::parser::SPACES;
 use std::borrow::Cow;
 
-use regex::Regex;
-
 /// How many lines the text has beyond its first.
 ///
 /// A line ends at a newline, at a carriage return written on its own, and at a
@@ -374,15 +372,16 @@ pub fn get_leading_blank_lines(index: usize, text: &str, in_block_quote: bool, m
   newline_count.saturating_sub(1)
 }
 
-pub fn file_has_ignore_file_directive(file_text: &str, directive_inner_text: &str) -> bool {
-  let ignore_regex = get_ignore_comment_regex(directive_inner_text);
-  ignore_regex.is_match(file_text)
-}
-
-pub fn get_ignore_comment_regex(inner_text: &str) -> Regex {
-  // todo: don't use regex
-  let text = format!(r"^\s*<!\-\-\s*{}\s*\-\->\s*", inner_text);
-  Regex::new(&text).unwrap()
+/// Whether the text begins with a `<!-- directive -->` comment, whatever
+/// whitespace it is written with.
+pub fn is_ignore_comment(text: &str, directive: &str) -> bool {
+  let Some(rest) = text.trim_start().strip_prefix("<!--") else {
+    return false;
+  };
+  let Some(rest) = rest.trim_start().strip_prefix(directive) else {
+    return false;
+  };
+  rest.trim_start().starts_with("-->")
 }
 
 pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
@@ -397,40 +396,30 @@ pub fn get_leading_non_space_tab_byte_pos(text: &str, pos: usize) -> usize {
   0
 }
 
+/// Removes the indentation every line of the text shares.
 pub fn unindent(text: &str) -> Cow<'_, str> {
-  let lines = text.split('\n').collect::<Vec<_>>();
-  let mut lines_with_indent = Vec::with_capacity(lines.len());
-  for line in lines.into_iter() {
-    // a character that only looks like a space, such as a non-breaking one, is
-    // text of the code rather than the indentation written before it
-    let line_indent = line.chars().take_while(|c| SPACES.contains(c)).count();
-    if line_indent == 0 {
-      return Cow::Borrowed(text);
+  // a character that only looks like a space, such as a non-breaking one, is
+  // text of the code rather than the indentation written before it
+  let indent_of = |line: &str| line.chars().take_while(|c| SPACES.contains(c)).count();
+  // a line that begins at the margin leaves nothing to take off any of them,
+  // which is worth finding out before writing any of it out
+  if text.split('\n').any(|line| indent_of(line) == 0) {
+    return Cow::Borrowed(text);
+  }
+
+  let min_indent = text.split('\n').map(indent_of).min().unwrap_or(0);
+  let mut result = String::with_capacity(text.len());
+  for (index, line) in text.split('\n').enumerate() {
+    if index > 0 {
+      result.push('\n');
     }
-    lines_with_indent.push((line, line_indent));
+    let mut characters = line.chars();
+    for _ in 0..min_indent {
+      characters.next();
+    }
+    result.push_str(characters.as_str());
   }
-  let min_indent = lines_with_indent.iter().map(|(_, indent)| indent).min().copied();
-  if let Some(min_indent) = min_indent {
-    Cow::Owned(
-      lines_with_indent
-        .into_iter()
-        .map(|(l, indent)| {
-          if indent >= min_indent {
-            let mut chars = l.chars();
-            for _ in 0..min_indent {
-              chars.next();
-            }
-            chars.as_str()
-          } else {
-            l
-          }
-        })
-        .collect::<Vec<_>>()
-        .join("\n"),
-    )
-  } else {
-    Cow::Borrowed(text)
-  }
+  Cow::Owned(result)
 }
 
 #[cfg(test)]

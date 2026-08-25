@@ -62,12 +62,12 @@ pub fn match_reference<'a>(
       if label.trim_matches(WHITESPACE).is_empty() {
         // ex. `[name][]`
         let name = text.slice(content_start, close_start);
-        return labels.contains(&normalize_label(&name)).then_some(Reference {
+        return labels.contains(normalize_label(&name).as_ref()).then_some(Reference {
           kind: ReferenceKind::Collapsed,
           end,
         });
       }
-      return labels.contains(&normalize_label(&label)).then_some(Reference {
+      return labels.contains(normalize_label(&label).as_ref()).then_some(Reference {
         kind: ReferenceKind::Full { label },
         end,
       });
@@ -76,7 +76,7 @@ pub fn match_reference<'a>(
 
   // ex. `[name]`
   let name = text.slice(content_start, close_start);
-  labels.contains(&normalize_label(&name)).then_some(Reference {
+  labels.contains(normalize_label(&name).as_ref()).then_some(Reference {
     kind: ReferenceKind::Shortcut,
     end: after_close,
   })
@@ -93,7 +93,7 @@ pub fn match_footnote_reference<'a>(
   }
   let (end, _) = match_label(text, start)?;
   let name = text.source_slice(start + 2, end - 1)?;
-  if name.is_empty() || !labels.contains(&normalize_label(name)) {
+  if name.is_empty() || !labels.contains(normalize_label(name).as_ref()) {
     return None;
   }
   Some((end, name))
@@ -256,7 +256,29 @@ pub fn match_link_reference_definition<'a>(text: &InlineText<'a>, start: usize) 
 
 /// Normalizes a link label the way the CommonMark spec matches them: case
 /// insensitively and with runs of whitespace collapsed.
-pub fn normalize_label(label: &str) -> String {
+///
+/// Most labels are written the way they are matched, and those are borrowed.
+pub fn normalize_label(label: &str) -> Cow<'_, str> {
+  let trimmed = label.trim_matches(WHITESPACE);
+  if is_normalized(trimmed) {
+    return Cow::Borrowed(trimmed);
+  }
+  Cow::Owned(build_normalized_label(label))
+}
+
+/// Whether the label already reads the way a normalized one does, which needs
+/// it to hold nothing written in uppercase and no run of whitespace.
+fn is_normalized(label: &str) -> bool {
+  // a character outside ascii may have a lowercase form of a different length,
+  // so only an ascii label can be known to be normalized without building one
+  label.is_ascii()
+    && !label.as_bytes().windows(2).any(|pair| pair == b"  ")
+    && !label
+      .bytes()
+      .any(|b| b.is_ascii_uppercase() || matches!(b, b'\t' | b'\n' | b'\r'))
+}
+
+fn build_normalized_label(label: &str) -> String {
   let mut result = String::with_capacity(label.len());
   let mut had_whitespace = false;
   for c in label.trim_matches(WHITESPACE).chars() {
