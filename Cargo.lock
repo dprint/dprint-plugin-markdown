@@ -152,7 +152,6 @@ dependencies = [
  "dprint-core-macros",
  "dprint-development",
  "file_test_runner",
- "regex",
  "serde",
  "serde_json",
  "thiserror",

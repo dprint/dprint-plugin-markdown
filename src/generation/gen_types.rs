@@ -5,7 +5,6 @@ use std::rc::Rc;
 use dprint_core::formatting::PrintItemPath;
 use dprint_core::formatting::PrintItems;
 use dprint_core::formatting::Signal;
-use regex::Regex;
 
 use super::utils::*;
 use crate::configuration::Configuration;
@@ -47,10 +46,35 @@ pub struct ParagraphEscapes {
   pub block_starts: Vec<BlockStartEscape>,
   /// Where each bit of text the paragraph writes at the start of a line
   /// starts.
-  pub line_starts: Vec<usize>,
+  pub line_starts: LineStarts,
   /// Where the paragraph ends, which bounds how far the text of one of its
   /// lines can run.
   pub end: usize,
+}
+
+/// Where each bit of text a paragraph writes at the start of a line starts.
+///
+/// Only a hard break puts anything but a paragraph's first node at the start of
+/// a line, so almost every paragraph has just the one. That one is held beside
+/// the rest rather than in a vector of its own, which most paragraphs then
+/// never need.
+#[derive(Default)]
+pub struct LineStarts {
+  first: Option<usize>,
+  rest: Vec<usize>,
+}
+
+impl LineStarts {
+  pub fn push(&mut self, start: usize) {
+    match self.first {
+      None => self.first = Some(start),
+      Some(_) => self.rest.push(start),
+    }
+  }
+
+  pub fn contains(&self, start: usize) -> bool {
+    self.first == Some(start) || self.rest.contains(&start)
+  }
 }
 
 /// Where a backslash goes so that a bit of a paragraph's text isn't read as the
@@ -122,7 +146,7 @@ pub struct Context<'a> {
   /// of its own.
   escaped_block_starts: Vec<BlockStartEscape>,
   /// Where each bit of text written at the start of a line starts.
-  line_start_texts: Vec<usize>,
+  line_start_texts: LineStarts,
   /// Where the block being written ends, which bounds how far the text of one
   /// of its lines can run.
   block_end: Option<usize>,
@@ -141,9 +165,6 @@ pub struct Context<'a> {
   /// It's held outside the context so that it's still there to be read once
   /// the context has been dropped.
   code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
-  pub ignore_regex: Regex,
-  pub ignore_start_regex: Regex,
-  pub ignore_end_regex: Regex,
   memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
   /// How much each of the paths above indents by, keyed by address, so that
   /// they can be told apart from the paths that hold generated content and
@@ -181,7 +202,7 @@ impl<'a> Context<'a> {
       enclosing_decoration: None,
       escaped_closing_hashes: None,
       escaped_block_starts: Vec::new(),
-      line_start_texts: Vec::new(),
+      line_start_texts: LineStarts::default(),
       block_end: None,
       dropped_breaks: Default::default(),
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
@@ -192,9 +213,6 @@ impl<'a> Context<'a> {
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
       code_block_error,
-      ignore_regex: get_ignore_comment_regex(&configuration.ignore_directive),
-      ignore_start_regex: get_ignore_comment_regex(&configuration.ignore_start_directive),
-      ignore_end_regex: get_ignore_comment_regex(&configuration.ignore_end_directive),
       memoized_rc_paths: HashMap::new(),
       memoized_rc_path_indents: HashMap::new(),
     }
@@ -403,7 +421,7 @@ impl<'a> Context<'a> {
   /// Whether what starts here is written at the start of a line, with nothing
   /// before it on that line.
   pub fn is_line_start(&self, start: usize) -> bool {
-    self.line_start_texts.contains(&start)
+    self.line_start_texts.contains(start)
   }
 
   /// Generates a run of nodes, `dropped` holding the line breaks within it and
@@ -474,6 +492,23 @@ impl<'a> Context<'a> {
     let delimiter = resolve();
     self.decoration_delimiters.borrow_mut().insert(start, delimiter);
     delimiter
+  }
+
+  /// Whether the html is the comment that turns off formatting for the node
+  /// written after it.
+  pub fn is_ignore_comment(&self, html_text: &str) -> bool {
+    is_ignore_comment(html_text, &self.configuration.ignore_directive)
+  }
+
+  /// Whether the html is the comment that turns off formatting until the
+  /// matching end comment.
+  pub fn is_ignore_start_comment(&self, html_text: &str) -> bool {
+    is_ignore_comment(html_text, &self.configuration.ignore_start_directive)
+  }
+
+  /// Whether the html is the comment that turns formatting back on.
+  pub fn is_ignore_end_comment(&self, html_text: &str) -> bool {
+    is_ignore_comment(html_text, &self.configuration.ignore_end_directive)
   }
 
   pub fn is_preserving_decorations(&self) -> bool {
