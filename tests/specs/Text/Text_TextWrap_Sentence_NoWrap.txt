@@ -1,0 +1,22 @@
+~~ lineWidth: 40, textWrap: sentence ~~
+!! should leave the sentences of an unspaced script on one line by default since a break between them renders as a space in chromium and webkit !!
+これは文です。これも文です。続き。
+
+[expect]
+これは文です。これも文です。続き。
+
+!! should keep a line break written between its sentences !!
+これは文です。これも文です。
+続き。
+
+[expect]
+これは文です。これも文です。
+続き。
+
+!! should still break after a sentence where a space follows it !!
+これは文です。 Then English. 続き。
+
+[expect]
+これは文です。
+Then English.
+続き。

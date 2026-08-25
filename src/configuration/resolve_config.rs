@@ -56,6 +56,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
+    wrap_unspaced_scripts: get_value(&mut config, "wrapUnspacedScripts", false, &mut diagnostics),
     emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
     strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),
     hard_break_kind: get_value(&mut config, "hardBreakKind", HardBreakKind::Backslash, &mut diagnostics),

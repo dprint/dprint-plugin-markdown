@@ -1,4 +1,4 @@
-~~ textWrap: always, lineWidth: 30 ~~
+~~ textWrap: always, lineWidth: 30, wrapUnspacedScripts: true ~~
 !! should drop a line break between two characters of an unspaced script !!
 日本語
 日本語

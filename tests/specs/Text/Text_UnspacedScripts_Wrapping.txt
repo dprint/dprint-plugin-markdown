@@ -1,4 +1,4 @@
-~~ textWrap: always, lineWidth: 20 ~~
+~~ textWrap: always, lineWidth: 20, wrapUnspacedScripts: true ~~
 !! should break a run that holds no spaces to break at !!
 これは日本語のテキストです。長い文章を書いています。
 

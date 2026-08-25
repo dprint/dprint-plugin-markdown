@@ -457,7 +457,7 @@ impl<'a> Context<'a> {
 
   fn written_char(&self, at: &[(usize, char)], position: usize) -> Option<char> {
     // a break that is kept is still written out, so nothing moves against it
-    if self.configuration.text_wrap.keeps_line_breaks() {
+    if self.configuration.text_wrap.keeps_line_breaks() || !self.configuration.wrap_unspaced_scripts {
       return None;
     }
     at.binary_search_by_key(&position, |(at, _)| *at)

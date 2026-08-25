@@ -1,4 +1,4 @@
-~~ textWrap: always, lineWidth: 12 ~~
+~~ textWrap: always, lineWidth: 12, wrapUnspacedScripts: true ~~
 !! should not break before a mark that closes or trails a phrase !!
 これはテストです。「かっこ」の中身。
 

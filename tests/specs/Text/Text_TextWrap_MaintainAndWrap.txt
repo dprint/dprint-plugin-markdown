@@ -124,13 +124,12 @@ inside of it` and more text here
 over lines` and more text that runs past
 the line width here
 
-!! should break a run of a script written without spaces, and keep the break within it !!
+!! should leave a run of a script written without spaces whole by default !!
 一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十
 短い行
 
 [expect]
-一二三四五六七八九十一二三四五六七八九十
-一二三四五六七八九十
+一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十
 短い行
 
 !! should join a line whose first word alone would start a block, which wrapping could leave it as !!

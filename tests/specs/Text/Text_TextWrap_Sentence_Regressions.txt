@@ -1,4 +1,4 @@
-~~ lineWidth: 40, textWrap: sentence ~~
+~~ lineWidth: 40, textWrap: sentence, wrapUnspacedScripts: true ~~
 !! should not break a word where the break would read as a space !!
 これはテストです。Rustで書かれています。
 
@@ -30,6 +30,15 @@ Done。---
 あ。|---|
 
 Done。---
+
+!! should break after a sentence of an unspaced script !!
+これは文です。これも文です。
+続き。
+
+[expect]
+これは文です。
+これも文です。
+続き。
 
 !! should break a word at the halfwidth full stop as at the full width one !!
 あ｡い｡

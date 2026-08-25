@@ -107,15 +107,6 @@ Four.
 | --------- | ------------ |
 | One. Two. | Three. Four. |
 
-!! should break after a sentence of an unspaced script !!
-これは文です。これも文です。
-続き。
-
-[expect]
-これは文です。
-これも文です。
-続き。
-
 !! should keep a hard break !!
 One.\
 Two. Three.
