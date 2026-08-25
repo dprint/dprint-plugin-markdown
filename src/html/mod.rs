@@ -14,6 +14,8 @@ mod tags;
 mod debug_json;
 #[cfg(test)]
 pub mod spec_test;
+#[cfg(test)]
+mod text_fuzz;
 
 pub use printer::format_html;
 pub use printer::HtmlFormatOptions;
