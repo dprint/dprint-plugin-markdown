@@ -103,6 +103,7 @@ pub fn resolve_config(
       &mut diagnostics,
     ),
     html_self_closing_space: get_value(&mut config, "html.selfClosingSpace", true, &mut diagnostics),
+    html_prefer_single_line: get_value(&mut config, "html.preferSingleLine", false, &mut diagnostics),
     table_skip_format: get_value(&mut config, "table.skipFormat", false, &mut diagnostics),
     table_cell_padding: get_value(
       &mut config,

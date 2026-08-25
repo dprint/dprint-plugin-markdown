@@ -24,6 +24,10 @@ pub struct HtmlFormatOptions {
   pub indent_width: u8,
   /// Whether to write a space before the `/>` that closes a self-closing tag.
   pub self_closing_space: bool,
+  /// Whether to write an element's content, or a tag's attributes, on the one
+  /// line when they fit even where they were written across lines. Otherwise
+  /// what was written across lines stays that way and is only reindented.
+  pub prefer_single_line: bool,
 }
 
 /// Formats an html fragment.
@@ -124,10 +128,24 @@ impl Printer<'_> {
     // an element whose content doesn't fit isn't written twice. Measuring is
     // what keeps the cost of a deeply nested document from doubling with every
     // level of it.
+    // A block's content that was written on lines of its own is kept there
+    // unless a single line is preferred. The whitespace at the edges of an
+    // inline element's content is rendered, so a line break written there is
+    // one the content never fits on a line with anyway.
     let is_block = tags::is_block(element.name);
-    let fits = content_flat_width(&element.children, is_block, self.options).is_some_and(|width| {
-      self.current_column() + width + close_tag_width(element) <= self.options.line_width as usize
-    });
+    let keeps_lines = is_block && !self.options.prefer_single_line && content_on_own_lines(&element.children);
+    let fits = !keeps_lines
+      && content_flat_width(&element.children, is_block, self.options).is_some_and(|width| {
+        self.current_column() + width + close_tag_width(element) <= self.options.line_width as usize
+      });
+    if keeps_lines && trimmed_run(&element.children).is_none() {
+      // nothing but whitespace was written between the tags, so the close tag
+      // goes on the line below the open one rather than on one of its own
+      // below a line that would hold only indentation
+      self.newline(indent);
+      self.print_close_tag(element);
+      return;
+    }
     if fits {
       // every part of the content fits along with the whole of it, so each of
       // them is written on this line in turn
@@ -222,13 +240,21 @@ impl Printer<'_> {
   }
 
   fn print_open_tag(&mut self, element: &Element, indent: usize) {
+    // a tag written partway along a line isn't the place to start writing
+    // attributes on lines of their own: the line it would break is one the
+    // tags around it are sharing, and taking it apart reads worse than
+    // leaving it long
+    if !self.at_line_start() {
+      self.write_open_tag(element);
+      return;
+    }
+    // attributes the author wrote on lines of their own are kept there unless
+    // a single line is preferred
+    let keeps_lines = !self.options.prefer_single_line && attributes_on_own_lines(element);
     let fits = self.current_column() + open_tag_width(element, self.options) <= self.options.line_width as usize;
-    // A lone attribute has nowhere better to go, so it stays where it was
-    // written rather than being pushed onto a line of its own. Nor is a tag
-    // written partway along a line the place to start writing attributes on
-    // lines of their own: the line it would break is one the tags around it
-    // are sharing, and taking it apart reads worse than leaving it long.
-    if fits || element.attributes.len() < 2 || !self.at_line_start() {
+    // a lone attribute has nowhere better to go, so it stays where it was
+    // written rather than being pushed onto a line of its own
+    if !keeps_lines && (fits || element.attributes.len() < 2) {
       self.write_open_tag(element);
       return;
     }
@@ -341,6 +367,44 @@ fn ends_with_whitespace(children: &[Node]) -> bool {
   matches!(children.last(), Some(Node::Text(text)) if text.ends_with(is_html_whitespace))
 }
 
+/// Whether the author wrote an element's content on lines of its own, with a
+/// line break directly after the open tag or directly before the close tag.
+fn content_on_own_lines(children: &[Node]) -> bool {
+  let starts_on_own_line = matches!(
+    children.first(),
+    Some(Node::Text(text)) if leading_whitespace(text).contains('\n')
+  );
+  let ends_on_own_line = matches!(
+    children.last(),
+    Some(Node::Text(text)) if trailing_whitespace(text).contains('\n')
+  );
+  starts_on_own_line || ends_on_own_line
+}
+
+fn leading_whitespace(text: &str) -> &str {
+  &text[..text.len() - text.trim_start_matches(is_html_whitespace).len()]
+}
+
+fn trailing_whitespace(text: &str) -> &str {
+  &text[text.trim_end_matches(is_html_whitespace).len()..]
+}
+
+/// Whether the author wrote a tag's attributes on lines of their own, with a
+/// line break between the tag name and the first of them.
+///
+/// The whitespace within a tag isn't kept by the parser, so this reads it back
+/// off the source the element was parsed out of, which the name and the
+/// attributes borrow from.
+fn attributes_on_own_lines(element: &Element) -> bool {
+  let Some(first) = element.attributes.first() else {
+    return false;
+  };
+  let source_start = element.source.as_ptr() as usize;
+  let name_end = element.name.as_ptr() as usize + element.name.len() - source_start;
+  let first_start = first.name.as_ptr() as usize - source_start;
+  element.source[name_end..first_start].contains('\n')
+}
+
 fn is_block_node(node: &Node) -> bool {
   match node {
     Node::Element(element) => tags::is_block(element.name),
@@ -405,7 +469,11 @@ fn run_flat_width(nodes: &[Node], trim_start: bool, trim_end: bool, options: &Ht
 }
 
 fn element_flat_width(element: &Element, options: &HtmlFormatOptions) -> Option<usize> {
-  // a value written across lines takes the tag with it
+  // A value written across lines takes the tag with it. Attributes being kept
+  // on lines of their own don't come into it: only a block is given a line of
+  // its own to write them from, and a block is never measured as part of a
+  // run, while an inline element sits within one and its attributes stay on
+  // the line the run is on.
   if element
     .attributes
     .iter()
@@ -539,6 +607,7 @@ mod test {
         use_tabs: false,
         indent_width: 2,
         self_closing_space: true,
+        prefer_single_line: true,
       },
     )
     .unwrap_or_else(|err| panic!("expected {:?} to format, but: {}", text, err))
@@ -554,6 +623,7 @@ mod test {
         use_tabs: false,
         indent_width: 2,
         self_closing_space: true,
+        prefer_single_line: true,
       },
     );
     assert!(result.is_err(), "expected {:?} to be kept, but got {:?}", text, result);
@@ -757,6 +827,7 @@ mod test {
           use_tabs: false,
           indent_width: 2,
           self_closing_space: false,
+          prefer_single_line: true,
         },
       )
       .unwrap()

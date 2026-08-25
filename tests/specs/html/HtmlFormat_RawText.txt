@@ -46,7 +46,9 @@
 </div>
 
 [expect]
-<div><textarea>  keep   this  </textarea></div>
+<div>
+  <textarea>  keep   this  </textarea>
+</div>
 
 !! should keep a cdata section and processing instruction !!
 <div><p><![CDATA[ a < b ]]></p></div>

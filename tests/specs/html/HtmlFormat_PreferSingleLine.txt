@@ -1,0 +1,53 @@
+~~ lineWidth: 60, html.preferSingleLine: true ~~
+!! should write content that fits on the line of its tags !!
+<div>
+<span>a</span>
+</div>
+
+<div>
+      some text
+</div>
+
+<table>
+  <tr>
+    <td>
+      a
+    </td>
+  </tr>
+</table>
+
+[expect]
+<div><span>a</span></div>
+
+<div>some text</div>
+
+<table>
+  <tr>
+    <td>a</td>
+  </tr>
+</table>
+
+!! should write attributes that fit on the line of their tag !!
+<div
+  class="a"
+  id="b">x</div>
+
+[expect]
+<div class="a" id="b">x</div>
+
+!! should still break a long list of attributes onto lines of their own !!
+<div class="one two three" id="the-identifier" data-value="something">a</div>
+
+[expect]
+<div
+  class="one two three"
+  id="the-identifier"
+  data-value="something"
+>a</div>
+
+!! should write the tags of an element holding only whitespace together !!
+<div>
+</div>
+
+[expect]
+<div></div>
