@@ -1,0 +1,18 @@
+~~ html.selfClosingSpace: false ~~
+!! should write a self closing tag with no space before the slash !!
+<div><br/><br /></div>
+
+[expect]
+<div><br/><br/></div>
+
+!! should write a self closing tag within svg with no space !!
+<div><svg><circle cx="1" /></svg></div>
+
+[expect]
+<div><svg><circle cx="1"/></svg></div>
+
+!! should leave a tag that was not written self closing alone !!
+<div><br><img src="a.png"></div>
+
+[expect]
+<div><br><img src="a.png"></div>

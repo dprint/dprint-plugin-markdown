@@ -1,0 +1,52 @@
+~~ lineWidth: 60 ~~
+!! should quote a value that was written without quotes !!
+<div><a href=foo>a</a></div>
+
+[expect]
+<div><a href="foo">a</a></div>
+
+!! should keep the quote a value was written with !!
+<div><a href='foo'>a</a></div>
+
+[expect]
+<div><a href='foo'>a</a></div>
+
+!! should keep an attribute that has no value !!
+<div><input disabled></div>
+
+[expect]
+<div><input disabled></div>
+
+!! should keep an attribute value byte for byte !!
+<div title="a    b"><p>x</p></div>
+
+[expect]
+<div title="a    b">
+  <p>x</p>
+</div>
+
+!! should break a long list of attributes onto lines of their own !!
+<div class="one two three" id="the-identifier" data-value="something">a</div>
+
+[expect]
+<div
+  class="one two three"
+  id="the-identifier"
+  data-value="something"
+>a</div>
+
+!! should keep a long list of classes where it was written !!
+<div class="flex items-center justify-between rounded-lg border px-4 py-2 shadow">a</div>
+
+[expect]
+<div class="flex items-center justify-between rounded-lg border px-4 py-2 shadow">
+  a
+</div>
+
+!! should keep a short tag on the line it is on !!
+<div class="a" id="b"><p>x</p></div>
+
+[expect]
+<div class="a" id="b">
+  <p>x</p>
+</div>

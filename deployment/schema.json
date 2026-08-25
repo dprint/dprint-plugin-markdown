@@ -177,6 +177,47 @@
       "description": "The indentation width the plugin that formats the code within a code block should use, overriding that plugin's own `indentWidth` configuration. When not specified, that plugin's configuration is left alone.",
       "type": "number"
     },
+    "html.skipFormat": {
+      "description": "Whether to leave the html written within the file as it was rather than laying out its tags and their content. Html that the formatter can't take apart and put back together -- a block that a blank line has split from its closing tag, for one -- is left as it was written either way.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Leaves the html as it was written."
+      }, {
+        "const": false,
+        "description": "Lays out the tags of the html and their content."
+      }]
+    },
+    "html.useTabs": {
+      "description": "Whether to indent the html written within the file with tabs.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Indents the html with tabs."
+      }, {
+        "const": false,
+        "description": "Indents the html with spaces."
+      }]
+    },
+    "html.indentWidth": {
+      "description": "The number of spaces to indent the html written within the file with.",
+      "type": "number",
+      "default": 2
+    },
+    "html.selfClosingSpace": {
+      "description": "Whether to write a space before the `/>` that closes a self-closing tag, so that a tag is written as `<br />` rather than as `<br/>`.",
+      "type": "boolean",
+      "default": true,
+      "oneOf": [{
+        "const": true,
+        "description": "Writes a self-closing tag as `<br />`."
+      }, {
+        "const": false,
+        "description": "Writes a self-closing tag as `<br/>`."
+      }]
+    },
     "table.skipFormat": {
       "description": "Whether to leave a table's rows as they were written rather than aligning their cells into columns.",
       "type": "boolean",
@@ -279,6 +320,18 @@
     },
     "codeBlock.indentWidth": {
       "$ref": "#/definitions/codeBlock.indentWidth"
+    },
+    "html.skipFormat": {
+      "$ref": "#/definitions/html.skipFormat"
+    },
+    "html.useTabs": {
+      "$ref": "#/definitions/html.useTabs"
+    },
+    "html.indentWidth": {
+      "$ref": "#/definitions/html.indentWidth"
+    },
+    "html.selfClosingSpace": {
+      "$ref": "#/definitions/html.selfClosingSpace"
     },
     "table.skipFormat": {
       "$ref": "#/definitions/table.skipFormat"

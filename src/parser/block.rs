@@ -1269,11 +1269,21 @@ fn footnote_definition_name(text: &str) -> Option<&str> {
 }
 
 /// What ends an html block.
+#[derive(PartialEq, Eq)]
 enum HtmlBlockKind {
   /// The line containing the given text.
   Closes(Cow<'static, str>),
   /// The next blank line.
   BlankLine,
+}
+
+/// Whether two lines start the same kind of html block.
+///
+/// Text can only be written back out differently where this holds of the line
+/// it starts on: a line that stops starting an html block, or starts one that
+/// ends somewhere else, leaves the rest of the block to be read as markdown.
+pub fn starts_same_html_block(before: &str, after: &str) -> bool {
+  html_block_kind(before, false) == html_block_kind(after, false)
 }
 
 /// The html block the text starts, if any. Blocks that consist of a single

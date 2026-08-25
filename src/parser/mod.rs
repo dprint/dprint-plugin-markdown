@@ -28,6 +28,7 @@ pub use block::block_start_escape;
 pub use block::line_start_escape;
 pub use block::starts_block_at_block_start;
 pub use block::starts_block_in_paragraph;
+pub use block::starts_same_html_block;
 pub use source::SPACES;
 pub use source::WHITESPACE;
 

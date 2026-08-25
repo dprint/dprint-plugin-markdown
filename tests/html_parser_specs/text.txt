@@ -1,0 +1,97 @@
+[[test]] an angle bracket that opens no tag
+a < b
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 5],
+      "text": "a < b"
+    }
+  ]
+}
+[[test]] an angle bracket before a digit
+1 <2 3
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 6],
+      "text": "1 <2 3"
+    }
+  ]
+}
+[[test]] an empty angle bracket pair
+a <> b
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 6],
+      "text": "a <> b"
+    }
+  ]
+}
+[[test]] a malformed tag read as text
+<div =foo>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 10],
+      "text": "<div =foo>"
+    }
+  ]
+}
+[[test]] a character entity
+a &amp; b
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 9],
+      "text": "a &amp; b"
+    }
+  ]
+}
+[[test]] text holding a no break space
+a  b
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 6],
+      "text": "a  b"
+    }
+  ]
+}
+[[test]] only text
+just some words
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 15],
+      "text": "just some words"
+    }
+  ]
+}
+[[test]] an empty document
+
+[[ast]]
+{
+  "kind": "Document"
+}

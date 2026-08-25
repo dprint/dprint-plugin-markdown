@@ -1,0 +1,11 @@
+!! should write a space before the slash by default !!
+<div><br/><br /></div>
+
+[expect]
+<div><br /><br /></div>
+
+!! should normalize a self closing tag within svg !!
+<div><svg><circle cx="1"/></svg></div>
+
+[expect]
+<div><svg><circle cx="1" /></svg></div>

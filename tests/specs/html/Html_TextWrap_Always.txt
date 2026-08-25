@@ -13,11 +13,11 @@ this should be wrapped because it is outside the html
 
 [expect]
 <dl>
-    <dt>Definition list</dt>
-    <dd>Testing</dd>
-    <dd>Testing</dd>
-<dd>Testing</dd>
-this should not be wrapped because it is inside html
+  <dt>Definition list</dt>
+  <dd>Testing</dd>
+  <dd>Testing</dd>
+  <dd>Testing</dd>
+  this should not be wrapped because it is inside html
 </dl>
 
 this should be wrapped because it is

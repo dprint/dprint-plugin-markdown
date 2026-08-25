@@ -13,11 +13,11 @@ paragraph text
 
 [expect]
 <dl>
-    <dt>Definition list</dt>
-    <dd>Testing</dd>
-    <dd>Testing</dd>
-<dd>Testing</dd>
-testing this out
+  <dt>Definition list</dt>
+  <dd>Testing</dd>
+  <dd>Testing</dd>
+  <dd>Testing</dd>
+  testing this out
 </dl>
 
 paragraph text
@@ -56,6 +56,4 @@ a 
 </div>
 
 [expect]
-<div>
-a 
-</div>
+<div>a </div>

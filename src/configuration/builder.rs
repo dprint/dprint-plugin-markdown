@@ -155,6 +155,32 @@ impl ConfigurationBuilder {
     self.insert("codeBlock.indentWidth", (value as i32).into())
   }
 
+  /// Whether to leave the html written within the file as it was rather than
+  /// laying out its tags and their content.
+  /// Default: `false`
+  pub fn html_skip_format(&mut self, value: bool) -> &mut Self {
+    self.insert("html.skipFormat", value.into())
+  }
+
+  /// Whether to indent the html written within the file with tabs.
+  /// Default: `false`
+  pub fn html_use_tabs(&mut self, value: bool) -> &mut Self {
+    self.insert("html.useTabs", value.into())
+  }
+
+  /// The number of spaces to indent the html written within the file with.
+  /// Default: `2`
+  pub fn html_indent_width(&mut self, value: u8) -> &mut Self {
+    self.insert("html.indentWidth", (value as i32).into())
+  }
+
+  /// Whether to write a space before the `/>` that closes a self-closing tag,
+  /// so that a tag is written as `<br />` rather than as `<br/>`.
+  /// Default: `true`
+  pub fn html_self_closing_space(&mut self, value: bool) -> &mut Self {
+    self.insert("html.selfClosingSpace", value.into())
+  }
+
   /// Whether to leave a table's rows as they were written rather than
   /// aligning their cells into columns.
   /// Default: `false`

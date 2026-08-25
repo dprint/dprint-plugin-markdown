@@ -1,0 +1,175 @@
+[[test]] a void element
+<br>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 4],
+      "text": "<br>",
+      "name": "br",
+      "elementKind": "Void"
+    }
+  ]
+}
+[[test]] a void element written self closing
+<br />
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 6],
+      "text": "<br />",
+      "name": "br",
+      "elementKind": "Void",
+      "selfClosingSyntax": true
+    }
+  ]
+}
+[[test]] a void element written self closing with no space
+<br/>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 5],
+      "text": "<br/>",
+      "name": "br",
+      "elementKind": "Void",
+      "selfClosingSyntax": true
+    }
+  ]
+}
+[[test]] a void element with attributes
+<img src="a.png" alt="a">
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 25],
+      "text": "<img src=\"a.png\" alt=\"a\">",
+      "name": "img",
+      "elementKind": "Void",
+      "attributes": [
+        {
+          "name": "src",
+          "value": "a.png",
+          "quote": "\""
+        },
+        {
+          "name": "alt",
+          "value": "a",
+          "quote": "\""
+        }
+      ]
+    }
+  ]
+}
+[[test]] a self closing tag within svg
+<svg><circle cx="1" /></svg>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 28],
+      "text": "<svg><circle cx=\"1\" /></svg>",
+      "name": "svg",
+      "elementKind": "Normal",
+      "content": "<circle cx=\"1\" />",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 22],
+          "text": "<circle cx=\"1\" />",
+          "name": "circle",
+          "elementKind": "SelfClosing",
+          "selfClosingSyntax": true,
+          "attributes": [
+            {
+              "name": "cx",
+              "value": "1",
+              "quote": "\""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a self closing tag nested within svg
+<svg><g><path d="M0 0" /></g></svg>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 35],
+      "text": "<svg><g><path d=\"M0 0\" /></g></svg>",
+      "name": "svg",
+      "elementKind": "Normal",
+      "content": "<g><path d=\"M0 0\" /></g>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 29],
+          "text": "<g><path d=\"M0 0\" /></g>",
+          "name": "g",
+          "elementKind": "Normal",
+          "content": "<path d=\"M0 0\" />",
+          "children": [
+            {
+              "kind": "Element",
+              "span": [8, 25],
+              "text": "<path d=\"M0 0\" />",
+              "name": "path",
+              "elementKind": "SelfClosing",
+              "selfClosingSyntax": true,
+              "attributes": [
+                {
+                  "name": "d",
+                  "value": "M0 0",
+                  "quote": "\""
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an svg element written with both tags
+<svg><g></g></svg>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 18],
+      "text": "<svg><g></g></svg>",
+      "name": "svg",
+      "elementKind": "Normal",
+      "content": "<g></g>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 12],
+          "text": "<g></g>",
+          "name": "g",
+          "elementKind": "Normal"
+        }
+      ]
+    }
+  ]
+}

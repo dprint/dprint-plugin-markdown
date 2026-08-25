@@ -1,0 +1,174 @@
+[[test]] a comment
+<!-- a comment -->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 18],
+      "text": "<!-- a comment -->"
+    }
+  ]
+}
+[[test]] a comment across lines
+<!--
+a
+-->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 10],
+      "text": "<!--\na\n-->"
+    }
+  ]
+}
+[[test]] a comment holding what looks like a tag
+<!-- <div> not a tag -->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 24],
+      "text": "<!-- <div> not a tag -->"
+    }
+  ]
+}
+[[test]] a comment between elements
+<div><!-- a --><p>b</p></div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 29],
+      "text": "<div><!-- a --><p>b</p></div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "<!-- a --><p>b</p>",
+      "children": [
+        {
+          "kind": "Comment",
+          "span": [5, 15],
+          "text": "<!-- a -->"
+        },
+        {
+          "kind": "Element",
+          "span": [15, 23],
+          "text": "<p>b</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "b",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [18, 19],
+              "text": "b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a doctype
+<!DOCTYPE html>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Doctype",
+      "span": [0, 15],
+      "text": "<!DOCTYPE html>"
+    }
+  ]
+}
+[[test]] a processing instruction
+<?php echo 1; ?>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "ProcessingInstruction",
+      "span": [0, 16],
+      "text": "<?php echo 1; ?>"
+    }
+  ]
+}
+[[test]] a cdata section
+<![CDATA[ a < b ]]>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "CData",
+      "span": [0, 19],
+      "text": "<![CDATA[ a < b ]]>"
+    }
+  ]
+}
+[[test]] an ignore comment within an element
+<div>
+<!-- dprint-ignore -->
+<p>a</p>
+</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 44],
+      "text": "<div>\n<!-- dprint-ignore -->\n<p>a</p>\n</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "\n<!-- dprint-ignore -->\n<p>a</p>\n",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 6],
+          "text": "\n"
+        },
+        {
+          "kind": "Comment",
+          "span": [6, 28],
+          "text": "<!-- dprint-ignore -->"
+        },
+        {
+          "kind": "Text",
+          "span": [28, 29],
+          "text": "\n"
+        },
+        {
+          "kind": "Element",
+          "span": [29, 37],
+          "text": "<p>a</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [32, 33],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [37, 38],
+          "text": "\n"
+        }
+      ]
+    }
+  ]
+}
