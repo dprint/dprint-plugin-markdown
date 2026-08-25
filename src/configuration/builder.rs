@@ -55,6 +55,16 @@ impl ConfigurationBuilder {
     self.insert("newLineKind", value.to_string().into())
   }
 
+  /// Whether to write the four columns of indentation of an indented code
+  /// block as a tab. The block keeps its spaces within a block quote, and
+  /// anywhere else a tab wouldn't reach the column its code has to begin at.
+  /// Indentation of anything else, such as a list's, is always written with
+  /// spaces. Not inherited from the global `useTabs`.
+  /// Default: `false`
+  pub fn use_tabs(&mut self, value: bool) -> &mut Self {
+    self.insert("useTabs", value.into())
+  }
+
   /// The kind of text wrapping to use.
   /// Default: `TextWrap::Maintain`
   pub fn text_wrap(&mut self, value: TextWrap) -> &mut Self {
@@ -225,6 +235,7 @@ mod tests {
     config
       .new_line_kind(NewLineKind::CarriageReturnLineFeed)
       .line_width(90)
+      .use_tabs(true)
       .text_wrap(TextWrap::Always)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
@@ -264,6 +275,8 @@ mod tests {
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 90);
     assert_eq!(config.new_line_kind == NewLineKind::CarriageReturnLineFeed, true);
+    // a project indenting its code with tabs isn't asking for them here
+    assert_eq!(config.use_tabs, false);
   }
 
   #[test]
@@ -273,6 +286,7 @@ mod tests {
     let config = config_builder.global_config(global_config).build();
     assert_eq!(config.line_width, 80); // this is different
     assert_eq!(config.new_line_kind == NewLineKind::LineFeed, true);
+    assert_eq!(config.use_tabs, false);
   }
 
   #[test]

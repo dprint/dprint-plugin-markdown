@@ -674,6 +674,12 @@ fn gen_block_quote_markers(
   items
 }
 
+/// The columns of indentation an indented code block is written with.
+const CODE_INDENT: u32 = 4;
+
+/// How far apart the tab stops a tab reaches to sit.
+const TAB_STOP: u32 = 4;
+
 fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   let code_text = get_code_text(code_block, context);
@@ -699,7 +705,12 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   // indentation of the lines after the first can match the first line's
   let lines_up = position.marker.is_none_or(|marker| marker.lines_up);
   let is_fenced = code_block.is_fenced() || position.after_list || !lines_up;
-  let indent_level = if is_fenced { 0 } else { 4 };
+  // a tab only stands for the four columns of indentation where it is written
+  // at the start of a line, and a block written beside a marker or a label
+  // begins partway along one
+  let starts_line = position.marker.is_none() && !position.after_label;
+  let uses_tab_indent = !is_fenced && starts_line && indents_with_tab(context);
+  let indent_level = if is_fenced || uses_tab_indent { 0 } else { CODE_INDENT };
 
   // header
   if is_fenced {
@@ -721,13 +732,17 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
   }
 
   // body
-  if !is_fenced && position.marker.is_some() {
-    // the item's marker took the place of the first line's indentation, which
-    // the printer only writes out for the lines after it
-    items.push_sc(sc!("    "));
-  }
-  if !code_text.is_empty() {
-    items.extend(ir_helpers::gen_from_string(&code_text));
+  if uses_tab_indent {
+    items.extend(gen_tab_indented_code(&code_text));
+  } else {
+    if !is_fenced && position.marker.is_some() {
+      // the item's marker took the place of the first line's indentation, which
+      // the printer only writes out for the lines after it
+      items.push_sc(sc!("    "));
+    }
+    if !code_text.is_empty() {
+      items.extend(ir_helpers::gen_from_string(&code_text));
+    }
   }
 
   // footer
@@ -803,6 +818,37 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
     }
     std::cmp::max(2, max_count) + 1
   }
+}
+
+/// Whether a tab written where an indented code block's four columns of
+/// indentation go reaches the column its code has to begin at.
+///
+/// A tab reaches to the next multiple of four, so it stands for those columns
+/// only where the content around the block begins at a multiple of four
+/// itself. A block quote writes its markers into the item stream rather than
+/// as indentation, so what column its content begins at isn't known here and a
+/// block within one keeps its spaces.
+fn indents_with_tab(context: &Context) -> bool {
+  context.configuration.use_tabs && !context.is_in_block_quote() && context.indent_level.is_multiple_of(TAB_STOP)
+}
+
+/// Writes out the lines of an indented code block with a tab where the columns
+/// of indentation go.
+///
+/// A blank line is left blank rather than written with the tab, which would
+/// only be trailing whitespace.
+fn gen_tab_indented_code(text: &str) -> PrintItems {
+  let mut items = PrintItems::new();
+  for (index, line) in text.lines().enumerate() {
+    if index > 0 {
+      items.push_signal(Signal::NewLine);
+    }
+    if !line.is_empty() {
+      items.push_signal(Signal::Tab);
+      items.extend(gen_text_with_tabs(line.to_string()));
+    }
+  }
+  items
 }
 
 fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
@@ -1602,6 +1648,11 @@ fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Contex
 fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE)));
+  if !footnote_definition.children.is_empty() {
+    // the label is written where the first line's indentation would go, which
+    // it doesn't reach as far as
+    context.mark_after_label();
+  }
   items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
   items
 }
@@ -2170,6 +2221,9 @@ fn gen_definition(definition: &DefinitionListDefinition, context: &mut Context) 
   context.indent_level += indent_increment;
   items.push_sc(sc!(":"));
   items.push_signal(Signal::SpaceIfNotTrailing);
+  if !definition.children.is_empty() {
+    context.mark_after_label();
+  }
   items.extend(with_indent_times(
     gen_nodes(&definition.children, context),
     indent_increment,

@@ -55,6 +55,9 @@ pub fn resolve_config(
         .unwrap_or(RECOMMENDED_GLOBAL_CONFIGURATION.new_line_kind),
       &mut diagnostics,
     ),
+    // not taken from the global configuration: a project that indents its code
+    // with tabs isn't saying anything about the few places markdown can use one
+    use_tabs: get_value(&mut config, "useTabs", false, &mut diagnostics),
     text_wrap: get_value(&mut config, "textWrap", TextWrap::Maintain, &mut diagnostics),
     emphasis_kind: get_value(&mut config, "emphasisKind", EmphasisKind::Underscores, &mut diagnostics),
     strong_kind: get_value(&mut config, "strongKind", StrongKind::Asterisks, &mut diagnostics),

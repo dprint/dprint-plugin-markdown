@@ -93,6 +93,11 @@ pub struct NodePosition {
   /// The marker of the list item the node is written directly after, which
   /// takes the place of the indentation its first line would have.
   pub marker: Option<ListItemMarker>,
+  /// Whether the node is written directly after a label (ex. the `[^1]: ` of
+  /// a footnote definition), which takes the place of the indentation its
+  /// first line would have without leaving it at the column the lines below
+  /// are indented to.
+  pub after_label: bool,
   /// Whether a list is written directly above the node, which would take the
   /// indentation of anything indented into its last item.
   pub after_list: bool,
@@ -346,6 +351,13 @@ impl<'a> Context<'a> {
   /// what comes next, which a line of dashes would underline into a heading.
   pub fn mark_after_paragraph(&mut self) {
     self.next_position.after_paragraph = true;
+  }
+
+  /// Marks that a label was just written out, so that what comes directly
+  /// after it can tell it will be sitting beside it rather than at the start
+  /// of a line of its own.
+  pub fn mark_after_label(&mut self) {
+    self.next_position.after_label = true;
   }
 
   /// Marks that a list was just written out, which would take the indentation
