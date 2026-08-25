@@ -1,0 +1,143 @@
+~~ lineWidth: 60 ~~
+!! should keep content that was written on lines of its own, and reindent it !!
+<div>
+<span>a</span>
+</div>
+
+<div>
+      some text
+</div>
+
+<table>
+  <tr>
+    <td>
+      a
+    </td>
+  </tr>
+</table>
+
+[expect]
+<div>
+  <span>a</span>
+</div>
+
+<div>
+  some text
+</div>
+
+<table>
+  <tr>
+    <td>
+      a
+    </td>
+  </tr>
+</table>
+
+!! should keep content on its own lines where only one of its edges was broken !!
+<div>
+a</div>
+
+<div>a
+</div>
+
+[expect]
+<div>
+  a
+</div>
+
+<div>
+  a
+</div>
+
+!! should keep a block written on one line on it !!
+<div><span>a</span></div>
+
+<div>a</div>
+
+[expect]
+<div><span>a</span></div>
+
+<div>a</div>
+
+!! should write the close tag of an element holding only whitespace on the line below !!
+<div>
+</div>
+
+[expect]
+<div>
+</div>
+
+!! should keep attributes that were written on lines of their own !!
+<div
+  class="a"
+  id="b">x</div>
+
+<div
+  class="a">x</div>
+
+[expect]
+<div
+  class="a"
+  id="b"
+>x</div>
+
+<div
+  class="a"
+>x</div>
+
+!! should keep attributes on one line where they were written on one !!
+<div class="a" id="b">x</div>
+
+[expect]
+<div class="a" id="b">x</div>
+
+!! should open up a block whose child keeps its attributes on lines of their own !!
+<div><p
+  class="a" id="b">x</p></div>
+
+[expect]
+<div>
+  <p
+    class="a"
+    id="b"
+  >x</p>
+</div>
+
+!! should keep the lines of an element holding only whitespace within a list item and another block !!
+- <div>
+  </div>
+
+<div>
+  <p>
+  </p>
+</div>
+
+[expect]
+- <div>
+  </div>
+
+<div>
+  <p>
+  </p>
+</div>
+
+!! should keep the attributes of an inline tag that starts its line !!
+<div>
+  <a
+    href="x" id="y">y</a>
+</div>
+
+[expect]
+<div>
+  <a
+    href="x"
+    id="y"
+  >y</a>
+</div>
+
+!! should keep attributes on the line of an inline tag written within a run !!
+<p>text <a
+  href="x" id="y">y</a></p>
+
+[expect]
+<p>text <a href="x" id="y">y</a></p>

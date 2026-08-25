@@ -189,6 +189,13 @@ impl ConfigurationBuilder {
     self.insert("html.selfClosingSpace", value.into())
   }
 
+  /// Whether to write an element's content, or a tag's attributes, on the one
+  /// line when they fit even where they were written across lines.
+  /// Default: `false`
+  pub fn html_prefer_single_line(&mut self, value: bool) -> &mut Self {
+    self.insert("html.preferSingleLine", value.into())
+  }
+
   /// Whether to leave a table's rows as they were written rather than
   /// aligning their cells into columns.
   /// Default: `false`
@@ -275,6 +282,7 @@ mod tests {
       .code_block_preserve_blank_lines(true)
       .code_block_use_tabs(true)
       .code_block_indent_width(2)
+      .html_prefer_single_line(true)
       .table_skip_format(true)
       .table_cell_padding(TableCellPadding::Space)
       .ignore_directive("test")
@@ -283,7 +291,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 24);
+    assert_eq!(inner_config.len(), 25);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

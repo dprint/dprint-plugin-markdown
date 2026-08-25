@@ -55,7 +55,9 @@
     </div>
 
 [expect]
-- <div>Test</div>
+- <div>
+    Test
+  </div>
 
 !! should maintain the indentation in a footnote definition !!
 [^1]: Test

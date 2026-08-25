@@ -1545,6 +1545,7 @@ fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
       use_tabs: ctx.configuration.html_use_tabs,
       indent_width: ctx.configuration.html_indent_width,
       self_closing_space: ctx.configuration.html_self_closing_space,
+      prefer_single_line: ctx.configuration.html_prefer_single_line,
     };
     // an html block is very often a fragment, because a blank line closes the
     // block and leaves its closing tag to a block of its own -- whatever the

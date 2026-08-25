@@ -70,6 +70,12 @@ pub struct Configuration {
   /// so that a tag is written as `<br />` rather than as `<br/>`.
   #[serde(rename = "html.selfClosingSpace")]
   pub html_self_closing_space: bool,
+  /// Whether to write an element's content, or a tag's attributes, on the one
+  /// line when they fit even where they were written across lines. Off by
+  /// default, so that content and attributes written across lines are kept
+  /// that way and only reindented.
+  #[serde(rename = "html.preferSingleLine")]
+  pub html_prefer_single_line: bool,
   /// Whether to leave a table's rows as they were written rather than
   /// aligning their cells into columns.
   #[serde(rename = "table.skipFormat")]

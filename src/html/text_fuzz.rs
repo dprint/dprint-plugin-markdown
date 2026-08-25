@@ -171,9 +171,15 @@ fn html_is_read_and_written_back_out_whole() {
     if let Err(message) = validate_coverage(&document, &source) {
       failures.push(format!("case {}: {:?}\n  {}", case, source, message));
     } else {
-      match check_printing(&source, &document) {
-        Ok(was_laid_out) => laid_out += u64::from(was_laid_out),
-        Err(message) => failures.push(format!("case {}: {:?}\n  {}", case, source, message)),
+      // both layouts are reachable from the configuration, so both are checked
+      for prefer_single_line in [false, true] {
+        match check_printing(&source, &document, prefer_single_line) {
+          Ok(was_laid_out) => laid_out += u64::from(was_laid_out && !prefer_single_line),
+          Err(message) => failures.push(format!(
+            "case {} (preferSingleLine: {}): {:?}\n  {}",
+            case, prefer_single_line, source, message
+          )),
+        }
       }
     }
     if failures.len() >= 10 {
@@ -203,12 +209,13 @@ fn html_is_read_and_written_back_out_whole() {
 
 /// Checks what has to hold of the html the printer writes out, giving back
 /// whether it had anything to say about it at all.
-fn check_printing(source: &str, document: &Document<'_>) -> Result<bool, String> {
+fn check_printing(source: &str, document: &Document<'_>, prefer_single_line: bool) -> Result<bool, String> {
   let options = HtmlFormatOptions {
     line_width: 40,
     use_tabs: false,
     indent_width: 2,
     self_closing_space: true,
+    prefer_single_line,
   };
   // html the printer won't lay out is left as it was written, the same as html
   // the parser refuses

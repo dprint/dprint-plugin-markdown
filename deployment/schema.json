@@ -230,6 +230,18 @@
         "description": "Writes a self-closing tag as `<br/>`."
       }]
     },
+    "html.preferSingleLine": {
+      "description": "Whether to write an element's content, or a tag's attributes, on the one line when they fit even where they were written across lines. Off by default, so that content and attributes written across lines are kept that way and only reindented.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Writes content and attributes on one line whenever they fit."
+      }, {
+        "const": false,
+        "description": "Keeps content and attributes that were written across lines on lines of their own."
+      }]
+    },
     "table.skipFormat": {
       "description": "Whether to leave a table's rows as they were written rather than aligning their cells into columns.",
       "type": "boolean",
@@ -347,6 +359,9 @@
     },
     "html.selfClosingSpace": {
       "$ref": "#/definitions/html.selfClosingSpace"
+    },
+    "html.preferSingleLine": {
+      "$ref": "#/definitions/html.preferSingleLine"
     },
     "table.skipFormat": {
       "$ref": "#/definitions/table.skipFormat"
