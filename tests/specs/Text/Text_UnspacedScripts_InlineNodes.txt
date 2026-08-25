@@ -1,4 +1,4 @@
-~~ textWrap: never ~~
+~~ textWrap: never, wrapUnspacedScripts: true ~~
 !! should drop a line break between a link and such a script !!
 [日](https://dprint.dev)
 日本語

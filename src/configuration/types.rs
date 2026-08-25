@@ -12,6 +12,12 @@ pub struct Configuration {
   pub line_width: u32,
   pub new_line_kind: NewLineKind,
   pub text_wrap: TextWrap,
+  /// Whether to break a line between the characters of a script written
+  /// without spaces between its words, such as Chinese or Japanese, when
+  /// wrapping text. Off by default, since Chromium and WebKit render such a
+  /// break as a space, unlike Firefox, so a break the formatter wrote would
+  /// show up in the rendered text for most readers.
+  pub wrap_unspaced_scripts: bool,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,
   pub hard_break_kind: HardBreakKind,

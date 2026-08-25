@@ -42,6 +42,18 @@
         "description": "Writes one sentence per line, ignoring the line width."
       }]
     },
+    "wrapUnspacedScripts": {
+      "description": "Whether to break a line between the characters of a script written without spaces between its words, such as Chinese or Japanese, when wrapping text. Chromium and WebKit render such a break as a space, unlike Firefox, so it's off by default.",
+      "type": "boolean",
+      "default": false,
+      "oneOf": [{
+        "const": true,
+        "description": "Breaks a line between the characters of a script written without spaces between its words."
+      }, {
+        "const": false,
+        "description": "Leaves a run of a script written without spaces between its words on one line, however long it runs, and keeps any line break written within one where it was."
+      }]
+    },
     "emphasisKind": {
       "description": "The character to use for emphasis/italics.",
       "type": "string",
@@ -273,6 +285,9 @@
     },
     "textWrap": {
       "$ref": "#/definitions/textWrap"
+    },
+    "wrapUnspacedScripts": {
+      "$ref": "#/definitions/wrapUnspacedScripts"
     },
     "emphasisKind": {
       "$ref": "#/definitions/emphasisKind"

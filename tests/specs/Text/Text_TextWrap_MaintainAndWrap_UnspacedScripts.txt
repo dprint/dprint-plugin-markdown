@@ -1,0 +1,9 @@
+~~ lineWidth: 40, textWrap: maintainAndWrap, wrapUnspacedScripts: true ~~
+!! should break a run of a script written without spaces, and keep the break within it !!
+一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十
+短い行
+
+[expect]
+一二三四五六七八九十一二三四五六七八九十
+一二三四五六七八九十
+短い行

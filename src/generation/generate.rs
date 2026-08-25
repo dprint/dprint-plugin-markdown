@@ -138,6 +138,18 @@ fn drops_break_between(last_node: &Node, node: &Node, context: &Context) -> bool
     && can_be_written_beside(last_node, node, context.file_text)
 }
 
+/// Whether the line break between the two nodes is kept where it was written,
+/// which is what a break between two characters of a script written without
+/// spaces gets when the formatter is leaving such breaks alone, even where the
+/// nodes couldn't be drawn together (ex. two decorations whose delimiters would
+/// run into each other).
+fn keeps_break_between(last_node: &Node, node: &Node, context: &Context) -> bool {
+  !context.configuration.wrap_unspaced_scripts
+    && !context.configuration.text_wrap.keeps_line_breaks()
+    && last_node.ends_with_unspaced_script()
+    && node.starts_with_unspaced_script()
+}
+
 fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
@@ -225,6 +237,11 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
                   context,
                   sentence_ends_between(last_node, node, context),
                 ));
+              } else if keeps_break_between(last_node, node, context) {
+                // the nodes can't be written beside each other, but the break
+                // between them is left alone all the same rather than written
+                // as a space that would be rendered in every browser
+                items.push_signal(Signal::NewLine);
               } else {
                 items.extend(get_newline_wrapping_based_on_config(
                   context,
@@ -1803,7 +1820,15 @@ fn gen_word_with_sentence_breaks(word: &str) -> PrintItems {
 /// without this it would be written on one line however long it ran. Only a
 /// break with one of its characters on either side can be written: anywhere
 /// else the break would be read back as a space that wasn't written.
+///
+/// This is only done when `wrapUnspacedScripts` is on. A break between two
+/// such characters reads as nothing per the CSS Text spec, but Chromium and
+/// WebKit render it as a space, so by default the run is left whole rather
+/// than have a break the formatter wrote show up in the rendered text.
 fn gen_word_with_unspaced_script_breaks(word: &str, context: &Context) -> PrintItems {
+  if !context.configuration.wrap_unspaced_scripts {
+    return gen_text_with_tabs(word);
+  }
   if context.configuration.text_wrap == TextWrap::Sentence && !context.is_text_wrap_disabled() {
     return gen_word_with_sentence_breaks(word);
   }
@@ -2822,7 +2847,18 @@ fn holds_the_same_kind(nodes: &[Node], kind: TextDecorationKind) -> bool {
 /// What takes the place of a line break that falls between two characters of
 /// a script written without spaces between its words, where the break isn't
 /// rendered as a space and so is dropped rather than turned into one.
+///
+/// Unless `wrapUnspacedScripts` is on the break is kept where it was written,
+/// whatever the wrap mode. Chromium and WebKit render it as a space where the
+/// spec and Firefox render nothing, so moving or dropping it would change what
+/// those readers see, the same as writing a new one would.
 fn get_unspaced_script_newline_wrapping(context: &Context, ends_sentence: bool) -> PrintItems {
+  if !context.configuration.wrap_unspaced_scripts {
+    // where newlines are being forced off (ex. within a heading) the printer
+    // drops this one, which is what should take the place of a break that read
+    // as nothing anyway
+    return Signal::NewLine.into();
+  }
   match context.configuration.text_wrap {
     // the line may still be broken where it was, since the break isn't read
     // as anything either way

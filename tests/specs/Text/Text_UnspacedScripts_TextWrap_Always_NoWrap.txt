@@ -1,0 +1,57 @@
+~~ textWrap: always, lineWidth: 20 ~~
+!! should leave a run whole by default since a break within it renders as a space in chromium and webkit !!
+これは日本語のテキストです。長い文章を書いています。
+
+[expect]
+これは日本語のテキストです。長い文章を書いています。
+
+!! should still break at a space beside other text !!
+日本語 English は便利です日本語日本語 English
+
+[expect]
+日本語 English
+は便利です日本語日本語
+English
+
+!! should keep a line break written between two of its characters where it was !!
+日本語
+日本語
+
+[expect]
+日本語
+日本語
+
+!! should keep it where it was even where the line runs past the line width !!
+これは日本語のテキストです。長い文章を
+書いています。
+
+[expect]
+これは日本語のテキストです。長い文章を
+書いています。
+
+!! should still drop it where newlines are forced off, and keep it within a link !!
+日本語
+日本語
+===
+
+[日本語
+日本語](https://dprint.dev)
+
+[expect]
+# 日本語日本語
+
+[日本語
+日本語](https://dprint.dev)
+
+!! should still keep a space written between two runs rather than break at it !!
+日本語 日本語 日本語 日本語 日本語
+
+[expect]
+日本語 日本語 日本語 日本語 日本語
+
+!! should leave a line long rather than break where a space would be read back !!
+これはテストです日本語日本語- テスト
+
+[expect]
+これはテストです日本語日本語-
+テスト

@@ -1,0 +1,54 @@
+~~ textWrap: never ~~
+!! should keep a line break between two characters of an unspaced script by default since dropping it changes what chromium and webkit render !!
+這個段落是那麼長，
+在一行寫不行。最好
+用三行寫。
+
+[expect]
+這個段落是那麼長，
+在一行寫不行。最好
+用三行寫。
+
+!! should still turn a line break beside other text into a space !!
+日本語
+English
+は便利
+
+[expect]
+日本語 English は便利
+
+!! should keep a line break between two decorations that can't be written beside each other !!
+*日本語*
+*日本語*
+
+**日本語**
+_日本語_
+
+[expect]
+_日本語_
+_日本語_
+
+**日本語**
+_日本語_
+
+!! should keep the delimiter of a decoration written after a kept break !!
+日本語
+_日本語_ text
+
+[expect]
+日本語
+_日本語_ text
+
+!! should keep a line break beside a link or code span that is read as such a script !!
+[日](https://dprint.dev)
+日本語
+
+`日`
+日本語
+
+[expect]
+[日](https://dprint.dev)
+日本語
+
+`日`
+日本語
