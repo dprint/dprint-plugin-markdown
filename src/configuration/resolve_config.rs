@@ -88,6 +88,20 @@ pub fn resolve_config(
     code_block_preserve_blank_lines: get_value(&mut config, "codeBlock.preserveBlankLines", false, &mut diagnostics),
     code_block_use_tabs: get_nullable_value(&mut config, "codeBlock.useTabs", &mut diagnostics),
     code_block_indent_width: get_nullable_value(&mut config, "codeBlock.indentWidth", &mut diagnostics),
+    html_skip_format: get_value(&mut config, "html.skipFormat", false, &mut diagnostics),
+    html_use_tabs: get_value(
+      &mut config,
+      "html.useTabs",
+      global_config.use_tabs.unwrap_or(false),
+      &mut diagnostics,
+    ),
+    html_indent_width: get_value(
+      &mut config,
+      "html.indentWidth",
+      global_config.indent_width.unwrap_or(2),
+      &mut diagnostics,
+    ),
+    html_self_closing_space: get_value(&mut config, "html.selfClosingSpace", true, &mut diagnostics),
     table_skip_format: get_value(&mut config, "table.skipFormat", false, &mut diagnostics),
     table_cell_padding: get_value(
       &mut config,

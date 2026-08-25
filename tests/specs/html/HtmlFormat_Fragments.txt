@@ -1,0 +1,99 @@
+!! should keep a block that a blank line split from its closing tag !!
+<div align="center">
+
+**Some markdown.**
+
+</div>
+
+[expect]
+<div align="center">
+
+**Some markdown.**
+
+</div>
+
+!! should keep a centered badge block that holds markdown !!
+<p align="center">
+
+[![build](https://example.com/build.svg)](https://example.com)
+
+</p>
+
+[expect]
+<p align="center">
+
+[![build](https://example.com/build.svg)](https://example.com)
+
+</p>
+
+!! should keep an element that was never closed !!
+<div>
+<p>a</p>
+
+[expect]
+<div>
+<p>a</p>
+
+!! should keep a closing tag that closes nothing !!
+</div>
+
+[expect]
+</div>
+
+!! should keep tags that do not match !!
+<div><p>a</div></p>
+
+[expect]
+<div><p>a</div></p>
+
+!! should keep html that leaves a closing tag to be inferred !!
+<ul><li>a<li>b</ul>
+
+[expect]
+<ul><li>a<li>b</ul>
+
+!! should keep a self closing tag that a browser reads as an opening one !!
+<div/>
+
+[expect]
+<div/>
+
+!! should keep a comment that was never terminated !!
+<!-- unterminated
+
+[expect]
+<!-- unterminated
+
+!! should keep the details block that markdown is written inside of !!
+<details>
+<summary>Click</summary>
+
+Some **markdown** here.
+
+</details>
+
+[expect]
+<details>
+<summary>Click</summary>
+
+Some **markdown** here.
+
+</details>
+
+!! should still lay out the blocks around a fragment !!
+<div><p>a</p></div>
+
+<div>
+
+<div><p>b</p></div>
+
+[expect]
+<div>
+  <p>a</p>
+</div>
+
+<div>
+
+<div>
+  <p>b</p>
+</div>

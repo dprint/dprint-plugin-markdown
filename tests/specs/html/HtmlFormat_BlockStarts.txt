@@ -1,0 +1,38 @@
+~~ lineWidth: 40 ~~
+!! should keep a long img tag on one line because img starts no html block !!
+<img src="https://example.com/a/rather/long/path/to/an/image.svg" width="900">
+
+[expect]
+<img src="https://example.com/a/rather/long/path/to/an/image.svg" width="900">
+
+!! should break a long div tag because div starts an html block either way !!
+<div class="one two three" id="identifier" data-value="something">a</div>
+
+[expect]
+<div
+  class="one two three"
+  id="identifier"
+  data-value="something"
+>a</div>
+
+!! should keep a long span tag on one line because span starts no html block !!
+<span class="one two three" id="identifier" data-value="something">a</span>
+
+[expect]
+<span class="one two three" id="identifier" data-value="something">a</span>
+
+!! should break a long p tag because p starts an html block either way !!
+<p class="one two three" id="identifier" data-value="something">a</p>
+
+[expect]
+<p
+  class="one two three"
+  id="identifier"
+  data-value="something"
+>a</p>
+
+!! should keep a long anchor tag on one line !!
+<a href="https://example.com/a/rather/long/path" title="a title here">a</a>
+
+[expect]
+<a href="https://example.com/a/rather/long/path" title="a title here">a</a>

@@ -1,0 +1,314 @@
+[[test]] an element and its text
+<p>a</p>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 8],
+      "text": "<p>a</p>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 4],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] nested elements
+<div><p>a</p></div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 19],
+      "text": "<div><p>a</p></div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "<p>a</p>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 13],
+          "text": "<p>a</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [8, 9],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] siblings with text between them
+<p>a</p> <p>b</p>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 8],
+      "text": "<p>a</p>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 4],
+          "text": "a"
+        }
+      ]
+    },
+    {
+      "kind": "Text",
+      "span": [8, 9],
+      "text": " "
+    },
+    {
+      "kind": "Element",
+      "span": [9, 17],
+      "text": "<p>b</p>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an empty element
+<div></div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 11],
+      "text": "<div></div>",
+      "name": "div",
+      "elementKind": "Normal"
+    }
+  ]
+}
+[[test]] a closing tag matched without case
+<DIV>a</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 12],
+      "text": "<DIV>a</div>",
+      "name": "DIV",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 6],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] text around an element
+before <b>bold</b> after
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 7],
+      "text": "before "
+    },
+    {
+      "kind": "Element",
+      "span": [7, 18],
+      "text": "<b>bold</b>",
+      "name": "b",
+      "elementKind": "Normal",
+      "content": "bold",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 14],
+          "text": "bold"
+        }
+      ]
+    },
+    {
+      "kind": "Text",
+      "span": [18, 24],
+      "text": " after"
+    }
+  ]
+}
+[[test]] an element written across lines
+<div>
+  <p>a</p>
+</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 23],
+      "text": "<div>\n  <p>a</p>\n</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "\n  <p>a</p>\n",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 8],
+          "text": "\n  "
+        },
+        {
+          "kind": "Element",
+          "span": [8, 16],
+          "text": "<p>a</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [11, 12],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [16, 17],
+          "text": "\n"
+        }
+      ]
+    }
+  ]
+}
+[[test]] deeply nested elements
+<section><article><ul><li>a</li></ul></article></section>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 57],
+      "text": "<section><article><ul><li>a</li></ul></article></section>",
+      "name": "section",
+      "elementKind": "Normal",
+      "content": "<article><ul><li>a</li></ul></article>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [9, 47],
+          "text": "<article><ul><li>a</li></ul></article>",
+          "name": "article",
+          "elementKind": "Normal",
+          "content": "<ul><li>a</li></ul>",
+          "children": [
+            {
+              "kind": "Element",
+              "span": [18, 37],
+              "text": "<ul><li>a</li></ul>",
+              "name": "ul",
+              "elementKind": "Normal",
+              "content": "<li>a</li>",
+              "children": [
+                {
+                  "kind": "Element",
+                  "span": [22, 32],
+                  "text": "<li>a</li>",
+                  "name": "li",
+                  "elementKind": "Normal",
+                  "content": "a",
+                  "children": [
+                    {
+                      "kind": "Text",
+                      "span": [26, 27],
+                      "text": "a"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] whitespace in a closing tag
+<p>a</p   >
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 11],
+      "text": "<p>a</p   >",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 4],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an unknown element
+<my-widget>a</my-widget>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 24],
+      "text": "<my-widget>a</my-widget>",
+      "name": "my-widget",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [11, 12],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}

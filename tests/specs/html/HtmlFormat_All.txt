@@ -1,0 +1,153 @@
+!! should lay out a block of html !!
+<div><p>Testing</p></div>
+
+[expect]
+<div>
+  <p>Testing</p>
+</div>
+
+!! should reindent a table written flat !!
+<table>
+<tr><td>a</td><td>b</td></tr>
+</table>
+
+[expect]
+<table>
+  <tr>
+    <td>a</td>
+    <td>b</td>
+  </tr>
+</table>
+
+!! should reindent a block that was over indented !!
+<div>
+        <p>a</p>
+            <p>b</p>
+</div>
+
+[expect]
+<div>
+  <p>a</p>
+  <p>b</p>
+</div>
+
+!! should lay out a details block !!
+<details>
+<summary>Click to expand</summary>
+<p>Some content.</p>
+</details>
+
+[expect]
+<details>
+  <summary>Click to expand</summary>
+  <p>Some content.</p>
+</details>
+
+!! should keep a block with short content on one line !!
+<div><span>a</span></div>
+
+[expect]
+<div><span>a</span></div>
+
+!! should lay out html between paragraphs !!
+Before.
+
+<div><p>a</p></div>
+
+After.
+
+[expect]
+Before.
+
+<div>
+  <p>a</p>
+</div>
+
+After.
+
+!! should keep the whitespace around an inline element !!
+<div><p>some <em>emphasis</em> here</p></div>
+
+[expect]
+<div>
+  <p>some <em>emphasis</em> here</p>
+</div>
+
+!! should treat an unknown element as inline !!
+<div><p>a <my-widget>b</my-widget> c</p></div>
+
+[expect]
+<div>
+  <p>a <my-widget>b</my-widget> c</p>
+</div>
+
+!! should keep the case a tag was written in !!
+<DIV><P>a</P></DIV>
+
+[expect]
+<DIV>
+  <P>a</P>
+</DIV>
+
+!! should keep a comment as it was written !!
+<div>
+<!--   spaced   -->
+<p>a</p>
+</div>
+
+[expect]
+<div>
+  <!--   spaced   -->
+  <p>a</p>
+</div>
+
+!! should lay out deeply nested blocks !!
+<div><section><article><p>a</p></article></section></div>
+
+[expect]
+<div>
+  <section>
+    <article>
+      <p>a</p>
+    </article>
+  </section>
+</div>
+
+!! should drop the whitespace at the edges of block content !!
+<div>   <p>a</p>   </div>
+
+[expect]
+<div>
+  <p>a</p>
+</div>
+
+!! should collapse a run of whitespace to the space it renders as !!
+<div><p>a     b</p></div>
+
+[expect]
+<div>
+  <p>a b</p>
+</div>
+
+!! should keep an empty element on one line !!
+<div><p></p></div>
+
+[expect]
+<div>
+  <p></p>
+</div>
+
+!! should keep a void element the way it was written !!
+<div><br><hr></div>
+
+[expect]
+<div>
+  <br>
+  <hr>
+</div>
+
+!! should read a self closing tag within svg !!
+<div><svg><circle cx="1" /></svg></div>
+
+[expect]
+<div><svg><circle cx="1" /></svg></div>

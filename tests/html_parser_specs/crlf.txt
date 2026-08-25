@@ -1,0 +1,98 @@
+[[test:crlf]] an element written across lines
+<div>
+  <p>a</p>
+</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 25],
+      "text": "<div>\r\n  <p>a</p>\r\n</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "\r\n  <p>a</p>\r\n",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 9],
+          "text": "\r\n  "
+        },
+        {
+          "kind": "Element",
+          "span": [9, 17],
+          "text": "<p>a</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [12, 13],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [17, 19],
+          "text": "\r\n"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] attributes written across lines
+<div
+  class="a"
+  id="b"
+>x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 37],
+      "text": "<div\r\n  class=\"a\"\r\n  id=\"b\"\r\n>x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "a",
+          "quote": "\""
+        },
+        {
+          "name": "id",
+          "value": "b",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [30, 31],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test:crlf]] a comment across lines
+<!--
+a
+-->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 12],
+      "text": "<!--\r\na\r\n-->"
+    }
+  ]
+}

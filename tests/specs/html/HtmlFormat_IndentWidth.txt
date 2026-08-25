@@ -1,0 +1,20 @@
+~~ lineWidth: 40, html.indentWidth: 4 ~~
+!! should indent html with the given width !!
+<div><section><p>a</p></section></div>
+
+[expect]
+<div>
+    <section>
+        <p>a</p>
+    </section>
+</div>
+
+!! should indent the attributes of a long tag with the given width !!
+<div class="one two three" id="identifier" data-value="something">a</div>
+
+[expect]
+<div
+    class="one two three"
+    id="identifier"
+    data-value="something"
+>a</div>

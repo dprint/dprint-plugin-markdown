@@ -1,0 +1,52 @@
+[[test]] an element that was never closed
+<div>
+[[ast]]
+[[refused]] `<div>` was never closed
+[[test]] an element that was never closed after children
+<div><p>a</p>
+[[ast]]
+[[refused]] `<div>` was never closed
+[[test]] a block that a blank line split from its closing tag
+<div align="center">
+[[ast]]
+[[refused]] `<div>` was never closed
+[[test]] a closing tag that closes nothing
+</div>
+[[ast]]
+[[refused]] `</div>` closes an element that isn't open
+[[test]] a closing tag after a complete element
+<p>a</p></div>
+[[ast]]
+[[refused]] `</div>` closes an element that isn't open
+[[test]] tags that do not match
+<div><p>a</div></p>
+[[ast]]
+[[refused]] `</div>` was found where `</p>` was expected
+[[test]] a closing tag left to be inferred
+<ul><li>a<li>b</ul>
+[[ast]]
+[[refused]] `</ul>` was found where `</li>` was expected
+[[test]] a self closing tag a browser reads as an opening one
+<div/>
+[[ast]]
+[[refused]] a tag is written in a way the parser doesn't read
+[[test]] a self closing span
+<span/>a</span>
+[[ast]]
+[[refused]] a tag is written in a way the parser doesn't read
+[[test]] a comment that was never terminated
+<!-- a comment
+[[ast]]
+[[refused]] markup runs past the end of the text without being closed
+[[test]] a cdata section that was never terminated
+<![CDATA[ a
+[[ast]]
+[[refused]] markup runs past the end of the text without being closed
+[[test]] an attribute value that was never terminated
+<p title="a</p>
+[[ast]]
+[[refused]] markup runs past the end of the text without being closed
+[[test]] a script that was never closed
+<script>a
+[[ast]]
+[[refused]] `<script>` was never closed

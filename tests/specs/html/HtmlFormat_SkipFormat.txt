@@ -1,0 +1,26 @@
+~~ html.skipFormat: true ~~
+!! should keep a block of html as it was written !!
+<div><p>Testing</p></div>
+
+[expect]
+<div><p>Testing</p></div>
+
+!! should keep a table as it was written !!
+<table>
+<tr><td>a</td><td>b</td></tr>
+</table>
+
+[expect]
+<table>
+<tr><td>a</td><td>b</td></tr>
+</table>
+
+!! should still format the markdown around it !!
+Some    text.
+
+<div><p>a</p></div>
+
+[expect]
+Some text.
+
+<div><p>a</p></div>

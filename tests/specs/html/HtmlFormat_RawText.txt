@@ -1,0 +1,65 @@
+!! should keep the content of a script !!
+<div>
+<script>const a = 1;   const b = 2</script>
+</div>
+
+[expect]
+<div>
+  <script>const a = 1;   const b = 2</script>
+</div>
+
+!! should keep the content of a style !!
+<div>
+<style>.a {   color: red }</style>
+</div>
+
+[expect]
+<div>
+  <style>.a {   color: red }</style>
+</div>
+
+!! should read markup within a script as text !!
+<div>
+<script>if (a < b) { c() }</script>
+</div>
+
+[expect]
+<div>
+  <script>if (a < b) { c() }</script>
+</div>
+
+!! should keep the content of a preformatted element !!
+<div>
+<pre>  a   b
+   c  </pre>
+</div>
+
+[expect]
+<div>
+  <pre>  a   b
+   c  </pre>
+</div>
+
+!! should keep the content of a textarea !!
+<div>
+<textarea>  keep   this  </textarea>
+</div>
+
+[expect]
+<div><textarea>  keep   this  </textarea></div>
+
+!! should keep a cdata section and processing instruction !!
+<div><p><![CDATA[ a < b ]]></p></div>
+
+[expect]
+<div>
+  <p><![CDATA[ a < b ]]></p>
+</div>
+
+!! should read an angle bracket that opens no tag as text !!
+<div><p>a < b</p></div>
+
+[expect]
+<div>
+  <p>a < b</p>
+</div>

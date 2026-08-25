@@ -511,6 +511,22 @@ impl<'a> Context<'a> {
     is_ignore_comment(html_text, &self.configuration.ignore_end_directive)
   }
 
+  /// Whether the html holds a comment that turns formatting off.
+  ///
+  /// A block of html is written out as it was when it holds one, because the
+  /// text an ignore comment covers can be within the block rather than being
+  /// a node of the document the block sits in.
+  pub fn has_ignore_comment(&self, html_text: &str) -> bool {
+    [
+      &self.configuration.ignore_directive,
+      &self.configuration.ignore_start_directive,
+      &self.configuration.ignore_end_directive,
+      &self.configuration.ignore_file_directive,
+    ]
+    .iter()
+    .any(|directive| html_text.contains(directive.as_str()))
+  }
+
   pub fn is_preserving_decorations(&self) -> bool {
     self.decorations_preserved_count > 0
   }

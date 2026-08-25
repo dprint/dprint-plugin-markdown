@@ -1,0 +1,347 @@
+[[test]] a double quoted value
+<a href="foo">x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 19],
+      "text": "<a href=\"foo\">x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "href",
+          "value": "foo",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a single quoted value
+<a href='foo'>x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 19],
+      "text": "<a href='foo'>x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "href",
+          "value": "foo",
+          "quote": "'"
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an unquoted value
+<a href=foo>x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 17],
+      "text": "<a href=foo>x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "href",
+          "value": "foo",
+          "quoted": false
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an attribute with no value
+<input disabled>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 16],
+      "text": "<input disabled>",
+      "name": "input",
+      "elementKind": "Void",
+      "attributes": [
+        {
+          "name": "disabled"
+        }
+      ]
+    }
+  ]
+}
+[[test]] several attributes
+<div class="a" id="b" hidden>x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 36],
+      "text": "<div class=\"a\" id=\"b\" hidden>x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "a",
+          "quote": "\""
+        },
+        {
+          "name": "id",
+          "value": "b",
+          "quote": "\""
+        },
+        {
+          "name": "hidden"
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [29, 30],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a value holding the other quote
+<a title='say "hi"'>x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 25],
+      "text": "<a title='say \"hi\"'>x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "title",
+          "value": "say \"hi\"",
+          "quote": "'"
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [20, 21],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an empty value
+<div class="">x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 21],
+      "text": "<div class=\"\">x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] attributes written across lines
+<div
+  class="a"
+  id="b"
+>x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 34],
+      "text": "<div\n  class=\"a\"\n  id=\"b\"\n>x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "a",
+          "quote": "\""
+        },
+        {
+          "name": "id",
+          "value": "b",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [27, 28],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a value holding a line break
+<div class="one
+  two">x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 30],
+      "text": "<div class=\"one\n  two\">x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "one\n  two",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [23, 24],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] framework attribute names
+<div @click="a" :value="b" v-if="c">x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 43],
+      "text": "<div @click=\"a\" :value=\"b\" v-if=\"c\">x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "@click",
+          "value": "a",
+          "quote": "\""
+        },
+        {
+          "name": ":value",
+          "value": "b",
+          "quote": "\""
+        },
+        {
+          "name": "v-if",
+          "value": "c",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [36, 37],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] whitespace around the equals sign
+<a href = "foo">x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 21],
+      "text": "<a href = \"foo\">x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "href",
+          "value": "foo",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [16, 17],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}

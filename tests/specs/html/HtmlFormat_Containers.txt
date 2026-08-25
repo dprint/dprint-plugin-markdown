@@ -1,0 +1,105 @@
+!! should lay out html in a block quote !!
+> <div>
+> <p>a</p>
+> </div>
+
+[expect]
+> <div>
+>   <p>a</p>
+> </div>
+
+!! should lay out html in a nested block quote !!
+> > <div>
+> > <p>a</p>
+> > </div>
+
+[expect]
+>> <div>
+>>   <p>a</p>
+>> </div>
+
+!! should lay out html in a list item !!
+- <div>
+  <p>a</p>
+  </div>
+
+[expect]
+- <div>
+    <p>a</p>
+  </div>
+
+!! should keep html that is indented within a list !!
+- Test
+
+    <div>
+    </div>
+
+[expect]
+- Test
+
+    <div>
+    </div>
+
+!! should lay out html after a heading !!
+# Heading
+
+<div><p>a</p></div>
+
+[expect]
+# Heading
+
+<div>
+  <p>a</p>
+</div>
+
+!! should not lay out an inline tag !!
+Some inline html <em>Testing</em> testing this out.
+
+[expect]
+Some inline html <em>Testing</em> testing this out.
+
+!! should not lay out html within a code block !!
+```
+<div><p>a</p></div>
+```
+
+[expect]
+```
+<div><p>a</p></div>
+```
+
+!! should keep html an ignore comment covers !!
+<!-- dprint-ignore -->
+<div><p>a</p></div>
+
+[expect]
+<!-- dprint-ignore -->
+<div><p>a</p></div>
+
+!! should keep an html block that holds an ignore region !!
+<diagram class="size-40">
+<!-- dprint-ignore-start -->
+flowchart TD
+example-testing-testing
+<!-- dprint-ignore-end -->
+</diagram>
+
+[expect]
+<diagram class="size-40">
+<!-- dprint-ignore-start -->
+flowchart TD
+example-testing-testing
+<!-- dprint-ignore-end -->
+</diagram>
+
+!! should keep an html block that holds an ignore comment !!
+<div>
+<!-- dprint-ignore -->
+<p>a    b</p>
+</div>
+
+[expect]
+<div>
+<!-- dprint-ignore -->
+<p>a    b</p>
+</div>

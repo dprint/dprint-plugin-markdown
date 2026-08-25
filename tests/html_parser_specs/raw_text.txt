@@ -1,0 +1,259 @@
+[[test]] a script
+<script>const a = 1</script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 28],
+      "text": "<script>const a = 1</script>",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "const a = 1",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 19],
+          "text": "const a = 1"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a script holding what looks like a tag
+<script>const a = "</div>"</script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 35],
+      "text": "<script>const a = \"</div>\"</script>",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "const a = \"</div>\"",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 26],
+          "text": "const a = \"</div>\""
+        }
+      ]
+    }
+  ]
+}
+[[test]] a script holding a less than sign
+<script>if (a < b) { }</script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 31],
+      "text": "<script>if (a < b) { }</script>",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "if (a < b) { }",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 22],
+          "text": "if (a < b) { }"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an empty script
+<script></script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 17],
+      "text": "<script></script>",
+      "name": "script",
+      "elementKind": "RawText"
+    }
+  ]
+}
+[[test]] a script with attributes
+<script type="module">export {}</script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 40],
+      "text": "<script type=\"module\">export {}</script>",
+      "name": "script",
+      "elementKind": "RawText",
+      "attributes": [
+        {
+          "name": "type",
+          "value": "module",
+          "quote": "\""
+        }
+      ],
+      "content": "export {}",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [22, 31],
+          "text": "export {}"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a style
+<style>.a {   color: red }</style>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 34],
+      "text": "<style>.a {   color: red }</style>",
+      "name": "style",
+      "elementKind": "RawText",
+      "content": ".a {   color: red }",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [7, 26],
+          "text": ".a {   color: red }"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a textarea
+<textarea>  keep   this  </textarea>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 36],
+      "text": "<textarea>  keep   this  </textarea>",
+      "name": "textarea",
+      "elementKind": "RawText",
+      "content": "  keep   this  ",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 25],
+          "text": "  keep   this  "
+        }
+      ]
+    }
+  ]
+}
+[[test]] a title
+<title>a</title>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 16],
+      "text": "<title>a</title>",
+      "name": "title",
+      "elementKind": "RawText",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [7, 8],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closing tag matched without case
+<script>a</SCRIPT>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 18],
+      "text": "<script>a</SCRIPT>",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 9],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a preformatted element holds markup as children
+<pre><b>a</b>  <i>b</i></pre>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 29],
+      "text": "<pre><b>a</b>  <i>b</i></pre>",
+      "name": "pre",
+      "elementKind": "Normal",
+      "content": "<b>a</b>  <i>b</i>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 13],
+          "text": "<b>a</b>",
+          "name": "b",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [8, 9],
+              "text": "a"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [13, 15],
+          "text": "  "
+        },
+        {
+          "kind": "Element",
+          "span": [15, 23],
+          "text": "<i>b</i>",
+          "name": "i",
+          "elementKind": "Normal",
+          "content": "b",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [18, 19],
+              "text": "b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

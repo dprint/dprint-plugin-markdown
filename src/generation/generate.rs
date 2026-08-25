@@ -1514,6 +1514,36 @@ fn written_last_char(node: Option<&Node>, parent_content: Option<Span>, context:
 }
 
 fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
+  // only a block of html is laid out: an inline tag is one node of the text
+  // around it, where the printer is already deciding where the lines go.
+  // A block written with indentation of its own is left alone, because that
+  // indentation says where the author put the block within what holds it and
+  // laying the block out again would take it somewhere else.
+  let is_indented = node.text.starts_with(SPACES);
+  let is_ignored = ctx.has_ignore_comment(&node.text);
+  if node.is_block && !is_indented && !is_ignored && !ctx.configuration.html_skip_format {
+    let line_width = std::cmp::max(10, ctx.configuration.line_width as i32 - ctx.indent_level as i32) as u32;
+    let options = crate::html::HtmlFormatOptions {
+      line_width,
+      use_tabs: ctx.configuration.html_use_tabs,
+      indent_width: ctx.configuration.html_indent_width,
+      self_closing_space: ctx.configuration.html_self_closing_space,
+    };
+    // an html block is very often a fragment, because a blank line closes the
+    // block and leaves its closing tag to a block of its own -- whatever the
+    // formatter can't take apart and put back together is left as it was
+    if let Ok(text) = crate::html::format_html(&node.text, &options) {
+      // the line an html block starts on is what makes it one, and says where
+      // it ends -- writing that line out differently would leave the rest of
+      // the block to be read as markdown
+      if starts_same_html_block(first_line(&node.text), first_line(&text)) {
+        let mut items = PrintItems::new();
+        items.push_sc(sc!("")); // force first line indentation
+        items.extend(ir_helpers::gen_from_string(&text));
+        return items;
+      }
+    }
+  }
   gen_range(node.span, ctx)
 }
 
@@ -1538,6 +1568,15 @@ fn gen_range(span: Span, ctx: &mut Context) -> PrintItems {
     &strip_raw_block_quote_markers(text, ctx),
   )));
   items
+}
+
+/// The text up to its first line break, which for an html block is the line
+/// that decides whether it is one and where it ends.
+fn first_line(text: &str) -> &str {
+  match text.find('\n') {
+    Some(index) => &text[..index],
+    None => text,
+  }
 }
 
 /// Trims the whitespace written at the end of each line, which is only a space

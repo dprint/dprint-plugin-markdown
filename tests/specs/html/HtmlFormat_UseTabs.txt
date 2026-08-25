@@ -1,0 +1,20 @@
+~~ html.useTabs: true ~~
+!! should indent html with tabs !!
+<div><section><p>a</p></section></div>
+
+[expect]
+<div>
+	<section>
+		<p>a</p>
+	</section>
+</div>
+
+!! should indent the content of a block quote with tabs !!
+> <div>
+> <p>a</p>
+> </div>
+
+[expect]
+> <div>
+> 	<p>a</p>
+> </div>

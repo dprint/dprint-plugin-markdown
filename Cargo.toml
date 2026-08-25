@@ -33,6 +33,11 @@ name = "parser_specs"
 path = "tests/parser_spec_test.rs"
 harness = false
 
+[[test]]
+name = "html_parser_specs"
+path = "tests/html_parser_spec_test.rs"
+harness = false
+
 [dependencies]
 dprint-core = { version = "0.69.1", features = ["formatting"] }
 dprint-core-macros = "0.1.0"

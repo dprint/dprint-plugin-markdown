@@ -50,6 +50,20 @@ pub struct Configuration {
   /// formats the code within a code block. `None` leaves it to that plugin.
   #[serde(rename = "codeBlock.indentWidth")]
   pub code_block_indent_width: Option<u8>,
+  /// Whether to leave the html written within the file as it was rather than
+  /// laying out its tags and their content.
+  #[serde(rename = "html.skipFormat")]
+  pub html_skip_format: bool,
+  /// Whether to indent the html written within the file with tabs.
+  #[serde(rename = "html.useTabs")]
+  pub html_use_tabs: bool,
+  /// The number of spaces to indent the html written within the file with.
+  #[serde(rename = "html.indentWidth")]
+  pub html_indent_width: u8,
+  /// Whether to write a space before the `/>` that closes a self-closing tag,
+  /// so that a tag is written as `<br />` rather than as `<br/>`.
+  #[serde(rename = "html.selfClosingSpace")]
+  pub html_self_closing_space: bool,
   /// Whether to leave a table's rows as they were written rather than
   /// aligning their cells into columns.
   #[serde(rename = "table.skipFormat")]
