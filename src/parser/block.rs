@@ -1277,13 +1277,35 @@ enum HtmlBlockKind {
   BlankLine,
 }
 
-/// Whether two lines start the same kind of html block.
+/// Whether the text is one html block of the same kind the line starts, all
+/// the way to its end.
 ///
-/// Text can only be written back out differently where this holds of the line
-/// it starts on: a line that stops starting an html block, or starts one that
-/// ends somewhere else, leaves the rest of the block to be read as markdown.
-pub fn starts_same_html_block(before: &str, after: &str) -> bool {
-  html_block_kind(before, false) == html_block_kind(after, false)
+/// An html block can only be written back out differently where this holds of
+/// what it is written as. A line that stops starting an html block, or starts
+/// one of another kind, leaves what follows to be read as markdown -- and so
+/// does moving text past what closes the block, because a block that is closed
+/// by a marker rather than by a blank line ends on the line that marker is
+/// written on, however much was written after it.
+pub fn is_whole_html_block(original: &str, text: &str) -> bool {
+  let kind = html_block_kind(first_line(text), false);
+  if kind != html_block_kind(first_line(original), false) {
+    return false;
+  }
+  match kind {
+    Some(HtmlBlockKind::Closes(close)) => match text.find(close.as_ref()) {
+      // The block ends on the line its marker is written on, so that has to be
+      // the last one: whatever was written after it would be read as markdown.
+      // A marker holds no line break of its own, so it is on the last line
+      // exactly when no break is written after it.
+      Some(index) => !text[index..].contains('\n'),
+      // nothing closes it, so it runs to the end of the text as it is
+      None => true,
+    },
+    // the block ends at the first blank line, and the printer is held to
+    // writing no blank line that wasn't already written
+    Some(HtmlBlockKind::BlankLine) => true,
+    None => false,
+  }
 }
 
 /// The html block the text starts, if any. Blocks that consist of a single
@@ -1355,6 +1377,15 @@ fn starts_with_tag_name(text: &str, name: &str) -> bool {
   bytes.len() >= name.len()
     && bytes[..name.len()].eq_ignore_ascii_case(name.as_bytes())
     && followed_by_tag_end(&text[name.len()..])
+}
+
+/// The text up to its first line break, which for an html block is the line
+/// that decides whether it is one and where it ends.
+fn first_line(text: &str) -> &str {
+  match text.find('\n') {
+    Some(index) => &text[..index],
+    None => text,
+  }
 }
 
 fn compare_tag_name(tag: &str, name: &str) -> std::cmp::Ordering {

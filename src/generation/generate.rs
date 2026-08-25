@@ -1533,10 +1533,10 @@ fn gen_html(node: &Html, ctx: &mut Context) -> PrintItems {
     // block and leaves its closing tag to a block of its own -- whatever the
     // formatter can't take apart and put back together is left as it was
     if let Ok(text) = crate::html::format_html(&node.text, &options) {
-      // the line an html block starts on is what makes it one, and says where
-      // it ends -- writing that line out differently would leave the rest of
-      // the block to be read as markdown
-      if starts_same_html_block(first_line(&node.text), first_line(&text)) {
+      // the block has to still be the one block it was written as: a first
+      // line that starts another kind of block, or text moved past what closes
+      // this one, would leave the rest of it to be read as markdown
+      if is_whole_html_block(&node.text, &text) {
         let mut items = PrintItems::new();
         items.push_sc(sc!("")); // force first line indentation
         items.extend(ir_helpers::gen_from_string(&text));
@@ -1568,15 +1568,6 @@ fn gen_range(span: Span, ctx: &mut Context) -> PrintItems {
     &strip_raw_block_quote_markers(text, ctx),
   )));
   items
-}
-
-/// The text up to its first line break, which for an html block is the line
-/// that decides whether it is one and where it ends.
-fn first_line(text: &str) -> &str {
-  match text.find('\n') {
-    Some(index) => &text[..index],
-    None => text,
-  }
 }
 
 /// Trims the whitespace written at the end of each line, which is only a space
