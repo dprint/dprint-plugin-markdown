@@ -1286,17 +1286,18 @@ enum HtmlBlockKind {
 /// does moving text past what closes the block, because a block that is closed
 /// by a marker rather than by a blank line ends on the line that marker is
 /// written on, however much was written after it.
-pub fn is_whole_html_block(original_first_line: &str, text: &str) -> bool {
-  let lines: Vec<&str> = text.split('\n').collect();
-  let kind = html_block_kind(lines[0], false);
-  if kind != html_block_kind(original_first_line, false) {
+pub fn is_whole_html_block(original: &str, text: &str) -> bool {
+  let kind = html_block_kind(first_line(text), false);
+  if kind != html_block_kind(first_line(original), false) {
     return false;
   }
   match kind {
-    Some(HtmlBlockKind::Closes(close)) => match lines.iter().position(|line| line.contains(close.as_ref())) {
-      // the block ends on the line its marker is written on, so that has to be
-      // the last one: whatever was written after it would be read as markdown
-      Some(index) => index == lines.len() - 1,
+    Some(HtmlBlockKind::Closes(close)) => match text.find(close.as_ref()) {
+      // The block ends on the line its marker is written on, so that has to be
+      // the last one: whatever was written after it would be read as markdown.
+      // A marker holds no line break of its own, so it is on the last line
+      // exactly when no break is written after it.
+      Some(index) => !text[index..].contains('\n'),
       // nothing closes it, so it runs to the end of the text as it is
       None => true,
     },
@@ -1376,6 +1377,15 @@ fn starts_with_tag_name(text: &str, name: &str) -> bool {
   bytes.len() >= name.len()
     && bytes[..name.len()].eq_ignore_ascii_case(name.as_bytes())
     && followed_by_tag_end(&text[name.len()..])
+}
+
+/// The text up to its first line break, which for an html block is the line
+/// that decides whether it is one and where it ends.
+fn first_line(text: &str) -> &str {
+  match text.find('\n') {
+    Some(index) => &text[..index],
+    None => text,
+  }
 }
 
 fn compare_tag_name(tag: &str, name: &str) -> std::cmp::Ordering {
