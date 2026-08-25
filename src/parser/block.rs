@@ -1277,13 +1277,34 @@ enum HtmlBlockKind {
   BlankLine,
 }
 
-/// Whether two lines start the same kind of html block.
+/// Whether the text is one html block of the same kind the line starts, all
+/// the way to its end.
 ///
-/// Text can only be written back out differently where this holds of the line
-/// it starts on: a line that stops starting an html block, or starts one that
-/// ends somewhere else, leaves the rest of the block to be read as markdown.
-pub fn starts_same_html_block(before: &str, after: &str) -> bool {
-  html_block_kind(before, false) == html_block_kind(after, false)
+/// An html block can only be written back out differently where this holds of
+/// what it is written as. A line that stops starting an html block, or starts
+/// one of another kind, leaves what follows to be read as markdown -- and so
+/// does moving text past what closes the block, because a block that is closed
+/// by a marker rather than by a blank line ends on the line that marker is
+/// written on, however much was written after it.
+pub fn is_whole_html_block(original_first_line: &str, text: &str) -> bool {
+  let lines: Vec<&str> = text.split('\n').collect();
+  let kind = html_block_kind(lines[0], false);
+  if kind != html_block_kind(original_first_line, false) {
+    return false;
+  }
+  match kind {
+    Some(HtmlBlockKind::Closes(close)) => match lines.iter().position(|line| line.contains(close.as_ref())) {
+      // the block ends on the line its marker is written on, so that has to be
+      // the last one: whatever was written after it would be read as markdown
+      Some(index) => index == lines.len() - 1,
+      // nothing closes it, so it runs to the end of the text as it is
+      None => true,
+    },
+    // the block ends at the first blank line, and the printer is held to
+    // writing no blank line that wasn't already written
+    Some(HtmlBlockKind::BlankLine) => true,
+    None => false,
+  }
 }
 
 /// The html block the text starts, if any. Blocks that consist of a single

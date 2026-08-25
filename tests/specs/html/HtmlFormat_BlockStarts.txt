@@ -36,3 +36,37 @@
 
 [expect]
 <a href="https://example.com/a/rather/long/path" title="a title here">a</a>
+
+!! should keep text written after what closes a pre block !!
+<pre>a</pre>*em*
+
+[expect]
+<pre>a</pre>*em*
+
+!! should keep text written after what closes a script block !!
+<script>a</script>*em*
+
+[expect]
+<script>a</script>*em*
+
+!! should keep text written after a pre block on the same line !!
+<pre>a</pre>text after
+
+[expect]
+<pre>a</pre>text after
+
+!! should still lay out a pre block written on its own !!
+<div><pre>  a  </pre></div>
+
+[expect]
+<div>
+  <pre>  a  </pre>
+</div>
+
+!! should still lay out a script block written on its own !!
+<div><script>const a = 1</script></div>
+
+[expect]
+<div>
+  <script>const a = 1</script>
+</div>
