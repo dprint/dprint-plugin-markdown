@@ -1,0 +1,406 @@
+[[test]] a lazy line does not continue an html block within a block quote
+> <div>
+> x
+y
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "> <div>\n> x\ny",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 11],
+      "text": "> <div>\n> x",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [2, 11],
+          "text": "<div>\n> x",
+          "isBlock": true,
+          "content": "<div>\nx"
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 13],
+      "text": "y",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "y"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a lazy line does not continue an html block within a list item
+- <div>
+  x
+y
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "- <div>\n  x\ny",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 11],
+      "text": "- <div>\n  x",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 11],
+          "text": "- <div>\n  x",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 11],
+              "text": "<div>\n  x",
+              "isBlock": true,
+              "content": "<div>\nx"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 13],
+      "text": "y",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "y"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a lazy line does not continue a comment block within a list item
+- <!-- a
+  b
+c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "- <!-- a\n  b\nc",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 12],
+      "text": "- <!-- a\n  b",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 12],
+          "text": "- <!-- a\n  b",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 12],
+              "text": "<!-- a\n  b",
+              "isBlock": true,
+              "content": "<!-- a\nb"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [13, 14],
+      "text": "c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [13, 14],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a lazy line does not continue a pre block within a list item
+- <pre>
+  x
+y
+  </pre>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "- <pre>\n  x\ny\n  </pre>",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 11],
+      "text": "- <pre>\n  x",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 11],
+          "text": "- <pre>\n  x",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 11],
+              "text": "<pre>\n  x",
+              "isBlock": true,
+              "content": "<pre>\nx"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 22],
+      "text": "y\n  </pre>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "y"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [13, 14],
+          "text": "\n"
+        },
+        {
+          "kind": "Html",
+          "span": [16, 22],
+          "text": "</pre>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] an html block within a container ends on the line its close marker is on
+- <pre>
+  x</pre>
+  y
+z
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "- <pre>\n  x</pre>\n  y\nz",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 23],
+      "text": "- <pre>\n  x</pre>\n  y\nz",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 23],
+          "text": "- <pre>\n  x</pre>\n  y\nz",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 17],
+              "text": "<pre>\n  x</pre>",
+              "isBlock": true,
+              "content": "<pre>\nx</pre>"
+            },
+            {
+              "kind": "Paragraph",
+              "span": [20, 23],
+              "text": "y\nz",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [20, 21],
+                  "text": "y"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [21, 22],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [22, 23],
+                  "text": "z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an html block within a container closed on the line it opens
+- <pre>x</pre>
+  y
+z
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "- <pre>x</pre>\n  y\nz",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 20],
+      "text": "- <pre>x</pre>\n  y\nz",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 20],
+          "text": "- <pre>x</pre>\n  y\nz",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 14],
+              "text": "<pre>x</pre>",
+              "isBlock": true
+            },
+            {
+              "kind": "Paragraph",
+              "span": [17, 20],
+              "text": "y\nz",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [17, 18],
+                  "text": "y"
+                },
+                {
+                  "kind": "SoftBreak",
+                  "span": [18, 19],
+                  "text": "\n"
+                },
+                {
+                  "kind": "Text",
+                  "span": [19, 20],
+                  "text": "z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a single line html block within a list item
+- <div>
+y
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "- <div>\ny",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 7],
+      "text": "- <div>",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 7],
+          "text": "- <div>",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Html",
+              "span": [2, 7],
+              "text": "<div>",
+              "isBlock": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [8, 9],
+      "text": "y",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 9],
+          "text": "y"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an html block within a block quote ends at a blank line
+> <div>
+> x
+>
+> y
+z
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "> <div>\n> x\n>\n> y\nz",
+  "children": [
+    {
+      "kind": "BlockQuote",
+      "span": [0, 19],
+      "text": "> <div>\n> x\n>\n> y\nz",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [2, 11],
+          "text": "<div>\n> x",
+          "isBlock": true,
+          "content": "<div>\nx"
+        },
+        {
+          "kind": "Paragraph",
+          "span": [16, 19],
+          "text": "y\nz",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [16, 17],
+              "text": "y"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [17, 18],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [18, 19],
+              "text": "z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

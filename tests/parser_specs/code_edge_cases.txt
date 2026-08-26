@@ -210,3 +210,167 @@ text
     }
   ]
 }
+[[test]] a backtick within a longer code span
+`` ` ``
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "`` ` ``",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "`` ` ``",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 7],
+          "text": "`` ` ``",
+          "content": "`"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a code span of spaces
+`  `
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "`  `",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "`  `",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 4],
+          "text": "`  `",
+          "content": "  "
+        }
+      ]
+    }
+  ]
+}
+[[test]] one sided padding is kept
+` a`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "` a`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "` a`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 4],
+          "text": "` a`",
+          "content": " a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a backtick in a backtick fence info string
+```a`b
+x
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "```a`b\nx",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "```a`b\nx",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "```a`b"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [6, 7],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [7, 8],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an indented close fence is content
+```
+a
+    ```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "```\na\n    ```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 13],
+      "text": "```\na\n    ```",
+      "isFenced": true,
+      "fence": "```",
+      "content": "a\n    ```\n"
+    }
+  ]
+}
+[[test]] an indented fence strips its indentation from the content
+   ```
+ a
+    b
+```
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "   ```\n a\n    b\n```",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [3, 19],
+      "text": "```\n a\n    b\n```",
+      "isFenced": true,
+      "fence": "```",
+      "content": "a\n b\n"
+    }
+  ]
+}
+[[test]] a shorter tilde run and backticks within a tilde fence
+~~~~
+```
+~~~
+~~~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "~~~~\n```\n~~~\n~~~~",
+  "children": [
+    {
+      "kind": "CodeBlock",
+      "span": [0, 17],
+      "text": "~~~~\n```\n~~~\n~~~~",
+      "isFenced": true,
+      "fence": "~~~~",
+      "content": "```\n~~~\n"
+    }
+  ]
+}

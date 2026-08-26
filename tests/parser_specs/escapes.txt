@@ -86,3 +86,160 @@ a \b c
     }
   ]
 }
+[[test]] escaped block starts
+\# a
+\- b
+1\. c
+\> d
+\[a]: /u
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 29],
+  "text": "\\# a\n\\- b\n1\\. c\n\\> d\n\\[a]: /u",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 29],
+      "text": "\\# a\n\\- b\n1\\. c\n\\> d\n\\[a]: /u",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "\\# a"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [4, 5],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [5, 9],
+          "text": "\\- b"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [9, 10],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [10, 15],
+          "text": "1\\. c"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [15, 16],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [16, 20],
+          "text": "\\> d"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [20, 21],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [21, 29],
+          "text": "\\[a]: /u"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an escaped backslash before a line end is no hard break
+a\
+b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "a\\\nb",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "a\\\nb",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [1, 2],
+          "text": "\\"
+        },
+        {
+          "kind": "Text",
+          "span": [3, 4],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a backslash at the end of a paragraph is text
+a\
+
+b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "a\\\n\nb",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 2],
+      "text": "a\\",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "a\\"
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [4, 5],
+      "text": "b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [4, 5],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] entities are text
+&amp; &#123; &#x1F600; &notanentity
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 35],
+  "text": "&amp; &#123; &#x1F600; &notanentity",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 35],
+      "text": "&amp; &#123; &#x1F600; &notanentity",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 35],
+          "text": "&amp; &#123; &#x1F600; &notanentity"
+        }
+      ]
+    }
+  ]
+}

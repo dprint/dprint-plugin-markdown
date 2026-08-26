@@ -49,6 +49,22 @@ pub struct Element<'a> {
   pub self_closing_syntax: bool,
 }
 
+impl<'a> Element<'a> {
+  /// The name written in the element's close tag, which may be in a different
+  /// case than the open tag's. An element written without one has only the
+  /// open tag's name.
+  pub fn close_tag_name(&self) -> &'a str {
+    match self.kind {
+      ElementKind::Normal | ElementKind::RawText => self
+        .source
+        .rsplit_once("</")
+        .map(|(_, close)| close.trim_end_matches('>').trim_end())
+        .unwrap_or(self.name),
+      ElementKind::Void | ElementKind::SelfClosing => self.name,
+    }
+  }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ElementKind {
   /// An element written with both tags (ex. `<p>a</p>`).

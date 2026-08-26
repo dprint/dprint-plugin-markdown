@@ -466,3 +466,349 @@ text
     }
   ]
 }
+[[test]] a list ends a table
+|a|
+|-|
+- x
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "|a|\n|-|\n- x",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 7],
+      "text": "|a|\n|-|",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 3],
+        "text": "|a|",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [1, 2],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [1, 2],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "kind": "List",
+      "span": [8, 11],
+      "text": "- x",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [8, 11],
+          "text": "- x",
+          "markerSpan": [8, 9],
+          "children": [
+            {
+              "kind": "Paragraph",
+              "span": [10, 11],
+              "text": "x",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [10, 11],
+                  "text": "x"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an escaped pipe in a header is one cell
+| \| | b |
+|---|---|
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "| \\| | b |\n|---|---|",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 20],
+      "text": "| \\| | b |\n|---|---|",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 10],
+        "text": "| \\| | b |",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [2, 4],
+            "text": "\\|",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [2, 4],
+                "text": "\\|"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [7, 8],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [7, 8],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
+[[test]] an escaped pipe in the delimiter row
+|a|
+|-\|-|
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 10],
+  "text": "|a|\n|-\\|-|",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "|a|\n|-\\|-|",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 3],
+          "text": "|a|"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [3, 4],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [4, 10],
+          "text": "|-\\|-|"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a pipe splits a code span in a cell
+|a|b|
+|-|-|
+|`x|y`|
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "|a|b|\n|-|-|\n|`x|y`|",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 19],
+      "text": "|a|b|\n|-|-|\n|`x|y`|",
+      "columnAlignment": ["None", "None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 5],
+        "text": "|a|b|",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [1, 2],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [1, 2],
+                "text": "a"
+              }
+            ]
+          },
+          {
+            "kind": "TableCell",
+            "span": [3, 4],
+            "text": "b",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [3, 4],
+                "text": "b"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [12, 19],
+          "text": "|`x|y`|",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [13, 15],
+              "text": "`x",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [13, 15],
+                  "text": "`x"
+                }
+              ]
+            },
+            {
+              "kind": "TableCell",
+              "span": [16, 18],
+              "text": "y`",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [16, 18],
+                  "text": "y`"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a row of one pipe
+|a|
+|-|
+|
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "|a|\n|-|\n|",
+  "children": [
+    {
+      "kind": "Table",
+      "span": [0, 9],
+      "text": "|a|\n|-|\n|",
+      "columnAlignment": ["None"],
+      "header": {
+        "kind": "TableHead",
+        "span": [0, 3],
+        "text": "|a|",
+        "cells": [
+          {
+            "kind": "TableCell",
+            "span": [1, 2],
+            "text": "a",
+            "children": [
+              {
+                "kind": "Text",
+                "span": [1, 2],
+                "text": "a"
+              }
+            ]
+          }
+        ]
+      },
+      "rows": [
+        {
+          "kind": "TableRow",
+          "span": [8, 9],
+          "text": "|",
+          "cells": [
+            {
+              "kind": "TableCell",
+              "span": [9, 9],
+              "text": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a table row is never lazy within an item
+- |a|
+  |-|
+|b|
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "- |a|\n  |-|\n|b|",
+  "children": [
+    {
+      "kind": "List",
+      "span": [0, 11],
+      "text": "- |a|\n  |-|",
+      "markerChar": "-",
+      "listKind": "Bullet",
+      "children": [
+        {
+          "kind": "Item",
+          "span": [0, 11],
+          "text": "- |a|\n  |-|",
+          "markerSpan": [0, 1],
+          "children": [
+            {
+              "kind": "Table",
+              "span": [2, 11],
+              "text": "|a|\n  |-|",
+              "columnAlignment": ["None"],
+              "header": {
+                "kind": "TableHead",
+                "span": [2, 5],
+                "text": "|a|",
+                "cells": [
+                  {
+                    "kind": "TableCell",
+                    "span": [3, 4],
+                    "text": "a",
+                    "children": [
+                      {
+                        "kind": "Text",
+                        "span": [3, 4],
+                        "text": "a"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 15],
+      "text": "|b|",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 15],
+          "text": "|b|"
+        }
+      ]
+    }
+  ]
+}

@@ -155,3 +155,46 @@ term
 
 [expect]
 # <!-- c -->
+
+!! should underline a heading by its width rather than its length !!
+# 日本語
+
+## 😀 foo
+
+[expect]
+日本語
+======
+
+😀 foo
+------
+
+!! should underline a heading that starts with what a block would !!
+## = foo
+
+## | a |
+
+## \- foo
+
+[expect]
+= foo
+-----
+
+| a |
+-----
+
+\- foo
+------
+
+!! should keep a heading that could not be underlined as atx !!
+## - foo
+
+## 2. foo
+
+## [a]: b
+
+[expect]
+## - foo
+
+## 2. foo
+
+## [a]: b

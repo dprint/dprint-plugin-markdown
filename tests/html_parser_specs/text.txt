@@ -95,3 +95,118 @@ just some words
 {
   "kind": "Document"
 }
+[[test]] multi byte text around an element
+<p>é<b>ü</b>ç</p>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 20],
+      "text": "<p>é<b>ü</b>ç</p>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "é<b>ü</b>ç",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 5],
+          "text": "é"
+        },
+        {
+          "kind": "Element",
+          "span": [5, 14],
+          "text": "<b>ü</b>",
+          "name": "b",
+          "elementKind": "Normal",
+          "content": "ü",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [8, 10],
+              "text": "ü"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [14, 16],
+          "text": "ç"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a void tag with whitespace after its slash is text
+<br/ >
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 6],
+      "text": "<br/ >"
+    }
+  ]
+}
+[[test]] a tag name holding an underscore is text
+<a_b>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 5],
+      "text": "<a_b>"
+    }
+  ]
+}
+[[test]] a tag name starting with a digit is text
+<1>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 3],
+      "text": "<1>"
+    }
+  ]
+}
+[[test]] text around an element at the root
+leading<div>text</div>trailing
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 7],
+      "text": "leading"
+    },
+    {
+      "kind": "Element",
+      "span": [7, 22],
+      "text": "<div>text</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "text",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 16],
+          "text": "text"
+        }
+      ]
+    },
+    {
+      "kind": "Text",
+      "span": [22, 30],
+      "text": "trailing"
+    }
+  ]
+}

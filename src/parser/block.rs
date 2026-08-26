@@ -215,7 +215,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       let line = lines[end];
       match &kind {
         HtmlBlockKind::Closes(close) => {
-          let contains_close = line.text.contains(close.as_ref());
+          let contains_close = find_ignore_ascii_case(line.text, close).is_some();
           end += 1;
           if contains_close {
             break;
@@ -1031,6 +1031,9 @@ fn is_thematic_break(text: &str) -> bool {
 #[derive(Default)]
 struct OpenParagraph<'a> {
   fence: Option<CodeFenceInfo>,
+  /// The html block the content ends within, which runs until what closes
+  /// that kind of block and holds no paragraph.
+  html: Option<HtmlBlockKind>,
   is_open: bool,
   /// The single line the open paragraph holds so far, which a delimiter row
   /// would turn into a table's header.
@@ -1051,6 +1054,23 @@ impl<'a> OpenParagraph<'a> {
         self.fence = None;
       }
       return;
+    }
+    // an html block runs until its close marker, or until a blank line, and
+    // holds no paragraph either way
+    match &self.html {
+      Some(HtmlBlockKind::Closes(close)) => {
+        if find_ignore_ascii_case(line.text, close).is_some() {
+          self.html = None;
+        }
+        return;
+      }
+      Some(HtmlBlockKind::BlankLine) => {
+        if !line.is_blank() {
+          return;
+        }
+        self.html = None;
+      }
+      None => {}
     }
     if line.is_blank() {
       self.is_open = false;
@@ -1107,7 +1127,15 @@ impl<'a> OpenParagraph<'a> {
       return;
     }
     // the blocks that hold no paragraph of their own end on their own line
-    if atx_heading_level(rest).is_some() || is_thematic_break(rest) || html_block_kind(rest, false).is_some() {
+    if atx_heading_level(rest).is_some() || is_thematic_break(rest) {
+      return;
+    }
+    if let Some(kind) = html_block_kind(rest, false) {
+      // a block closed by a marker may be closed on the line that opens it
+      let closed = matches!(&kind, HtmlBlockKind::Closes(close) if find_ignore_ascii_case(rest, close).is_some());
+      if !closed {
+        self.html = Some(kind);
+      }
       return;
     }
     // what's open within a container is what a lazy line would continue,
@@ -1292,7 +1320,7 @@ pub fn is_whole_html_block(original: &str, text: &str) -> bool {
     return false;
   }
   match kind {
-    Some(HtmlBlockKind::Closes(close)) => match text.find(close.as_ref()) {
+    Some(HtmlBlockKind::Closes(close)) => match find_ignore_ascii_case(text, &close) {
       // The block ends on the line its marker is written on, so that has to be
       // the last one: whatever was written after it would be read as markdown.
       // A marker holds no line break of its own, so it is on the last line
@@ -1367,6 +1395,18 @@ fn html_block_kind(text: &str, interrupting: bool) -> Option<HtmlBlockKind> {
     .trim_matches(SPACES)
     .is_empty()
     .then_some(HtmlBlockKind::BlankLine)
+}
+
+/// Where the marker is first written in the text, matched without regard to
+/// case as a close tag can be written in any.
+fn find_ignore_ascii_case(text: &str, marker: &str) -> Option<usize> {
+  // compared as bytes because the marker is ascii, so a match can only start
+  // on a character boundary
+  let marker = marker.as_bytes();
+  text
+    .as_bytes()
+    .windows(marker.len())
+    .position(|window| window.eq_ignore_ascii_case(marker))
 }
 
 /// Whether the text starts with the tag name, which is matched without regard

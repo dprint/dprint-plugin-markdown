@@ -103,3 +103,27 @@ example-testing-testing
 <!-- dprint-ignore -->
 <p>a    b</p>
 </div>
+
+!! should write blocks within an inline element flat !!
+<div><select><option>a</option><option>b</option></select></div>
+
+<div><span><div>a</div></span></div>
+
+[expect]
+<div>
+  <select><option>a</option><option>b</option></select>
+</div>
+
+<div>
+  <span><div>a</div></span>
+</div>
+
+!! should lay out html written right after a list marker !!
+- <div>
+  <p>a</p>
+  </div>
+
+[expect]
+- <div>
+    <p>a</p>
+  </div>

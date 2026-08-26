@@ -67,3 +67,28 @@ asdf
 - a
 
   ---
+
+!! should read an underline within an item as a heading !!
+- a
+  ---
+
+[expect]
+- ## a
+
+!! should separate a rule from the paragraph above it within a block quote !!
+> foo
+> ***
+
+[expect]
+> foo
+>
+> ---
+
+!! should read a rule where a list item would be !!
+- a
+- - -
+
+[expect]
+- a
+
+---

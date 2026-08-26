@@ -5,6 +5,7 @@ use dprint_core::configuration::GlobalConfiguration;
 use dprint_core::generate_plugin_code;
 use dprint_core::plugins::CheckConfigUpdatesMessage;
 use dprint_core::plugins::ConfigChange;
+use dprint_core::plugins::ConfigChangeKind;
 use dprint_core::plugins::FileMatchingInfo;
 use dprint_core::plugins::FormatError as CoreFormatError;
 use dprint_core::plugins::FormatRange;
@@ -15,6 +16,7 @@ use dprint_core::plugins::SyncFormatRequest;
 use dprint_core::plugins::SyncHostFormatRequest;
 use dprint_core::plugins::SyncPluginHandler;
 
+use super::configuration::get_config_key_renames;
 use super::configuration::resolve_config;
 use super::configuration::Configuration;
 
@@ -47,8 +49,21 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
     }
   }
 
-  fn check_config_updates(&self, _message: CheckConfigUpdatesMessage) -> Result<Vec<ConfigChange>, CoreFormatError> {
-    Ok(Vec::new())
+  fn check_config_updates(&self, message: CheckConfigUpdatesMessage) -> Result<Vec<ConfigChange>, CoreFormatError> {
+    let mut changes = Vec::new();
+    for rename in get_config_key_renames(&message.config) {
+      if let Some(value) = rename.value {
+        changes.push(ConfigChange {
+          path: vec![rename.new_key.to_string().into()],
+          kind: ConfigChangeKind::Add(value),
+        });
+      }
+      changes.push(ConfigChange {
+        path: vec![rename.old_key.to_string().into()],
+        kind: ConfigChangeKind::Remove,
+      });
+    }
+    Ok(changes)
   }
 
   fn plugin_info(&mut self) -> PluginInfo {

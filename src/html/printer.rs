@@ -308,7 +308,7 @@ impl Printer<'_> {
 
   fn print_close_tag(&mut self, element: &Element) {
     self.out.push_str("</");
-    self.out.push_str(element.name);
+    self.out.push_str(element.close_tag_name());
     self.out.push('>');
   }
 

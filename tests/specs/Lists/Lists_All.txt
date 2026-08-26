@@ -242,3 +242,59 @@ Here is a paragraph
 [expect]
 - ​
 - a
+
+!! should keep the numbers of a list that counting would take past nine digits !!
+999999999. a
+999999999. b
+
+[expect]
+999999999. a
+999999999. b
+
+!! should count a list up to nine digits !!
+999999998. a
+999999998. b
+
+[expect]
+999999998. a
+999999999. b
+
+!! should keep a list starting at zero !!
+0. a
+1. b
+
+[expect]
+0. a
+1. b
+
+!! should move the content of an item onto the marker line !!
+1.
+   foo
+
+   bar
+
+[expect]
+1. foo
+
+   bar
+
+!! should separate an ordered list from a bullet list before it !!
+- a
+1. b
+
+[expect]
+- a
+
+1. b
+
+!! should indent a nested list by the width of a marker that grew a digit !!
+9. a
+   - x
+9. b
+   - y
+
+[expect]
+9. a
+   - x
+10. b
+    - y

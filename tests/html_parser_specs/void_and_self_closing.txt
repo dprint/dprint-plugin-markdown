@@ -173,3 +173,88 @@
     }
   ]
 }
+[[test]] a self closing svg
+<svg/>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 6],
+      "text": "<svg/>",
+      "name": "svg",
+      "elementKind": "SelfClosing",
+      "selfClosingSyntax": true
+    }
+  ]
+}
+[[test]] a self closing html element within a foreign object
+<svg><foreignObject><div/></foreignObject></svg>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 48],
+      "text": "<svg><foreignObject><div/></foreignObject></svg>",
+      "name": "svg",
+      "elementKind": "Normal",
+      "content": "<foreignObject><div/></foreignObject>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [5, 42],
+          "text": "<foreignObject><div/></foreignObject>",
+          "name": "foreignObject",
+          "elementKind": "Normal",
+          "content": "<div/>",
+          "children": [
+            {
+              "kind": "Element",
+              "span": [20, 26],
+              "text": "<div/>",
+              "name": "div",
+              "elementKind": "SelfClosing",
+              "selfClosingSyntax": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] math
+<math><mi>x</mi></math>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 23],
+      "text": "<math><mi>x</mi></math>",
+      "name": "math",
+      "elementKind": "Normal",
+      "content": "<mi>x</mi>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [6, 16],
+          "text": "<mi>x</mi>",
+          "name": "mi",
+          "elementKind": "Normal",
+          "content": "x",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [10, 11],
+              "text": "x"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

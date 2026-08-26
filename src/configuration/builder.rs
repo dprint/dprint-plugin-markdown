@@ -76,7 +76,7 @@ impl ConfigurationBuilder {
   }
 
   /// The character to use for strong emphasis/bold.
-  /// Default: `StrongKind::Underscores`
+  /// Default: `StrongKind::Asterisks`
   pub fn strong_kind(&mut self, value: StrongKind) -> &mut Self {
     self.insert("strongKind", value.to_string().into())
   }
@@ -282,6 +282,10 @@ mod tests {
       .code_block_preserve_blank_lines(true)
       .code_block_use_tabs(true)
       .code_block_indent_width(2)
+      .html_skip_format(true)
+      .html_use_tabs(true)
+      .html_indent_width(4)
+      .html_self_closing_space(false)
       .html_prefer_single_line(true)
       .table_skip_format(true)
       .table_cell_padding(TableCellPadding::Space)
@@ -291,7 +295,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 25);
+    assert_eq!(inner_config.len(), 29);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

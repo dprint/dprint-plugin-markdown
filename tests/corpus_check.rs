@@ -36,8 +36,7 @@ fn checks_a_corpus() {
     }
     // formatting decides how the text is written, never what it says, so every
     // letter that went in comes back out
-    let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
-    if written_letters(text) != written_letters(&once) {
+    if written_letters(&text) != written_letters(&once) {
       report(format_args!("LOSTTEXT {}", path.display()));
     }
     let elapsed = started.elapsed();
@@ -86,7 +85,8 @@ fn collect(directory: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
 fn written_letters(text: &str) -> String {
   text
     .chars()
-    .filter(|c| c.is_alphabetic() || !c.is_ascii())
+    // formatting strips the byte order mark, so it is not a letter that has to come back
+    .filter(|c| (c.is_alphabetic() || !c.is_ascii()) && *c != '\u{feff}')
     .flat_map(|c| c.to_lowercase())
     .collect()
 }

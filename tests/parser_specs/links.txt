@@ -465,3 +465,193 @@
     }
   ]
 }
+[[test]] an email autolink needs a local part
+<@a>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "<@a>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "<@a>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "<@a>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an email autolink needs a domain
+<a@>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "<a@>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "<a@>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "<a@>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an email autolink holds no backslash
+<foo\+@bar.example.com>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "<foo\\+@bar.example.com>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 23],
+      "text": "<foo\\+@bar.example.com>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 23],
+          "text": "<foo\\+@bar.example.com>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an email autolink
+<foo+bar@example.com>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 21],
+  "text": "<foo+bar@example.com>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 21],
+      "text": "<foo+bar@example.com>",
+      "children": [
+        {
+          "kind": "AutoLink",
+          "span": [0, 21],
+          "text": "<foo+bar@example.com>",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 20],
+              "text": "foo+bar@example.com"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a domain label does not start with a dash
+<a@-b.c>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "<a@-b.c>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 8],
+      "text": "<a@-b.c>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 8],
+          "text": "<a@-b.c>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an autolink scheme in any case
+<MAILTO:FOO@BAR.BAZ>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "<MAILTO:FOO@BAR.BAZ>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 20],
+      "text": "<MAILTO:FOO@BAR.BAZ>",
+      "children": [
+        {
+          "kind": "AutoLink",
+          "span": [0, 20],
+          "text": "<MAILTO:FOO@BAR.BAZ>",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 19],
+              "text": "MAILTO:FOO@BAR.BAZ"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a scheme of one letter is too short
+<m:abc>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "<m:abc>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "<m:abc>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 7],
+          "text": "<m:abc>"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an autolink holds no spaces
+< http://x>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "< http://x>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "< http://x>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 11],
+          "text": "< http://x>"
+        }
+      ]
+    }
+  ]
+}

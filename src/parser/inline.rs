@@ -481,6 +481,16 @@ impl<'a, 'b> InlineParser<'a, 'b> {
         continue;
       }
       if self.text.starts_with_at(search, delimiter) && search > content_start {
+        // a closing `$` must not follow whitespace nor be followed by a digit,
+        // so that an amount of money is left as text
+        if !is_display {
+          let after_whitespace = matches!(self.text.byte(search - 1), Some(b' ') | Some(b'\t') | Some(b'\n'));
+          let before_digit = self.text.byte(search + 1).is_some_and(|byte| byte.is_ascii_digit());
+          if after_whitespace || before_digit {
+            search += 1;
+            continue;
+          }
+        }
         let end = search + delimiter.len();
         let span = self.text.span(start, end);
         let text = self.text.slice(content_start, search);
@@ -721,6 +731,10 @@ impl<'a, 'b> InlineParser<'a, 'b> {
   /// Pairs up the emphasis delimiters at or after `bottom`, wrapping the nodes
   /// they surround.
   fn process_emphasis(&mut self, bottom: usize) {
+    // where a closer found no opener, no closer of the same kind after it will
+    // find one below it either, so the search for one starts there instead of
+    // going over all of them again
+    let mut openers_bottom = std::collections::HashMap::<(u8, usize, bool), usize>::new();
     let mut closer_index = bottom;
     while closer_index < self.delimiters.len() {
       let closer = &self.delimiters[closer_index];
@@ -733,7 +747,10 @@ impl<'a, 'b> InlineParser<'a, 'b> {
         continue;
       }
 
-      let Some(opener_index) = self.find_opener(bottom, closer_index, byte) else {
+      let key = (byte, closer.original_len % 3, closer.can_open);
+      let lower = openers_bottom.get(&key).copied().unwrap_or(bottom).max(bottom);
+      let Some(opener_index) = self.find_opener(lower, closer_index, byte) else {
+        openers_bottom.insert(key, closer_index);
         // a closer with no opener can still open emphasis of its own
         if !self.delimiters[closer_index].can_open {
           self.delimiters[closer_index].can_close = false;
@@ -748,10 +765,10 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     self.delimiters.truncate(bottom);
   }
 
-  fn find_opener(&self, bottom: usize, closer_index: usize, byte: u8) -> Option<usize> {
+  fn find_opener(&self, lower: usize, closer_index: usize, byte: u8) -> Option<usize> {
     let closer = &self.delimiters[closer_index];
     let closer_len = closer.original_len;
-    for index in (bottom..closer_index).rev() {
+    for index in (lower..closer_index).rev() {
       let opener = &self.delimiters[index];
       match opener.kind {
         // a bracket that never became a link is nothing but the text of it,

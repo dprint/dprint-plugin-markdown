@@ -101,3 +101,167 @@ Costs $5 today
     }
   ]
 }
+[[test]] amounts of money are not math
+costs $5 and $10 today
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "costs $5 and $10 today",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 22],
+      "text": "costs $5 and $10 today",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 22],
+          "text": "costs $5 and $10 today"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closer after whitespace does not close math
+$x $
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "$x $",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "$x $",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "$x $"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closer before a digit does not close math
+$a$1
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 4],
+  "text": "$a$1",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "$a$1",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "$a$1"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closer later on closes math
+$a $b$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "$a $b$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "$a $b$",
+      "children": [
+        {
+          "kind": "InlineMath",
+          "span": [0, 6],
+          "text": "$a $b$",
+          "content": "a $b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an escaped dollar within math
+$a\$b$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "$a\\$b$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "$a\\$b$",
+      "children": [
+        {
+          "kind": "InlineMath",
+          "span": [0, 6],
+          "text": "$a\\$b$",
+          "content": "a\\$b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] display math has no closer rules
+$$a $$1
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 7],
+  "text": "$$a $$1",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 7],
+      "text": "$$a $$1",
+      "children": [
+        {
+          "kind": "DisplayMath",
+          "span": [0, 6],
+          "text": "$$a $$",
+          "content": "a "
+        },
+        {
+          "kind": "Text",
+          "span": [6, 7],
+          "text": "1"
+        }
+      ]
+    }
+  ]
+}
+[[test]] math spanning a line
+$a
+b$
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 5],
+  "text": "$a\nb$",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 5],
+      "text": "$a\nb$",
+      "children": [
+        {
+          "kind": "InlineMath",
+          "span": [0, 5],
+          "text": "$a\nb$",
+          "content": "a\nb"
+        }
+      ]
+    }
+  ]
+}

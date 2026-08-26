@@ -365,6 +365,12 @@ impl<'a> Context<'a> {
     self.block_quote_base_indents.len()
   }
 
+  /// The indentation of what's being generated beyond the block quote it is
+  /// within, which is what the list items inside that quote write.
+  pub fn indent_within_block_quote(&self) -> u32 {
+    self.indent_level - self.block_quote_base_indents.last().copied().unwrap_or(0)
+  }
+
   /// Writes out the text decorations within with the characters they were
   /// written with, which the name of a reference depends on.
   pub fn with_preserved_decorations<T>(&mut self, func: impl FnOnce(&mut Context) -> T) -> T {
@@ -547,7 +553,7 @@ impl<'a> Context<'a> {
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
 
-    match tag {
+    match tag.to_lowercase().as_str() {
       "markdown" | "md" => format_text(text, self.configuration, |tag, file_text, line_width| {
         (self.format_code_block_text)(tag, file_text, line_width)
       }),

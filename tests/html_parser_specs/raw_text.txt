@@ -257,3 +257,99 @@
     }
   ]
 }
+[[test]] a close tag matched without case and with trailing whitespace
+<script>a</SCRIPT >
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 19],
+      "text": "<script>a</SCRIPT >",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 9],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a close tag of a longer name does not end a script
+<script>a</scripts>b</script>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 29],
+      "text": "<script>a</scripts>b</script>",
+      "name": "script",
+      "elementKind": "RawText",
+      "content": "a</scripts>b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [8, 20],
+          "text": "a</scripts>b"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a script ends at its first close tag even within a comment
+<script><!-- </script> --></script>
+[[ast]]
+[[refused]] `</script>` closes an element that isn't open
+[[test]] markup within a title is text
+<title>a<b>c</title>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 20],
+      "text": "<title>a<b>c</title>",
+      "name": "title",
+      "elementKind": "RawText",
+      "content": "a<b>c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [7, 12],
+          "text": "a<b>c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] markup within a textarea is text
+<textarea><b>x</b></textarea>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 29],
+      "text": "<textarea><b>x</b></textarea>",
+      "name": "textarea",
+      "elementKind": "RawText",
+      "content": "<b>x</b>",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 18],
+          "text": "<b>x</b>"
+        }
+      ]
+    }
+  ]
+}

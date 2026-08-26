@@ -172,3 +172,114 @@ a
     }
   ]
 }
+[[test]] an empty comment closed abruptly
+<!-->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 5],
+      "text": "<!-->"
+    }
+  ]
+}
+[[test]] an empty comment closed abruptly with a dash
+<!--->
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 6],
+      "text": "<!--->"
+    }
+  ]
+}
+[[test]] a comment closed with a bang
+<!-- a --!>b
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Comment",
+      "span": [0, 11],
+      "text": "<!-- a --!>"
+    },
+    {
+      "kind": "Text",
+      "span": [11, 12],
+      "text": "b"
+    }
+  ]
+}
+[[test]] a doctype ends at the first angle bracket
+<!DOCTYPE a "b>c">
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Doctype",
+      "span": [0, 15],
+      "text": "<!DOCTYPE a \"b>"
+    },
+    {
+      "kind": "Text",
+      "span": [15, 18],
+      "text": "c\">"
+    }
+  ]
+}
+[[test]] a bang that opens no declaration
+<!>x
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Text",
+      "span": [0, 4],
+      "text": "<!>x"
+    }
+  ]
+}
+[[test]] cdata holding its own close brackets
+<![CDATA[a]]b]]>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "CData",
+      "span": [0, 16],
+      "text": "<![CDATA[a]]b]]>"
+    }
+  ]
+}
+[[test]] a conditional comment
+<div><!--[if IE]><p>x</p><![endif]--></div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 43],
+      "text": "<div><!--[if IE]><p>x</p><![endif]--></div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "content": "<!--[if IE]><p>x</p><![endif]-->",
+      "children": [
+        {
+          "kind": "Comment",
+          "span": [5, 37],
+          "text": "<!--[if IE]><p>x</p><![endif]-->"
+        }
+      ]
+    }
+  ]
+}

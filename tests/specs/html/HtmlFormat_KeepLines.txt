@@ -141,3 +141,26 @@ a</div>
 
 [expect]
 <p>text <a href="x" id="y">y</a></p>
+
+!! should break an inline element only at the whitespace edge that was written !!
+<p>x <b>a
+</b>y</p>
+
+[expect]
+<p>
+  x <b>a
+  </b>y
+</p>
+
+!! should keep the lines of a cell holding only whitespace beside one that holds none !!
+<table><tr><td>
+</td><td> </td></tr></table>
+
+[expect]
+<table>
+  <tr>
+    <td>
+    </td>
+    <td></td>
+  </tr>
+</table>

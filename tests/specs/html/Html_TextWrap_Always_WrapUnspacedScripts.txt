@@ -1,0 +1,10 @@
+~~ lineWidth: 12, textWrap: always, wrapUnspacedScripts: true ~~
+!! should break within the text of inline html but never between a character and a tag !!
+中文中文中文<b>粗体粗体粗体</b>中文中文中文中文
+
+[expect]
+中文中文中
+文<b>粗体粗
+体粗体</b>中
+文中文中文中
+文

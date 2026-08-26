@@ -16,3 +16,35 @@ next line here
 [expect]
 aaaa bbbb cccc dddd  
 next line here
+
+!! should write a hard break within a link and within strong !!
+[a\
+b](c)
+
+**a\
+b**
+
+[expect]
+[a  
+b](c)
+
+**a  
+b**
+
+!! should drop the indentation after a hard break !!
+aaaa\
+    bbbb
+
+[expect]
+aaaa  
+bbbb
+
+!! should keep a backslash on a line with no text before it !!
+a\
+\
+b
+
+[expect]
+a  
+\
+b
