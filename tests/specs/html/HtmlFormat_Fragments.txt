@@ -97,3 +97,15 @@ Some **markdown** here.
 <div>
   <p>b</p>
 </div>
+
+!! should leave an element whose inline child would be laid out on a line of its own !!
+<div>
+<span>
+</span>
+</div>
+
+[expect]
+<div>
+<span>
+</span>
+</div>

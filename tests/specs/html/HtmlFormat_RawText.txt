@@ -65,3 +65,55 @@
 <div>
   <p>a < b</p>
 </div>
+
+!! should end a preformatted block at a close tag written in another case !!
+<pre>
+a</PRE>
+text *x*
+
+[expect]
+<pre>
+a</PRE>
+
+text _x_
+
+!! should end a script block at the first close tag in any case !!
+<script>
+var s = "</SCRIPT>";
+</script>
+
+[expect]
+<script>
+var s = "</SCRIPT>";
+</script>
+
+!! should keep the case a close tag was written in !!
+<DIV>a</div>
+
+<TEXTAREA>
+a</textarea>
+
+<div><P>a</p><Span>b</SPAN></div>
+
+[expect]
+<DIV>a</div>
+
+<TEXTAREA>
+a</textarea>
+
+<div>
+  <P>a</p>
+  <Span>b</SPAN>
+</div>
+
+!! should lay out a preformatted element whose tag is too long !!
+<pre class="language-typescript line-numbers" id="example-listing" data-x="1234567890">  a
+ b</pre>
+
+[expect]
+<pre
+  class="language-typescript line-numbers"
+  id="example-listing"
+  data-x="1234567890"
+>  a
+ b</pre>

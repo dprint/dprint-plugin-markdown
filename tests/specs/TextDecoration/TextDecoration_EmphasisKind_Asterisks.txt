@@ -6,3 +6,9 @@ test **strong** or __strong__ test
 [expect]
 test *emphasis* or *emphasis* test
 test **strong** or **strong** test
+
+!! should swap the delimiters of emphasis holding emphasis !!
+*_a_*
+
+[expect]
+_*a*_

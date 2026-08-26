@@ -95,7 +95,7 @@ pub struct Configuration {
 }
 
 /// Text wrapping possibilities.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TextWrap {
   /// Always wraps text.
@@ -138,7 +138,7 @@ generate_str_to_from![
 ];
 
 /// The character to use for emphasis/italics.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum EmphasisKind {
   /// Uses asterisks (*) for emphasis.
@@ -150,7 +150,7 @@ pub enum EmphasisKind {
 generate_str_to_from![EmphasisKind, [Asterisks, "asterisks"], [Underscores, "underscores"]];
 
 /// The character to use for strong emphasis/bold.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum StrongKind {
   /// Uses asterisks (**) for strong emphasis (default).
@@ -166,7 +166,7 @@ generate_str_to_from![StrongKind, [Asterisks, "asterisks"], [Underscores, "under
 /// [ATX](https://spec.commonmark.org/0.31.2/#atx-headings). Level 3 and
 /// higher headings always use ATX headings, since Markdown only supports
 /// setext headers for levels 1 and 2.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum HeadingKind {
   /// Uses an underline of `=` or `-` beneath the heading text for level 1 and
@@ -180,7 +180,7 @@ generate_str_to_from![HeadingKind, [Setext, "setext"], [Atx, "atx"]];
 
 /// The style of [hard line break](https://spec.commonmark.org/0.31.2/#hard-line-breaks)
 /// to use.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum HardBreakKind {
   /// Uses a trailing backslash (default).
@@ -195,7 +195,7 @@ pub enum HardBreakKind {
 generate_str_to_from![HardBreakKind, [Backslash, "backslash"], [DoubleSpace, "doubleSpace"]];
 
 /// The padding to write around the text of a table's cells.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TableCellPadding {
   /// Pads a cell out to the width of its column, which aligns the cells of a
@@ -219,7 +219,7 @@ generate_str_to_from![TableCellPadding, [Align, "align"], [Space, "space"], [Non
 /// separated by other paragraphs. This parameter defines which character should be used as primary
 /// list character, i.e., either '-' (default) or '*'. The alternate list character will be the one
 /// which is _not_ primary.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ListUnorderedMarker {
   /// Uses dashes (-) as primary character for lists (default).
@@ -253,7 +253,7 @@ generate_str_to_from![ListUnorderedMarker, [Dashes, "dashes"], [Asterisks, "aste
 /// (e.g. 3 spaces for `1. `, 4 spaces for `10. `). PythonMarkdown uses a fixed
 /// 4-space indent regardless of marker width, which is required by tools like
 /// mkdocs-material.
-#[derive(Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ListIndentKind {
   /// Indents continuation lines to align with the content after the list marker (default).

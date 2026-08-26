@@ -151,3 +151,53 @@ After.
 
 [expect]
 <div><svg><circle cx="1" /></svg></div>
+
+!! should lay out a whole document !!
+<!DOCTYPE html>
+<html><body><p>a</p></body></html>
+
+[expect]
+<!DOCTYPE html>
+<html>
+  <body>
+    <p>a</p>
+  </body>
+</html>
+
+!! should keep a non breaking space !!
+<div> </div>
+
+<p>  a  </p>
+
+[expect]
+<div> </div>
+
+<p>  a  </p>
+
+!! should collapse whitespace around entities !!
+<div>a&nbsp;   b &amp;  c</div>
+
+[expect]
+<div>a&nbsp; b &amp; c</div>
+
+!! should drop trailing whitespace within a block !!
+<div>
+a   
+<span>b</span>   
+</div>
+
+[expect]
+<div>
+  a
+  <span>b</span>
+</div>
+
+!! should break content that the indentation pushes past the line width !!
+<div><p>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</p></div>
+
+[expect]
+<div>
+  <p>
+    aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  </p>
+</div>

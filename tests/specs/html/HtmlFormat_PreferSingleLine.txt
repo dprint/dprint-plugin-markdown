@@ -51,3 +51,59 @@
 
 [expect]
 <div></div>
+
+!! should join the attributes of an inline element and a comment onto the line !!
+<div>
+<a
+  href="x"
+  class="y"
+>b</a>
+</div>
+
+<div>
+<!-- a -->
+</div>
+
+[expect]
+<div><a href="x" class="y">b</a></div>
+
+<div><!-- a --></div>
+
+!! should join the attributes of a self closing tag !!
+<svg>
+<circle
+  cx="1"
+/>
+</svg>
+
+[expect]
+<svg>
+  <circle cx="1" />
+</svg>
+
+!! should keep a line break written within an inline element !!
+<div>
+<span>
+ a
+</span>
+</div>
+
+[expect]
+<div>
+  <span>
+    a
+  </span>
+</div>
+
+!! should not read a tag written over lines at the root as an html block !!
+<img
+  src="a"
+  alt="b"
+>
+
+[expect]
+<img
+src="a"
+alt="b"
+
+>

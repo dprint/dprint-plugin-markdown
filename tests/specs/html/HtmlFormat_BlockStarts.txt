@@ -70,3 +70,23 @@
 <div>
   <script>const a = 1</script>
 </div>
+
+!! should lay out a block that starts with an inline element !!
+<span>
+a</span>
+<div>b</div>
+
+[expect]
+<span>
+  a</span>
+<div>b</div>
+
+!! should leave a long svg tag whose attributes cannot be laid out !!
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+<path d="M0 0h24v24H0z"/>
+</svg>
+
+[expect]
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+<path d="M0 0h24v24H0z"/>
+</svg>

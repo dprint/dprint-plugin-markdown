@@ -141,3 +141,192 @@ Text[^1]
     }
   ]
 }
+[[test]] a definition with a lazy tail
+[^1]: a
+    b
+
+    c
+d
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "[^1]: a\n    b\n\n    c\nd",
+  "children": [
+    {
+      "kind": "FootnoteDefinition",
+      "span": [0, 22],
+      "text": "[^1]: a\n    b\n\n    c\nd",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [6, 13],
+          "text": "a\n    b",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 7],
+              "text": "a"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [7, 8],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [12, 13],
+              "text": "b"
+            }
+          ]
+        },
+        {
+          "kind": "Paragraph",
+          "span": [19, 22],
+          "text": "c\nd",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [19, 20],
+              "text": "c"
+            },
+            {
+              "kind": "SoftBreak",
+              "span": [20, 21],
+              "text": "\n"
+            },
+            {
+              "kind": "Text",
+              "span": [21, 22],
+              "text": "d"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition with no name is a paragraph
+[^]: a
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "[^]: a",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "[^]: a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 6],
+          "text": "[^]: a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a definition interrupts a paragraph
+para
+[^1]: note
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "para\n[^1]: note",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 4],
+      "text": "para",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 4],
+          "text": "para"
+        }
+      ]
+    },
+    {
+      "kind": "FootnoteDefinition",
+      "span": [5, 15],
+      "text": "[^1]: note",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [11, 15],
+          "text": "note",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [11, 15],
+              "text": "note"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a footnote reference within a link
+[a [^1]](b)
+
+[^1]: c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 20],
+  "text": "[a [^1]](b)\n\n[^1]: c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "[a [^1]](b)",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 11],
+          "text": "[a [^1]](b)",
+          "url": "b",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            },
+            {
+              "kind": "FootnoteReference",
+              "span": [3, 7],
+              "text": "[^1]",
+              "name": "1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "FootnoteDefinition",
+      "span": [13, 20],
+      "text": "[^1]: c",
+      "name": "1",
+      "children": [
+        {
+          "kind": "Paragraph",
+          "span": [19, 20],
+          "text": "c",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [19, 20],
+              "text": "c"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

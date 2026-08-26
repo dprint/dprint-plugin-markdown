@@ -50,3 +50,47 @@
 <script>a
 [[ast]]
 [[refused]] `<script>` was never closed
+[[test]] attributes not separated by whitespace
+<a b="x"c="y">x</a>
+[[ast]]
+[[refused]] `</a>` closes an element that isn't open
+[[test]] a slash that is not followed by the end of the tag
+<a href="x" / >x</a>
+[[ast]]
+[[refused]] `</a>` closes an element that isn't open
+[[test]] an equals with no value
+<a b=>x</a>
+[[ast]]
+[[refused]] a tag is written in a way the parser doesn't read
+[[test]] a non ascii attribute name
+<div é="a">x</div>
+[[ast]]
+[[refused]] `</div>` closes an element that isn't open
+[[test]] a dollar attribute name
+<div $x="a">x</div>
+[[ast]]
+[[refused]] `</div>` closes an element that isn't open
+[[test]] a close tag with whitespace before its name
+<div>a</ div>
+[[ast]]
+[[refused]] `<div>` was never closed
+[[test]] a raw text element written as self closing
+<textarea/>
+[[ast]]
+[[refused]] `<textarea>` was never closed
+[[test]] a script written as self closing
+<script src="x"/>
+[[ast]]
+[[refused]] `<script>` was never closed
+[[test]] a script whose close tag is written as self closing
+<script>a</script/>
+[[ast]]
+[[refused]] `<script>` was never closed
+[[test]] a close tag for a void element
+<br>a</br>
+[[ast]]
+[[refused]] `</br>` closes an element that isn't open
+[[test]] a processing instruction that never ends
+<?php
+[[ast]]
+[[refused]] markup runs past the end of the text without being closed

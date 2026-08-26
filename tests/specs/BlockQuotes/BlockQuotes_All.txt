@@ -68,3 +68,40 @@
 
 [expect]
 >>     a
+
+!! should mark a lazy line !!
+> foo
+bar
+
+[expect]
+> foo
+> bar
+
+!! should drop the empty lines at the edges of a quote !!
+>
+> a
+>
+
+[expect]
+> a
+
+!! should keep an empty quote !!
+>
+
+[expect]
+>
+
+!! should read an underline within a quote as a heading !!
+> a
+> ===
+
+[expect]
+> # a
+
+!! should mark a lazy line of a quote within a list item !!
+- > a
+b
+
+[expect]
+- > a
+  > b

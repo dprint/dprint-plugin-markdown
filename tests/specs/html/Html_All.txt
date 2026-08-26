@@ -59,3 +59,31 @@ a 
 <div>
   a 
 </div>
+
+!! should keep a comment and preformatted content within a block quote !!
+> <div>
+> <!--
+> a
+>   b
+> -->
+> <p>c</p>
+> </div>
+
+> <pre>
+> a
+>   b
+> </pre>
+
+[expect]
+> <div>
+>   <!--
+> a
+>   b
+> -->
+>   <p>c</p>
+> </div>
+
+> <pre>
+> a
+>   b
+> </pre>

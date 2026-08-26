@@ -200,3 +200,241 @@ text
     }
   ]
 }
+[[test]] an inline comment closed abruptly
+a <!--> b <!---> c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 18],
+  "text": "a <!--> b <!---> c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 18],
+      "text": "a <!--> b <!---> c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "Html",
+          "span": [2, 7],
+          "text": "<!-->",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [8, 9],
+          "text": "b"
+        },
+        {
+          "kind": "Html",
+          "span": [10, 16],
+          "text": "<!--->",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [17, 18],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an inline comment holding a tag
+a <!-- <b> --> c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "a <!-- <b> --> c",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 16],
+      "text": "a <!-- <b> --> c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "Html",
+          "span": [2, 14],
+          "text": "<!-- <b> -->",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [15, 16],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an inline tag that never closes is text
+a <a foo="x
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "a <a foo=\"x",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "a <a foo=\"x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 11],
+          "text": "a <a foo=\"x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an attribute value spanning lines
+<a href="x
+y">t</a>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 19],
+  "text": "<a href=\"x\ny\">t</a>",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 19],
+      "text": "<a href=\"x\ny\">t</a>",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [0, 14],
+          "text": "<a href=\"x\ny\">",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "t"
+        },
+        {
+          "kind": "Html",
+          "span": [15, 19],
+          "text": "</a>",
+          "isBlock": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] a bare closing tag starts a block
+</a  >
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "</a  >",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 6],
+      "text": "</a  >",
+      "isBlock": true
+    }
+  ]
+}
+[[test]] a tag with trailing text is a paragraph
+<a href="x">y
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "<a href=\"x\">y",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "<a href=\"x\">y",
+      "children": [
+        {
+          "kind": "Html",
+          "span": [0, 12],
+          "text": "<a href=\"x\">",
+          "isBlock": false
+        },
+        {
+          "kind": "Text",
+          "span": [12, 13],
+          "text": "y"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a comment block spans a blank line
+<!-- a
+
+b -->
+c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "<!-- a\n\nb -->\nc",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 13],
+      "text": "<!-- a\n\nb -->",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [14, 15],
+      "text": "c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a comment block closed on its first line
+<!-- a --> b
+c
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "<!-- a --> b\nc",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 12],
+      "text": "<!-- a --> b",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [13, 14],
+      "text": "c",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [13, 14],
+          "text": "c"
+        }
+      ]
+    }
+  ]
+}

@@ -214,3 +214,70 @@ Text
     }
   ]
 }
+[[test]] pre block ended by a close tag in another case
+<pre>
+a</PRE>
+text *x*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 22],
+  "text": "<pre>\na</PRE>\ntext *x*",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 13],
+      "text": "<pre>\na</PRE>",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [14, 22],
+      "text": "text *x*",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 18],
+          "text": "text"
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [19, 22],
+          "text": "*x*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [20, 21],
+              "text": "x"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] script block ended by the first close tag in any case
+<script>
+var s = "</SCRIPT>";
+</script>
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 39],
+  "text": "<script>\nvar s = \"</SCRIPT>\";\n</script>",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 29],
+      "text": "<script>\nvar s = \"</SCRIPT>\";",
+      "isBlock": true
+    },
+    {
+      "kind": "Html",
+      "span": [30, 39],
+      "text": "</script>",
+      "isBlock": true
+    }
+  ]
+}

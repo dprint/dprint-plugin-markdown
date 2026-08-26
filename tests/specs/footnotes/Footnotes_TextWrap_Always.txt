@@ -1,0 +1,11 @@
+~~ textWrap: always, lineWidth: 20 ~~
+!! should wrap before a word a footnote reference is written against !!
+aaaaaaaaaa bbbbbbbbb[^1] cc
+
+[^1]: x
+
+[expect]
+aaaaaaaaaa
+bbbbbbbbb[^1] cc
+
+[^1]: x

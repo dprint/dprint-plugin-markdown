@@ -325,3 +325,267 @@ a*b*c
     }
   ]
 }
+[[test]] a run of three shared between strong and emphasis
+***foo***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "***foo***",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "***foo***",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "***foo***",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "TextDecoration",
+              "span": [1, 8],
+              "text": "**foo**",
+              "decoration": "Strong",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [3, 6],
+                  "text": "foo"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a single star within strong is text
+**foo*bar**
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 11],
+  "text": "**foo*bar**",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 11],
+      "text": "**foo*bar**",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 11],
+          "text": "**foo*bar**",
+          "decoration": "Strong",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 9],
+              "text": "foo*bar"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a code span within emphasis holding a star
+*a `*` b*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "*a `*` b*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "*a `*` b*",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "*a `*` b*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            },
+            {
+              "kind": "Code",
+              "span": [3, 6],
+              "text": "`*`",
+              "content": "*"
+            },
+            {
+              "kind": "Text",
+              "span": [7, 8],
+              "text": "b"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an underscore unmatched across a star
+*foo _bar* baz_
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "*foo _bar* baz_",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 15],
+      "text": "*foo _bar* baz_",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 10],
+          "text": "*foo _bar*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 9],
+              "text": "foo _bar"
+            }
+          ]
+        },
+        {
+          "kind": "Text",
+          "span": [11, 15],
+          "text": "baz_"
+        }
+      ]
+    }
+  ]
+}
+[[test]] strong holding emphasis with a shared closer
+**a *b***
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "**a *b***",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "**a *b***",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 9],
+          "text": "**a *b***",
+          "decoration": "Strong",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [2, 3],
+              "text": "a"
+            },
+            {
+              "kind": "TextDecoration",
+              "span": [4, 7],
+              "text": "*b*",
+              "decoration": "Emphasis",
+              "children": [
+                {
+                  "kind": "Text",
+                  "span": [5, 6],
+                  "text": "b"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closer after whitespace cannot close
+*a  
+*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 6],
+  "text": "*a  \n*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 6],
+      "text": "*a  \n*",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 2],
+          "text": "*a"
+        },
+        {
+          "kind": "HardBreak",
+          "span": [2, 4],
+          "text": "  "
+        },
+        {
+          "kind": "Text",
+          "span": [5, 6],
+          "text": "*"
+        }
+      ]
+    }
+  ]
+}
+[[test]] strikethrough of unequal runs is text
+a ~~ b ~~~c~~~
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "a ~~ b ~~~c~~~",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "a ~~ b ~~~c~~~",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 14],
+          "text": "a ~~ b ~~~c~~~"
+        }
+      ]
+    }
+  ]
+}
+[[test]] many closers without an opener
+a* b* c* d* e* f*
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "a* b* c* d* e* f*",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "a* b* c* d* e* f*",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 17],
+          "text": "a* b* c* d* e* f*"
+        }
+      ]
+    }
+  ]
+}

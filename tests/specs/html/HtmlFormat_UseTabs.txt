@@ -18,3 +18,15 @@
 > <div>
 > 	<p>a</p>
 > </div>
+
+!! should indent html within a list with spaces then tabs !!
+- item
+  <div>
+  <p>a</p>
+  </div>
+
+[expect]
+- item
+  <div>
+  	<p>a</p>
+  </div>

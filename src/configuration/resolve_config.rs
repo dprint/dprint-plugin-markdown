@@ -154,6 +154,39 @@ pub fn resolve_config(
 /// Reads a property, falling back to the deprecated name the property used to
 /// go by. Both names are taken from the map so that a deprecated one isn't
 /// reported as unknown.
+/// A key written under a name the plugin has since renamed, which is what
+/// `dprint config update` moves over.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ConfigKeyRename {
+  pub old_key: &'static str,
+  pub new_key: &'static str,
+  /// The value to write under the new key, or `None` when the new key was
+  /// already set and the old one is only to be dropped.
+  pub value: Option<ConfigKeyValue>,
+}
+
+/// Finds the keys of a configuration that are written under a deprecated name.
+pub fn get_config_key_renames(config: &ConfigKeyMap) -> Vec<ConfigKeyRename> {
+  RENAMED_KEYS
+    .iter()
+    .filter_map(|(old_key, new_key)| {
+      let value = config.get(*old_key)?;
+      Some(ConfigKeyRename {
+        old_key,
+        new_key,
+        value: (!config.contains_key(*new_key)).then(|| value.clone()),
+      })
+    })
+    .collect()
+}
+
+/// Each key that was renamed, as the old name then the new one.
+const RENAMED_KEYS: &[(&str, &str)] = &[
+  ("headingKind", "heading.kind"),
+  ("unorderedListKind", "list.unorderedMarker"),
+  ("listIndentKind", "list.indentKind"),
+];
+
 fn get_renamed_value<T>(
   config: &mut ConfigKeyMap,
   key: &str,
@@ -255,5 +288,190 @@ fn fill_deno_config(config: &mut ConfigKeyMap) {
     if !config.contains_key(key) {
       config.insert(key.clone(), value.clone());
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn renames_deprecated_keys() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "setext".into());
+    config.insert("unorderedListKind".into(), "asterisks".into());
+    config.insert("listIndentKind".into(), "pythonMarkdown".into());
+    config.insert("textWrap".into(), "always".into());
+
+    assert_eq!(
+      get_config_key_renames(&config),
+      vec![
+        ConfigKeyRename {
+          old_key: "headingKind",
+          new_key: "heading.kind",
+          value: Some("setext".into()),
+        },
+        ConfigKeyRename {
+          old_key: "unorderedListKind",
+          new_key: "list.unorderedMarker",
+          value: Some("asterisks".into()),
+        },
+        ConfigKeyRename {
+          old_key: "listIndentKind",
+          new_key: "list.indentKind",
+          value: Some("pythonMarkdown".into()),
+        },
+      ]
+    );
+  }
+
+  #[test]
+  fn rename_keeps_the_new_key_when_both_are_set() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "setext".into());
+    config.insert("heading.kind".into(), "atx".into());
+
+    assert_eq!(
+      get_config_key_renames(&config),
+      vec![ConfigKeyRename {
+        old_key: "headingKind",
+        new_key: "heading.kind",
+        value: None,
+      }]
+    );
+  }
+
+  #[test]
+  fn no_renames_for_a_current_config() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("heading.kind".into(), "setext".into());
+    assert!(get_config_key_renames(&config).is_empty());
+    assert!(get_config_key_renames(&ConfigKeyMap::new()).is_empty());
+  }
+
+  #[test]
+  fn deprecated_key_is_used_when_the_new_one_is_not_set() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "setext".into());
+    config.insert("unorderedListKind".into(), "asterisks".into());
+    config.insert("listIndentKind".into(), "pythonMarkdown".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.heading_kind, HeadingKind::Setext);
+    assert_eq!(result.config.list_unordered_marker, ListUnorderedMarker::Asterisks);
+    assert_eq!(result.config.list_indent_kind, ListIndentKind::PythonMarkdown);
+  }
+
+  #[test]
+  fn new_key_wins_over_deprecated_key() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("headingKind".into(), "setext".into());
+    config.insert("heading.kind".into(), "atx".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.heading_kind, HeadingKind::Atx);
+  }
+
+  #[test]
+  fn unknown_property_diagnostic() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("unknownKey".into(), true.into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "unknownKey");
+    assert_eq!(
+      result.diagnostics[0].message,
+      "Unknown property in configuration: unknownKey"
+    );
+  }
+
+  #[test]
+  fn invalid_enum_value_uses_default() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("textWrap".into(), "bogus".into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "textWrap");
+    assert!(result.diagnostics[0].message.contains("bogus"));
+    assert_eq!(result.config.text_wrap, TextWrap::Maintain);
+  }
+
+  #[test]
+  fn invalid_value_type_uses_default() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("lineWidth".into(), "abc".into());
+    config.insert("codeBlock.useTabs".into(), "yes".into());
+    config.insert("heading.blankLinesAbove".into(), "x".into());
+    config.insert("html.indentWidth".into(), 300.into());
+
+    let result = resolve_config(config, &Default::default());
+    let mut names = result
+      .diagnostics
+      .iter()
+      .map(|diagnostic| diagnostic.property_name.as_str())
+      .collect::<Vec<_>>();
+    names.sort();
+    assert_eq!(
+      names,
+      vec![
+        "codeBlock.useTabs",
+        "heading.blankLinesAbove",
+        "html.indentWidth",
+        "lineWidth"
+      ]
+    );
+    assert_eq!(result.config.line_width, 80);
+    assert_eq!(result.config.code_block_use_tabs, None);
+    assert_eq!(result.config.heading_blank_lines_above, None);
+    assert_eq!(result.config.html_indent_width, 2);
+  }
+
+  #[test]
+  fn deno_fills_defaults_without_overriding_explicit_values() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("deno".into(), true.into());
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.text_wrap, TextWrap::Always);
+    assert_eq!(result.config.ignore_directive, "deno-fmt-ignore");
+    assert_eq!(result.config.ignore_file_directive, "deno-fmt-ignore-file");
+    assert_eq!(result.config.ignore_start_directive, "deno-fmt-ignore-start");
+    assert_eq!(result.config.ignore_end_directive, "deno-fmt-ignore-end");
+
+    let mut config = ConfigKeyMap::new();
+    config.insert("deno".into(), true.into());
+    config.insert("textWrap".into(), "never".into());
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 0);
+    assert_eq!(result.config.text_wrap, TextWrap::Never);
+
+    let mut config = ConfigKeyMap::new();
+    config.insert("deno".into(), "yes".into());
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "deno");
+  }
+
+  #[test]
+  fn html_indentation_falls_back_to_global_config() {
+    let mut global_config = ConfigKeyMap::new();
+    global_config.insert("useTabs".into(), true.into());
+    global_config.insert("indentWidth".into(), 4.into());
+    let global_config = resolve_global_config(&mut global_config).config;
+
+    let result = resolve_config(ConfigKeyMap::new(), &global_config);
+    assert_eq!(result.config.html_use_tabs, true);
+    assert_eq!(result.config.html_indent_width, 4);
+    // the code block indentation is only ever what was asked for
+    assert_eq!(result.config.code_block_use_tabs, None);
+    assert_eq!(result.config.code_block_indent_width, None);
+
+    let result = resolve_config(ConfigKeyMap::new(), &Default::default());
+    assert_eq!(result.config.html_use_tabs, false);
+    assert_eq!(result.config.html_indent_width, 2);
   }
 }

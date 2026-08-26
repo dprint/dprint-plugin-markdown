@@ -312,3 +312,83 @@ before <b>bold</b> after
     }
   ]
 }
+[[test]] a close tag spanning a line
+<p>a</p
+>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 9],
+      "text": "<p>a</p\n>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [3, 4],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a close tag in another case than the open tag
+<DIV>a</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 12],
+      "text": "<DIV>a</div>",
+      "name": "DIV",
+      "elementKind": "Normal",
+      "content": "a",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [5, 6],
+          "text": "a"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a paragraph within a paragraph
+<p><p>a</p></p>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 15],
+      "text": "<p><p>a</p></p>",
+      "name": "p",
+      "elementKind": "Normal",
+      "content": "<p>a</p>",
+      "children": [
+        {
+          "kind": "Element",
+          "span": [3, 11],
+          "text": "<p>a</p>",
+          "name": "p",
+          "elementKind": "Normal",
+          "content": "a",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [6, 7],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

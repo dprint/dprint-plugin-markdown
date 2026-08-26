@@ -18,3 +18,42 @@ Foo
 
 [expect]
 Foo ***
+
+!! should join lines where the text could not start a block !!
+aaaa
+2. bbbb
+
+aaaa
+-- bbbb
+
+aaaa
+#bbbb
+
+[expect]
+aaaa 2. bbbb
+
+aaaa -- bbbb
+
+aaaa #bbbb
+
+!! should keep a line whose text would start a block !!
+aaaa
+: bbbb
+
+aaaa
+</span>
+
+[expect]
+aaaa
+: bbbb
+
+aaaa
+</span>
+
+!! should keep a line break between the words of an unspaced script !!
+日本語
+日本語
+
+[expect]
+日本語
+日本語

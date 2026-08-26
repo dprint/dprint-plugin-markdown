@@ -182,3 +182,127 @@ testing    this    out
    <!-- dprint-ignore-end -->
 
 2. Next
+
+!! should write the block quote markers of an ignored block once !!
+> <!-- dprint-ignore -->
+> a   b
+> c   d
+
+> <!-- dprint-ignore-start -->
+> a   b
+> <!-- dprint-ignore-end -->
+
+> > <!-- dprint-ignore -->
+> > a   b
+> > c   d
+
+[expect]
+> <!-- dprint-ignore -->
+> a   b
+> c   d
+
+> <!-- dprint-ignore-start -->
+> a   b
+> <!-- dprint-ignore-end -->
+
+>> <!-- dprint-ignore -->
+>> a   b
+>> c   d
+
+!! should write the indentation of an ignored block within a list item once !!
+- <!-- dprint-ignore -->
+  b   c
+  d   e
+
+- - <!-- dprint-ignore -->
+    b   c
+
+- <!-- dprint-ignore-start -->
+  b   c
+  d   e
+  <!-- dprint-ignore-end -->
+
+- <!-- dprint-ignore -->
+      b   c
+      d   e
+
+[expect]
+- <!-- dprint-ignore -->
+  b   c
+  d   e
+
+- - <!-- dprint-ignore -->
+    b   c
+
+- <!-- dprint-ignore-start -->
+  b   c
+  d   e
+  <!-- dprint-ignore-end -->
+
+- <!-- dprint-ignore -->
+      b   c
+      d   e
+
+!! should ignore a block within a list item within a block quote and the other way around !!
+> - <!-- dprint-ignore -->
+>   b   c
+>   d   e
+
+> - <!-- dprint-ignore-start -->
+>   b   c
+>   d   e
+>   <!-- dprint-ignore-end -->
+> - f   g
+
+- > <!-- dprint-ignore -->
+  > b   c
+  > d   e
+
+[expect]
+> - <!-- dprint-ignore -->
+>   b   c
+>   d   e
+
+> - <!-- dprint-ignore-start -->
+>   b   c
+>   d   e
+>   <!-- dprint-ignore-end -->
+> - f g
+
+- > <!-- dprint-ignore -->
+  > b   c
+  > d   e
+
+!! should ignore a code block within a list item !!
+- <!-- dprint-ignore -->
+  ```
+  a   b
+  ```
+  c   d
+
+[expect]
+- <!-- dprint-ignore -->
+  ```
+  a   b
+  ```
+  c d
+
+!! should ignore to the end of the container the start comment is within !!
+- <!-- dprint-ignore-start -->
+  b   c
+- d   e
+
+> <!-- dprint-ignore-start -->
+> b   c
+
+d   e
+
+[expect]
+- <!-- dprint-ignore-start -->
+  b   c
+- d e
+
+> <!-- dprint-ignore-start -->
+> b   c
+
+d e

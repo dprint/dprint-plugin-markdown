@@ -304,7 +304,7 @@ pub fn match_autolink(text: &InlineText<'_>, start: usize) -> Option<usize> {
   while let Some(byte) = text.byte(index) {
     match byte {
       b'>' => {
-        let is_autolink = has_scheme || has_at && index > start + 1;
+        let is_autolink = has_scheme || has_at && is_email_address(text.str_between(start + 1, index));
         return (index > start + 1 && is_autolink).then_some(index + 1);
       }
       b' ' | b'\t' | b'\n' | b'<' => return None,
@@ -330,12 +330,39 @@ pub fn match_autolink(text: &InlineText<'_>, start: usize) -> Option<usize> {
   None
 }
 
+/// Whether the text is an email address of the form an autolink holds: a
+/// local part of ascii letters, digits and some punctuation, then a domain of
+/// labels that start and end with a letter or digit.
+fn is_email_address(text: &str) -> bool {
+  let Some((local, domain)) = text.split_once('@') else {
+    return false;
+  };
+  let is_local_char = |c: char| c.is_ascii_alphanumeric() || ".!#$%&'*+/=?^_`{|}~-".contains(c);
+  let is_label = |label: &str| {
+    !label.is_empty()
+      && label.len() <= 63
+      && !label.starts_with('-')
+      && !label.ends_with('-')
+      && label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+  };
+  !local.is_empty() && local.chars().all(is_local_char) && domain.split('.').all(is_label)
+}
+
 /// Matches a raw html tag, comment, processing instruction, declaration or
 /// CDATA section.
 pub fn match_html_tag(text: &InlineText<'_>, start: usize) -> Option<usize> {
   match text.byte(start + 1)? {
     b'!' => match text.byte(start + 2) {
-      Some(b'-') if text.starts_with_at(start, "<!--") => find_after(text, start + 4, "-->"),
+      Some(b'-') if text.starts_with_at(start, "<!--") => {
+        // `<!-->` and `<!--->` are comments closed as soon as they open
+        if text.starts_with_at(start + 4, ">") {
+          Some(start + 5)
+        } else if text.starts_with_at(start + 4, "->") {
+          Some(start + 6)
+        } else {
+          find_after(text, start + 4, "-->")
+        }
+      }
       Some(b'[') if text.starts_with_at(start, "<![CDATA[") => find_after(text, start + 9, "]]>"),
       // a declaration is `<!` followed by an ascii letter
       Some(byte) if byte.is_ascii_alphabetic() => find_after(text, start + 2, ">"),

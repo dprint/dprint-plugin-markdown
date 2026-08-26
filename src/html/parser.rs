@@ -215,9 +215,7 @@ impl<'a> Parser<'a> {
     match bytes.get(start + 1) {
       Some(b'!') => match bytes.get(start + 2) {
         Some(b'-') if self.text[start..].starts_with("<!--") => {
-          let end = self
-            .find_after(start + 4, "-->")
-            .ok_or(ParseError::UnterminatedMarkup)?;
+          let end = self.comment_end(start + 4).ok_or(ParseError::UnterminatedMarkup)?;
           Ok(Some(Markup {
             kind: MarkupKind::Verbatim(VerbatimKind::Comment),
             end,
@@ -409,6 +407,25 @@ impl<'a> Parser<'a> {
       return Ok((&self.text[start..index], after_name + 1));
     }
     Err(ParseError::UnclosedElement { name })
+  }
+
+  /// Where a comment whose text starts at the position ends. As in a browser,
+  /// `<!-->` and `<!--->` are comments closed abruptly, and `--!>` closes a
+  /// comment as `-->` does.
+  fn comment_end(&self, start: usize) -> Option<usize> {
+    let rest = &self.text[start..];
+    if rest.starts_with('>') {
+      return Some(start + 1);
+    }
+    if rest.starts_with("->") {
+      return Some(start + 2);
+    }
+    let closed = self.find_after(start, "-->");
+    let closed_abruptly = self.find_after(start, "--!>");
+    match (closed, closed_abruptly) {
+      (Some(a), Some(b)) => Some(a.min(b)),
+      (a, b) => a.or(b),
+    }
   }
 
   fn find_after(&self, start: usize, close: &str) -> Option<usize> {

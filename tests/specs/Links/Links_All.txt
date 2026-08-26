@@ -254,3 +254,39 @@ title"
 [foo][ref\[]
 
 [ref\[]: /uri
+
+!! should wrap a destination holding an escaped parenthesis in angle brackets !!
+[d](e\)f)
+
+[expect]
+[d](<e)f>)
+
+!! should write every title with double quotes !!
+[a](<b c> "t") [d](e 't') [f](g (h))
+
+[a](b 'say "hi"')
+
+[a]: b (title)
+
+[expect]
+[a](<b c> "t") [d](e "t") [f](g "h")
+
+[a](b "say \"hi\"")
+
+[a]: b "title"
+
+!! should write an empty destination as nothing !!
+[a]() [b](<>)
+
+[expect]
+[a]() [b]()
+
+!! should keep the case of a reference label !!
+[Foo][BAR]
+
+[bar]: /u
+
+[expect]
+[Foo][BAR]
+
+[bar]: /u

@@ -119,6 +119,28 @@ fn push_dropped_breaks(nodes: &[Node], context: &Context, dropped: &mut DroppedB
   }
 }
 
+/// Whether the node is written within a paragraph rather than as a block.
+fn is_inline_node(node: &Node) -> bool {
+  matches!(
+    node,
+    Node::Code(_)
+      | Node::SoftBreak(_)
+      | Node::HardBreak(_)
+      | Node::TextDecoration(_)
+      | Node::FootnoteReference(_)
+      | Node::InlineLink(_)
+      | Node::ReferenceLink(_)
+      | Node::ShortcutLink(_)
+      | Node::AutoLink(_)
+      | Node::Text(_)
+      | Node::InlineImage(_)
+      | Node::ReferenceImage(_)
+      | Node::ShortcutImage(_)
+      | Node::InlineMath(_)
+      | Node::DisplayMath(_)
+  )
+}
+
 /// The nodes written within this one, which hold breaks of their own.
 fn written_children<'a>(node: &'a Node<'a>) -> Option<&'a [Node<'a>]> {
   match node {
@@ -199,11 +221,15 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           | Node::DefinitionList(_)
           | Node::Table(_)
           | Node::MetadataBlock(_)
-          | Node::BlockQuote(_)
-          | Node::DisplayMath(_) => {
+          | Node::BlockQuote(_) => {
             items.extend(get_conditional_blank_line(node, context));
           }
-          Node::Code(_)
+          // display math is a block of its own only where it is written as one
+          Node::DisplayMath(_) if !is_inline_node(node) => {
+            items.extend(get_conditional_blank_line(node, context));
+          }
+          Node::DisplayMath(_)
+          | Node::Code(_)
           | Node::SoftBreak(_)
           | Node::TextDecoration(_)
           | Node::FootnoteReference(_)
@@ -348,11 +374,17 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
             items.push_signal(Signal::NewLine);
           }
 
-          // include the leading indent
+          // the node's line is written from its start, so that the indentation
+          // written before an indented code block is kept
           let node_span = node.span();
-          let text_start = utils::get_leading_non_space_tab_byte_pos(context.file_text, node_span.start);
-          items.extend(ir_helpers::gen_from_raw_string(
-            context.file_text[text_start..node_span.end].trim_end_matches(WHITESPACE),
+          let line_start = context.file_text[..node_span.start]
+            .rfind('\n')
+            .map(|index| index + 1)
+            .unwrap_or(0);
+          items.extend(gen_ignored_text(
+            context.file_text[line_start..node_span.end].trim_end_matches(WHITESPACE),
+            true,
+            context,
           ));
 
           last_node = Some(node);
@@ -377,11 +409,13 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           .unwrap_or_else(|| last_node.unwrap().span().end);
         let ignore_text = &context.file_text[start..end];
         if let Some(end_comment) = end_comment {
-          items.extend(ir_helpers::gen_from_raw_string(ignore_text));
+          items.extend(gen_ignored_text(ignore_text, false, context));
           items.extend(gen_html(end_comment, context));
         } else {
-          items.extend(ir_helpers::gen_from_raw_string(
+          items.extend(gen_ignored_text(
             ignore_text.trim_end_matches(WHITESPACE),
+            false,
+            context,
           ));
         }
       }
@@ -1573,6 +1607,51 @@ fn gen_inline_math(node: &InlineMath, ctx: &mut Context) -> PrintItems {
   gen_range(node.span, ctx)
 }
 
+/// Writes out text the formatter was told to leave alone as it was written,
+/// apart from what the containers around it write out themselves: the block
+/// quote markers and the indentation of the list items each line is within.
+/// Every line is written as a line of its own, so that the printer writes
+/// that prefix before it the way it does for any other line.
+///
+/// The first line is stripped of its prefix only where it starts a line of
+/// the file, as text that follows a comment on its line is written on from
+/// where the comment ends.
+fn gen_ignored_text(text: &str, starts_line: bool, context: &Context) -> PrintItems {
+  let mut items = PrintItems::new();
+  for (index, line) in text.split('\n').enumerate() {
+    if index > 0 {
+      items.push_signal(Signal::NewLine);
+    }
+    let line = line.strip_suffix('\r').unwrap_or(line);
+    let line = if index > 0 || starts_line {
+      strip_container_prefix(line, context)
+    } else {
+      line
+    };
+    if !line.is_empty() {
+      items.extend(ir_helpers::gen_from_raw_string(line));
+    }
+  }
+  items
+}
+
+/// Strips what the containers the line is within write before it: the marker
+/// of each block quote, then the indentation of the list items inside the
+/// innermost one. Only as much indentation as those items write is stripped,
+/// so that anything indented further keeps what it was indented by.
+fn strip_container_prefix<'a>(line: &'a str, context: &Context) -> &'a str {
+  let mut rest = strip_markers_of_depth(line, context.block_quote_depth());
+  let mut columns = context.indent_within_block_quote();
+  while columns > 0 {
+    let Some(stripped) = rest.strip_prefix([' ', '\t']) else {
+      break;
+    };
+    columns = columns.saturating_sub(if rest.starts_with('\t') { 4 } else { 1 });
+    rest = stripped;
+  }
+  rest
+}
+
 /// Writes out the text of the span as it is in the file, apart from the block
 /// quote markers that the printer writes out itself.
 fn gen_range(span: Span, ctx: &mut Context) -> PrintItems {
@@ -1615,7 +1694,7 @@ fn strip_raw_block_quote_markers<'a>(text: &'a str, context: &Context) -> Cow<'a
   // the first line is written out where the printer has already put the
   // markers, so only what follows it can have picked any up
   let continued_lines = || text.split('\n').skip(1);
-  if depth == 0 || !continued_lines().any(|line| strip_markers(line, depth).len() != line.len()) {
+  if depth == 0 || !continued_lines().any(|line| strip_markers_of_depth(line, depth).len() != line.len()) {
     return Cow::Borrowed(text);
   }
 
@@ -1623,28 +1702,29 @@ fn strip_raw_block_quote_markers<'a>(text: &'a str, context: &Context) -> Cow<'a
   result.push_str(text.split('\n').next().unwrap_or(""));
   for line in continued_lines() {
     result.push('\n');
-    result.push_str(strip_markers(line, depth));
+    result.push_str(strip_markers_of_depth(line, depth));
   }
-  return Cow::Owned(result);
+  Cow::Owned(result)
+}
 
-  fn strip_markers(line: &str, depth: usize) -> &str {
-    let mut line = line;
-    for _ in 0..depth {
-      let trimmed = line.trim_start_matches([' ', '\t']);
-      let Some(rest) = trimmed.strip_prefix('>') else {
-        return line;
-      };
-      // a single space after a marker is part of it
-      line = rest.strip_prefix(' ').unwrap_or(rest);
-    }
-    line
+/// Strips the markers of as many block quotes as the line is written within.
+fn strip_markers_of_depth(line: &str, depth: usize) -> &str {
+  let mut line = line;
+  for _ in 0..depth {
+    let trimmed = line.trim_start_matches([' ', '\t']);
+    let Some(rest) = trimmed.strip_prefix('>') else {
+      return line;
+    };
+    // a single space after a marker is part of it
+    line = rest.strip_prefix(' ').unwrap_or(rest);
   }
+  line
 }
 
 fn gen_footnote_reference(footnote_reference: &FootnoteReference, _: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
   items.push_string(format!("[^{}]", footnote_reference.name.trim_matches(WHITESPACE)));
-  ir_helpers::with_no_new_lines(items)
+  ir_helpers::new_line_group(items)
 }
 
 fn gen_footnote_definition(footnote_definition: &FootnoteDefinition, context: &mut Context) -> PrintItems {
@@ -2105,6 +2185,10 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         let end_char = if is_alternate { ")" } else { "." };
         let display_index = if is_all_ones_list(list, context) {
           1
+        } else if start_index + list.children.len() as u64 > MAX_LIST_NUMBER + 1 {
+          // a marker of more than nine digits starts no list item, so the
+          // numbers are kept as written rather than counted past that
+          written_list_number(child, context).unwrap_or(start_index + index as u64)
         } else {
           start_index + index as u64
         };
@@ -2240,9 +2324,14 @@ fn gen_task_list_marker_children(
   marker: Option<&TaskListMarker>,
   context: &mut Context,
 ) -> PrintItems {
+  // the split below is only for the marker, and it would separate an ignore
+  // comment from the node it applies to
+  let Some(_) = marker else {
+    return gen_nodes(children, context);
+  };
   let mut items = PrintItems::new();
   // indent the children to beyond the task list marker
-  let marker_indent = if marker.is_some() { 4 } else { 0 };
+  let marker_indent = 4;
   context.raw_indent_level += marker_indent;
   let indent_child_index_end = children
     .iter()
@@ -2901,6 +2990,23 @@ fn get_newline_wrapping_based_on_config(context: &Context, ends_sentence: bool) 
 }
 
 /// If the list's first items are both 1s
+/// The largest number an ordered list item can be marked with, as CommonMark
+/// allows a marker no more than nine digits.
+const MAX_LIST_NUMBER: u64 = 999_999_999;
+
+/// The number the item was marked with in the file.
+fn written_list_number(item: &Node, context: &Context) -> Option<u64> {
+  match item {
+    Node::Item(item) => item
+      .marker_span
+      .text(context.file_text)
+      .trim_end_matches(['.', ')'])
+      .parse()
+      .ok(),
+    _ => None,
+  }
+}
+
 fn is_all_ones_list(list: &List, context: &Context) -> bool {
   list.start_index == Some(1)
     && matches!(

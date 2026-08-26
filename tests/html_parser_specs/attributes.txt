@@ -345,3 +345,188 @@
     }
   ]
 }
+[[test]] a slash within an unquoted value
+<br a=b/>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 9],
+      "text": "<br a=b/>",
+      "name": "br",
+      "elementKind": "Void",
+      "attributes": [
+        {
+          "name": "a",
+          "value": "b/",
+          "quoted": false
+        }
+      ]
+    }
+  ]
+}
+[[test]] an unquoted value that is a path
+<a href=/foo/>x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 19],
+      "text": "<a href=/foo/>x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "href",
+          "value": "/foo/",
+          "quoted": false
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a slash ending an unquoted value does not self close
+<div class=a/>x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 21],
+      "text": "<div class=a/>x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "a/",
+          "quoted": false
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] whitespace after the equals
+<a b= "x">x</a>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 15],
+      "text": "<a b= \"x\">x</a>",
+      "name": "a",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "b",
+          "value": "x",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [10, 11],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a non ascii unquoted value
+<div class=é>x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 21],
+      "text": "<div class=é>x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "class",
+          "value": "é",
+          "quoted": false
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [14, 15],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}
+[[test]] framework attribute names
+<div [class]="a" (click)="b" #ref v-on:x="c">x</div>
+[[ast]]
+{
+  "kind": "Document",
+  "children": [
+    {
+      "kind": "Element",
+      "span": [0, 52],
+      "text": "<div [class]=\"a\" (click)=\"b\" #ref v-on:x=\"c\">x</div>",
+      "name": "div",
+      "elementKind": "Normal",
+      "attributes": [
+        {
+          "name": "[class]",
+          "value": "a",
+          "quote": "\""
+        },
+        {
+          "name": "(click)",
+          "value": "b",
+          "quote": "\""
+        },
+        {
+          "name": "#ref"
+        },
+        {
+          "name": "v-on:x",
+          "value": "c",
+          "quote": "\""
+        }
+      ],
+      "content": "x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [45, 46],
+          "text": "x"
+        }
+      ]
+    }
+  ]
+}

@@ -50,3 +50,43 @@
 <div class="a" id="b">
   <p>x</p>
 </div>
+
+!! should lay out the attributes of an inline element that starts its line and continue after them !!
+<div>
+<a class="button button-primary" href="https://example.com/a/very/long/path/that/goes/on" target="_blank">link</a> and more text
+</div>
+
+<p><a class="button button-primary" href="https://example.com/a/very/long/path/that/goes/on" target="_blank">link</a></p>
+
+[expect]
+<div>
+  <a
+    class="button button-primary"
+    href="https://example.com/a/very/long/path/that/goes/on"
+    target="_blank"
+  >link</a> and more text
+</div>
+
+<p>
+  <a
+    class="button button-primary"
+    href="https://example.com/a/very/long/path/that/goes/on"
+    target="_blank"
+  >link</a>
+</p>
+
+!! should keep a line break within an attribute value !!
+<div class="a
+b"><p>x</p></div>
+
+[expect]
+<div class="a
+b">
+  <p>x</p>
+</div>
+
+!! should keep the case of attribute names and quote a bare value !!
+<div CLASS="a&amp;b" ID=x>y</div>
+
+[expect]
+<div CLASS="a&amp;b" ID="x">y</div>

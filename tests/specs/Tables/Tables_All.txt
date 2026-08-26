@@ -74,3 +74,66 @@ a|b|c|d
 | Autolinks                               | <http://foo.bar.baz>  |
 | Autolinks (extension)                   | www.commonmark.org    |
 | Raw HTML                                | <a><bab><c2c>         |
+
+!! should keep an escaped pipe in a cell !!
+| a \| b | c |
+|---|---|
+| `x \| y` | z |
+
+[expect]
+| a \| b   | c |
+| -------- | - |
+| `x \| y` | z |
+
+!! should size a column by the width of wide characters !!
+| a | b |
+|---|---|
+| 日本語テキスト | 2 |
+| 😀 | 3 |
+
+[expect]
+| a              | b |
+| -------------- | - |
+| 日本語テキスト | 2 |
+| 😀             | 3 |
+
+!! should pad a row with fewer cells and keep one with more !!
+| a | b |
+|---|---|
+| 1 |
+| 1 | 2 | 3 |
+
+[expect]
+| a | b |
+| - | - |
+| 1 |   |
+| 1 | 2 | 3 |
+
+!! should center a cell !!
+| abcd | a |
+|:----:|:-:|
+| a | abcd |
+
+[expect]
+| abcd |  a   |
+| :--: | :--: |
+|  a   | abcd |
+
+!! should format a table with only a header !!
+| a | b |
+|---|---|
+
+[expect]
+| a | b |
+| - | - |
+
+!! should separate a table from the paragraph above it !!
+para
+| a | b |
+|---|---|
+
+[expect]
+para
+
+| a | b |
+| - | - |
