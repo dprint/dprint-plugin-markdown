@@ -2,7 +2,7 @@
 
 npm distribution of [dprint-plugin-markdown](https://github.com/dprint/dprint-plugin-markdown).
 
-Use this with [@dprint/formatter](https://github.com/dprint/js-formatter) or just use @dprint/formatter and download the [dprint-plugin-markdown WASM file](https://github.com/dprint/dprint-plugin-markdown/releases).
+Use this with [@dprint/formatter](https://github.com/dprint/js-formatter) or just use @dprint/formatter and download the [dprint-plugin-markdown Wasm file](https://github.com/dprint/dprint-plugin-markdown/releases).
 
 ## Example
 
