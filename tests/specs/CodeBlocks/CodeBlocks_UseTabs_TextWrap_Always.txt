@@ -1,0 +1,36 @@
+~~ useTabs: true, textWrap: always, lineWidth: 40 ~~
+!! should not wrap the code a tab indents !!
+Test:
+
+    a long line of code that goes well past the line width
+
+[expect]
+Test:
+
+	a long line of code that goes well past the line width
+
+!! should wrap the paragraph below a tab indented code block !!
+    code
+
+A paragraph that is long enough to need to wrap onto a second line.
+
+[expect]
+	code
+
+A paragraph that is long enough to need
+to wrap onto a second line.
+
+!! should wrap the paragraph below a code block within a footnote definition !!
+[^1]: Test:
+
+        code
+
+    A paragraph that is long enough to need to wrap onto a second line.
+
+[expect]
+[^1]: Test:
+
+    	code
+
+    A paragraph that is long enough to
+    need to wrap onto a second line.

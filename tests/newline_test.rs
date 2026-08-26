@@ -121,3 +121,14 @@ fn test_carriage_return_ends_a_row_of_a_table_left_as_written() {
     assert_eq!(result.unwrap(), expected, "for {:?}", input);
   }
 }
+
+#[test]
+fn test_use_tabs_with_carriage_return_line_feeds() {
+  let config = ConfigurationBuilder::new()
+    .use_tabs(true)
+    .new_line_kind(dprint_core::configuration::NewLineKind::CarriageReturnLineFeed)
+    .build();
+  let result = format_text("Test:\r\n\r\n    one\r\n\r\n    two\r\n", &config, |_, _, _| Ok(None)).unwrap();
+  // a blank line within the code is left blank rather than written with the tab
+  assert_eq!(result.unwrap(), "Test:\r\n\r\n\tone\r\n\r\n\ttwo\r\n");
+}

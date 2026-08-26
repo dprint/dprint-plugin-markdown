@@ -30,3 +30,43 @@ term
 [expect]
 term
 : code
+
+!! should write the tab after the spaces two lists indent the code block by !!
+- - one
+
+          code
+
+[expect]
+- - one
+
+        	code
+
+!! should write the tab after the spaces an ordered list indents the code block by !!
+1. one
+
+       code
+
+[expect]
+1. one
+
+    	code
+
+!! should write the tab after the spaces a list within a footnote definition indents by !!
+[^1]: - one
+
+          code
+
+[expect]
+[^1]: - one
+
+        	code
+
+!! should keep the spaces of a code block within a block quote within a list !!
+- > one
+  >
+  >     code
+
+[expect]
+- > one
+    >
+    >     code

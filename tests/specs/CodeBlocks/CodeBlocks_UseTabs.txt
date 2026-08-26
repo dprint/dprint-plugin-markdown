@@ -124,3 +124,268 @@ text[^a]
 
 [expect]
 1000. [^5]: -     o
+
+!! should write a code block that begins the document with a tab !!
+    code
+
+[expect]
+	code
+
+!! should keep the whitespace of a line within the code that holds only whitespace !!
+Test:
+
+    one
+      
+    two
+
+[expect]
+Test:
+
+	one
+	  
+	two
+
+!! should drop the blank lines a code block begins with !!
+Test:
+
+    
+    
+    code
+
+[expect]
+Test:
+
+	code
+
+!! should write a tab below a heading and above a paragraph !!
+# Heading
+
+    code
+
+Paragraph after.
+
+[expect]
+# Heading
+
+	code
+
+Paragraph after.
+
+!! should write a tab between two code blocks a paragraph separates !!
+    one
+
+Between.
+
+    two
+
+[expect]
+	one
+
+Between.
+
+	two
+
+!! should write a tab above a setext heading !!
+    code
+
+Heading
+=======
+
+[expect]
+	code
+
+# Heading
+
+!! should write a tab above an atx heading !!
+    code
+
+## Heading
+
+[expect]
+	code
+
+## Heading
+
+!! should write a tab above an html block !!
+    code
+
+<div>
+html
+</div>
+
+[expect]
+	code
+
+<div>
+html
+</div>
+
+!! should write a tab above a table !!
+    code
+
+| a | b |
+|---|---|
+| 1 | 2 |
+
+[expect]
+	code
+
+| a | b |
+| - | - |
+| 1 | 2 |
+
+!! should keep code that looks like block markers as code !!
+Test:
+
+    > quote
+    - item
+    # heading
+    1. ordered
+
+[expect]
+Test:
+
+	> quote
+	- item
+	# heading
+	1. ordered
+
+!! should keep the spaces of a code block three lists indent off a tab stop !!
+- - - one
+
+          two
+
+[expect]
+- - - one
+
+          two
+
+!! should write the tab after the spaces four lists indent by !!
+- - - - one
+
+            two
+
+[expect]
+- - - - one
+
+        	two
+
+!! should keep the spaces of a code block an ordered list indents off a tab stop !!
+1. one
+
+       two
+
+[expect]
+1. one
+
+       two
+
+!! should write the tab after the spaces a two digit ordered list indents by !!
+10. one
+
+        two
+
+[expect]
+10. one
+
+    	two
+
+!! should keep the spaces of a code block within a list within a footnote definition !!
+[^1]: - one
+
+          code
+
+[expect]
+[^1]: - one
+
+          code
+
+!! should write the tab after the spaces two lists within a footnote definition indent by !!
+[^1]: - - one
+
+            code
+
+[expect]
+[^1]: - - one
+
+        	code
+
+!! should keep the spaces of a code block within a definition !!
+term
+: one
+
+      code
+
+[expect]
+term
+: one
+
+      code
+
+!! should keep the spaces of a code block within a block quote within a list !!
+- > one
+  >
+  >     code
+
+[expect]
+- > one
+  >
+  >     code
+
+!! should keep the spaces of a code block within a list within a block quote !!
+> - one
+>
+>       code
+
+[expect]
+> - one
+>
+>       code
+
+!! should keep the spaces of a code block within a nested block quote !!
+> > one
+> >
+> >     code
+
+[expect]
+>> one
+>>
+>>     code
+
+!! should leave the spaces of a code block an ignore comment covers !!
+Test:
+
+<!-- dprint-ignore -->
+    code
+
+Between.
+
+    other
+
+[expect]
+Test:
+
+<!-- dprint-ignore -->
+    code
+
+Between.
+
+	other
+
+!! should leave the spaces of a code block an ignore region covers !!
+Test:
+
+<!-- dprint-ignore-start -->
+    code
+<!-- dprint-ignore-end -->
+
+    other
+
+[expect]
+Test:
+
+<!-- dprint-ignore-start -->
+    code
+<!-- dprint-ignore-end -->
+
+	other
