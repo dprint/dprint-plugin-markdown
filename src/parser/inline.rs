@@ -977,7 +977,10 @@ fn trailing_space_len(code: &str) -> Option<usize> {
   }
 }
 
-fn is_markdown_punctuation(c: char) -> bool {
+/// Whether the character is punctuation as far as the flanking rules are
+/// concerned, which is broader than ascii punctuation (ex. the `。` a chinese
+/// sentence ends with).
+pub fn is_markdown_punctuation(c: char) -> bool {
   c.is_ascii_punctuation()
     || matches!(
       unicode_category(c),

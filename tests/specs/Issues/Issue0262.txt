@@ -1,0 +1,31 @@
+!! should keep underscore emphasis after cjk punctuation !!
+你好。_世界_
+
+再见，_世界_
+
+真的！_世界_
+
+[expect]
+你好。_世界_
+
+再见，_世界_
+
+真的！_世界_
+
+!! should keep underscore emphasis before cjk punctuation !!
+_世界_。你好
+
+[expect]
+_世界_。你好
+
+!! should use underscores for emphasis after cjk punctuation !!
+你好。*世界*
+
+[expect]
+你好。_世界_
+
+!! should use asterisks for strong after cjk punctuation !!
+你好。__世界__
+
+[expect]
+你好。**世界**

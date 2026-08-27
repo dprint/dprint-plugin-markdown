@@ -29,6 +29,7 @@ pub use block::is_whole_html_block;
 pub use block::line_start_escape;
 pub use block::starts_block_at_block_start;
 pub use block::starts_block_in_paragraph;
+pub use inline::is_markdown_punctuation;
 pub use source::SPACES;
 pub use source::WHITESPACE;
 

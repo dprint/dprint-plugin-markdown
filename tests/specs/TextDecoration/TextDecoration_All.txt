@@ -98,13 +98,7 @@ foo _\__
 _a [*b*​](u)_
 
 !! should keep asterisks where underscores would not be read as emphasis !!
-*foo*—bar
-
-“*foo*”
-
 *foo*1
-
-*foo*、*bar*。
 
 **5 * 3**
 
@@ -113,19 +107,27 @@ _a [*b*​](u)_
 *x\*
 
 [expect]
-*foo*—bar
-
-“*foo*”
-
 *foo*1
-
-*foo*、*bar*。
 
 **5 * 3**
 
 **_a_**
 
 *x\*
+
+!! should use underscores beside punctuation that is not ascii !!
+*foo*—bar
+
+“*foo*”
+
+*foo*、*bar*。
+
+[expect]
+_foo_—bar
+
+“_foo_”
+
+_foo_、_bar_。
 
 !! should leave underscores that are not emphasis !!
 __太字__テキスト
