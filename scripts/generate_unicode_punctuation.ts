@@ -1,7 +1,8 @@
-// Writes the table `src/parser/unicode.rs` looks characters up in, which is
-// every character unicode gives a punctuation (`P*`) or symbol (`S*`)
-// category. Run it with `deno run -A scripts/generate_unicode_punctuation.ts`
-// to update the table for a newer version of unicode.
+// Writes `src/parser/unicode_generated.rs`, the table the parser looks
+// characters up in, which is every character unicode gives a punctuation
+// (`P*`) or symbol (`S*`) category. Run it with
+// `deno run -A scripts/generate_unicode_punctuation.ts` to update the table
+// for a newer version of unicode.
 
 const isPunctuation = /[\p{P}\p{S}]/u;
 
@@ -40,4 +41,4 @@ ${rows}
 ];
 `;
 
-await Deno.writeTextFile(new URL("../src/parser/unicode.rs", import.meta.url), text);
+await Deno.writeTextFile(new URL("../src/parser/unicode_generated.rs", import.meta.url), text);

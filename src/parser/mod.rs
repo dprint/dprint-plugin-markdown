@@ -12,6 +12,7 @@ mod block;
 mod inline;
 mod links;
 mod source;
+#[path = "unicode_generated.rs"]
 mod unicode;
 
 #[cfg(test)]
