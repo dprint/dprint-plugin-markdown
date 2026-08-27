@@ -29,3 +29,35 @@ _世界_。你好
 
 [expect]
 你好。**世界**
+
+!! should use underscores for emphasis beside cjk punctuation !!
+你好：*世界*
+
+你好？*世界*
+
+「*世界*」
+
+《*世界*》
+
+你好、*世界*
+
+[expect]
+你好：_世界_
+
+你好？_世界_
+
+「_世界_」
+
+《_世界_》
+
+你好、_世界_
+
+!! should use underscores for emphasis beside a symbol !!
+a©*b*
+
+*a*😀
+
+[expect]
+a©_b_
+
+_a_😀

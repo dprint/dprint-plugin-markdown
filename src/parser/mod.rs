@@ -12,6 +12,7 @@ mod block;
 mod inline;
 mod links;
 mod source;
+mod unicode;
 
 #[cfg(test)]
 mod debug_json;
