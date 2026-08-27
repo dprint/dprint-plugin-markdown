@@ -1518,8 +1518,8 @@ impl Flanking {
   fn new(Surroundings { before, after }: Surroundings) -> Flanking {
     let before_whitespace = before.is_none_or(char::is_whitespace);
     let after_whitespace = after.is_none_or(char::is_whitespace);
-    let before_punctuation = before.is_some_and(|c| c.is_ascii_punctuation());
-    let after_punctuation = after.is_some_and(|c| c.is_ascii_punctuation());
+    let before_punctuation = before.is_some_and(is_markdown_punctuation);
+    let after_punctuation = after.is_some_and(is_markdown_punctuation);
     Flanking {
       left: !after_whitespace && (!after_punctuation || before_whitespace || before_punctuation),
       right: !before_whitespace && (!before_punctuation || after_whitespace || after_punctuation),

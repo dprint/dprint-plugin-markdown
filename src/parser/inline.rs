@@ -7,12 +7,14 @@
 //! by [`InlineText`], which maps back to the absolute positions the nodes need.
 
 use std::borrow::Cow;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 use super::ast::*;
 use super::links;
 use super::links::ReferenceKind;
 use super::source::ContentLine;
+use super::unicode::PUNCTUATION_RANGES;
 
 /// The document wide information inline parsing needs.
 pub struct InlineContext<'a> {
@@ -977,36 +979,53 @@ fn trailing_space_len(code: &str) -> Option<usize> {
   }
 }
 
-fn is_markdown_punctuation(c: char) -> bool {
-  c.is_ascii_punctuation()
-    || matches!(
-      unicode_category(c),
-      UnicodeCategory::Punctuation | UnicodeCategory::Symbol
-    )
-}
-
-/// The coarse unicode categories the flanking rules care about.
-enum UnicodeCategory {
-  Punctuation,
-  Symbol,
-  Other,
-}
-
-/// A rough categorization that avoids pulling in a unicode table, which is
-/// enough because the flanking rules only distinguish punctuation and symbols
-/// from everything else.
-fn unicode_category(c: char) -> UnicodeCategory {
+/// Whether the character is punctuation as far as the flanking rules are
+/// concerned, which the CommonMark spec defines as any character unicode gives
+/// a punctuation (`P*`) or symbol (`S*`) category. That's much broader than
+/// ascii punctuation: the `。` a chinese sentence ends with is punctuation, and
+/// so is an em dash or a curly quote.
+pub fn is_markdown_punctuation(c: char) -> bool {
   if c.is_ascii() {
-    return UnicodeCategory::Other;
+    // the ascii punctuation the spec names is exactly `P*` and `S*` within ascii
+    return c.is_ascii_punctuation();
   }
-  match c {
-    '\u{00A1}' | '\u{00A7}' | '\u{00AB}' | '\u{00B6}' | '\u{00B7}' | '\u{00BB}' | '\u{00BF}' => {
-      UnicodeCategory::Punctuation
+  let code = c as u32;
+  PUNCTUATION_RANGES
+    .binary_search_by(|&(start, end)| {
+      if end < code {
+        Ordering::Less
+      } else if start > code {
+        Ordering::Greater
+      } else {
+        Ordering::Equal
+      }
+    })
+    .is_ok()
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn reads_punctuation_beyond_ascii() {
+    for c in [
+      '!', '~', '_', '@', '。', '、', '：', '？', '「', '」', '《', '—', '“', '…', '·', '©', '±', '😀',
+    ] {
+      assert!(is_markdown_punctuation(c), "{c} should be punctuation");
     }
-    '\u{2010}'..='\u{2027}' | '\u{2030}'..='\u{205E}' | '\u{3001}'..='\u{3003}' | '\u{FF01}'..='\u{FF0F}' => {
-      UnicodeCategory::Punctuation
+    for c in ['a', '0', ' ', '世', 'テ', '가', 'é', '\u{a0}'] {
+      assert!(!is_markdown_punctuation(c), "{c} should not be punctuation");
     }
-    '\u{00A2}'..='\u{00A6}' | '\u{00A8}' | '\u{00A9}' | '\u{00AC}' | '\u{00AE}'..='\u{00B1}' => UnicodeCategory::Symbol,
-    _ => UnicodeCategory::Other,
+  }
+
+  #[test]
+  fn punctuation_ranges_are_sorted_and_apart() {
+    for pair in PUNCTUATION_RANGES.windows(2) {
+      let (previous, next) = (pair[0], pair[1]);
+      assert!(previous.0 <= previous.1);
+      // ranges that touched would have been written as one
+      assert!(previous.1 + 1 < next.0, "{previous:?} and {next:?} should be apart");
+    }
   }
 }
