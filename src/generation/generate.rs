@@ -1369,7 +1369,12 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
       before: last,
       after: outside.after,
     };
-    run_can_open(opening, character) && run_can_close(closing, character)
+    // emphasis is paired by walking the closing runs of a block from left to
+    // right and taking the nearest opening run before each of them, so an
+    // opening run that could close as well is taken by whatever was written
+    // before it rather than opening anything. The closing run is safe either
+    // way: it comes after the opening one, so it is reached as a closer first
+    run_only_opens(opening, character) && run_can_close(closing, character)
   }
 
   /// Whether the delimiter would run into the content it is written around,
@@ -1480,6 +1485,13 @@ struct Surroundings {
 /// close emphasis, which is the "flanking" rule of the CommonMark spec.
 fn run_can_pair(surroundings: Surroundings, delimiter: char) -> bool {
   run_can_open(surroundings, delimiter) || run_can_close(surroundings, delimiter)
+}
+
+/// Whether a run of the character written within those surroundings opens
+/// emphasis and nothing else, so that no run written before it can take it for
+/// a closing run of its own.
+fn run_only_opens(surroundings: Surroundings, delimiter: char) -> bool {
+  run_can_open(surroundings, delimiter) && !run_can_close(surroundings, delimiter)
 }
 
 /// Whether a run of the character written within those surroundings opens
