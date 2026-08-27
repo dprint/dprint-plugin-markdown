@@ -129,6 +129,22 @@ _foo_—bar
 
 _foo_、_bar_。
 
+!! should keep asterisks where an underscore would be taken by one written earlier !!
+_(*=*!
+
+_a：)、*=*
+
+[expect]
+_(*=*!
+
+_a：)、*=*
+
+!! should keep asterisks where an underscore could be read as opening or closing !!
+(*=*)
+
+[expect]
+(*=*)
+
 !! should leave underscores that are not emphasis !!
 __太字__テキスト
 
