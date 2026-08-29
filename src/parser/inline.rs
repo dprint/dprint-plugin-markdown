@@ -14,6 +14,7 @@ use super::ast::*;
 use super::links;
 use super::links::ReferenceKind;
 use super::source::ContentLine;
+use super::source::SPACES;
 use super::unicode::PUNCTUATION_RANGES;
 
 /// The document wide information inline parsing needs.
@@ -100,6 +101,8 @@ pub struct InlineText<'a> {
 
 impl<'a> InlineText<'a> {
   pub fn new(lines: &[ContentLine<'a>], source: &'a str) -> InlineText<'a> {
+    let lines = strip_continuation_indent(lines);
+    let lines = lines.as_ref();
     if let Some(text) = try_borrow_content(lines, source) {
       return InlineText {
         source,
@@ -216,6 +219,27 @@ impl<'a> InlineText<'a> {
       .get(index..)
       .is_some_and(|rest| rest.starts_with(prefix.as_bytes()))
   }
+}
+
+/// The lines of a block's content, without the indentation the ones after the
+/// first were written with.
+///
+/// That indentation is no more part of what the block says than the prefixes of
+/// the containers it sits in are. A code span is where dropping it shows, since
+/// a span holds its whitespace verbatim, and there keeping it would change what
+/// the document says.
+fn strip_continuation_indent<'a, 'b>(lines: &'b [ContentLine<'a>]) -> Cow<'b, [ContentLine<'a>]> {
+  let is_indented = |line: &ContentLine| line.virtual_spaces > 0 || line.text.starts_with(SPACES);
+  if !lines.iter().skip(1).any(is_indented) {
+    return Cow::Borrowed(lines);
+  }
+  Cow::Owned(
+    lines
+      .iter()
+      .enumerate()
+      .map(|(index, line)| if index == 0 { *line } else { line.trimmed() })
+      .collect(),
+  )
 }
 
 /// The content of the lines when it's one contiguous slice of the source.

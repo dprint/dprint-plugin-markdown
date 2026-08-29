@@ -214,3 +214,37 @@ Text
     }
   ]
 }
+[[test]] a continued line is read without the indentation it is written with
+a `x
+     y` b
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "a `x\n     y` b",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "a `x\n     y` b",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 1],
+          "text": "a"
+        },
+        {
+          "kind": "Code",
+          "span": [2, 12],
+          "text": "`x\n     y`",
+          "content": "x\ny"
+        },
+        {
+          "kind": "Text",
+          "span": [13, 14],
+          "text": "b"
+        }
+      ]
+    }
+  ]
+}

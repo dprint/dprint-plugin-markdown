@@ -308,3 +308,24 @@ bar
     }
   ]
 }
+[[test]] a multi line title without the indentation it is written with
+[foo]: /url '
+   title
+   line1
+'
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 33],
+  "text": "[foo]: /url '\n   title\n   line1\n'",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 33],
+      "text": "[foo]: /url '\n   title\n   line1\n'",
+      "name": "foo",
+      "link": "/url",
+      "title": "\ntitle\nline1\n"
+    }
+  ]
+}
