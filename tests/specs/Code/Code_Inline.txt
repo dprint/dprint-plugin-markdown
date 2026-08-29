@@ -68,12 +68,20 @@ Testing `a    b` out.
 
 Testing `a    b` out.
 
+!! should not read the indentation of a continued line into inline code !!
+a `x
+     y` b
+
+[expect]
+a `x
+y` b
+
 !! should keep an indented angle bracket in inline code in a block quote !!
 > `a
 >     > b` c
 
 [expect]
-> `a     > b` c
+> `a > b` c
 
 !! should keep the space a code span opens with !!
 ` foo`

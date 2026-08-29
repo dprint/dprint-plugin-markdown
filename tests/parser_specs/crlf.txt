@@ -315,6 +315,30 @@ two`
     }
   ]
 }
+[[test:crlf]] a code span across an indented line
+`one
+   two`
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "`one\r\n   two`",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "`one\r\n   two`",
+      "children": [
+        {
+          "kind": "Code",
+          "span": [0, 13],
+          "text": "`one\r\n   two`",
+          "content": "one\ntwo"
+        }
+      ]
+    }
+  ]
+}
 [[test:crlf]] a link reference definition with the title on the next line
 [a]: /url
 "title"

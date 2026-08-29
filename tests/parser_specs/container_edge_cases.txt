@@ -21,7 +21,7 @@
               "kind": "Code",
               "span": [2, 9],
               "text": "`a\n>\tb`",
-              "content": "a\n  b"
+              "content": "a\nb"
             }
           ]
         }
@@ -53,7 +53,7 @@
               "span": [2, 9],
               "text": "<a\n>\tb>",
               "isBlock": false,
-              "content": "<a\n  b>"
+              "content": "<a\nb>"
             }
           ]
         }
@@ -92,7 +92,7 @@
                   "kind": "Code",
                   "span": [2, 9],
                   "text": "`a\n \tb`",
-                  "content": "a\n  b"
+                  "content": "a\nb"
                 }
               ]
             }

@@ -1,0 +1,15 @@
+~~ textWrap: always, lineWidth: 30 ~~
+!! should not read a task list's indentation into a code span it wraps !!
+- [ ] prefix prefix `aa bb ccccccccc`
+
+[expect]
+- [ ] prefix prefix `aa bb
+      ccccccccc`
+
+!! should keep a code span already wrapped in a task list as it is !!
+- [ ] prefix prefix `aa bb
+      ccccccccc`
+
+[expect]
+- [ ] prefix prefix `aa bb
+      ccccccccc`
