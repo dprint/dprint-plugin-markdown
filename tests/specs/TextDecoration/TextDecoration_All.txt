@@ -191,6 +191,12 @@ _x **a*_
 
 1._a_
 
+!! should split the delimiters of emphasis around strong where the kinds differ !!
+***a***
+
+[expect]
+_**a**_
+
 !! should leave underscores that are not emphasis !!
 __太字__テキスト
 

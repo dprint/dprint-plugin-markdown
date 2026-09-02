@@ -1525,9 +1525,10 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// between two letters is one of them rather than a delimiter.
   fn delimits(decoration: &TextDecoration, delimiter: &str, outside: Surroundings, context: &Context) -> bool {
     let character = delimiter.chars().next().unwrap();
-    let content = content_span(&decoration.children);
-    let first = written_first_char(decoration.children.first(), content, context);
-    let last = written_last_char(decoration.children.last(), content, context);
+    let children = wrapped_content(decoration, delimiter, context);
+    let content = content_span(children);
+    let first = written_first_char(children.first(), content, context);
+    let last = written_last_char(children.last(), content, context);
     // the opening run is written between what precedes the decoration and the
     // content it wraps, and the closing run between that content and what
     // follows the decoration
@@ -1551,10 +1552,31 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// making a longer delimiter that means something else.
   fn collides(decoration: &TextDecoration, delimiter: &str, context: &Context) -> bool {
     let character = delimiter.chars().next().unwrap();
-    let content = content_span(&decoration.children);
-    written_first_char(decoration.children.first(), content, context) == Some(character)
-      || written_last_char(decoration.children.last(), content, context) == Some(character)
-      || text_can_pair(&decoration.children, character)
+    let children = wrapped_content(decoration, delimiter, context);
+    let content = content_span(children);
+    written_first_char(children.first(), content, context) == Some(character)
+      || written_last_char(children.last(), content, context) == Some(character)
+      || text_can_pair(children, character)
+  }
+
+  /// The nodes the delimiter is written directly against.
+  ///
+  /// That is the content of the decoration, except where emphasis wraps
+  /// nothing but strong written with the same character: there the two
+  /// delimiters run together into `***`, which reads as emphasis around strong
+  /// all the same, so it's the strong's content the run is written against.
+  fn wrapped_content<'a>(decoration: &'a TextDecoration<'a>, delimiter: &str, context: &Context) -> &'a [Node<'a>] {
+    if decoration.kind == TextDecorationKind::Emphasis {
+      if let [Node::TextDecoration(strong)] = decoration.children.as_slice() {
+        let content = content_span(&decoration.children);
+        if strong.kind == TextDecorationKind::Strong
+          && decoration_delimiter(strong, content, context).starts_with(delimiter)
+        {
+          return &strong.children;
+        }
+      }
+    }
+    &decoration.children
   }
 }
 
