@@ -17,3 +17,17 @@ test __strong__ or __strong__ test
 **wor**d
 **word**1
 __word__?
+
+!! should write emphasis around strong as one run of underscores !!
+___a___
+
+*__a__*
+
+__*a*__
+
+[expect]
+___a___
+
+___a___
+
+**_a_**

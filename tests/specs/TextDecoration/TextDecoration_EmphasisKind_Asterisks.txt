@@ -12,3 +12,17 @@ test **strong** or **strong** test
 
 [expect]
 _*a*_
+
+!! should write emphasis around strong as one run of asterisks !!
+***a***
+
+_**a**_
+
+**_a_**
+
+[expect]
+***a***
+
+***a***
+
+__*a*__
