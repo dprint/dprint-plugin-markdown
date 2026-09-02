@@ -68,11 +68,62 @@ fn gen_source_file(source_file: &SourceFile, context: &mut Context) -> PrintItem
 }
 
 fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
-  if nodes.is_empty() {
+  let Some(first) = nodes.first() else {
     return PrintItems::new();
-  }
+  };
   let dropped = dropped_breaks(nodes, context);
-  context.with_dropped_breaks(dropped, |context| gen_nodes_within_breaks(nodes, context))
+  context.with_dropped_breaks(dropped, |context| {
+    // the delimiter runs are gathered for the whole of a block's content, so
+    // the nodes nested within that content are written with the ones already
+    // gathered
+    if !is_inline_node(first) {
+      context.with_delimiter_runs(None, |context| gen_nodes_within_breaks(nodes, context))
+    } else if context.delimiter_runs().is_some() {
+      gen_nodes_within_breaks(nodes, context)
+    } else {
+      let runs = delimiter_runs(nodes, context);
+      context.with_delimiter_runs(Some(runs), |context| gen_nodes_within_breaks(nodes, context))
+    }
+  })
+}
+
+/// The runs of delimiter characters within the content of a block, which
+/// decide whether a text decoration within it can be written with a character
+/// other than the one it was written with. See [`decoration_delimiter`].
+fn delimiter_runs(nodes: &[Node], context: &Context) -> DelimiterRuns {
+  let mut runs = DelimiterRuns::default();
+  push_delimiter_runs(nodes, context, &mut runs);
+  runs
+}
+
+fn push_delimiter_runs(nodes: &[Node], context: &Context, runs: &mut DelimiterRuns) {
+  for node in nodes {
+    match node {
+      Node::TextDecoration(decoration) => runs.decorations.push(decoration.span),
+      Node::Text(text) => push_pairable_runs(text.span, context.file_text, &mut runs.pairable),
+      _ => {}
+    }
+    // a block nested within the content is written with runs of its own
+    if is_inline_node(node) {
+      push_delimiter_runs(node.children(), context, runs);
+    }
+  }
+}
+
+/// Pushes each run of `*` or `_` within the text at `span` that can open or
+/// close emphasis where it sits, which is decided by the characters of the
+/// file on either side of the run.
+fn push_pairable_runs(span: Span, file_text: &str, pairable: &mut Vec<(Span, char)>) {
+  for (start, end, c) in unescaped_delimiter_runs(span.text(file_text)) {
+    let (start, end) = (span.start + start, span.start + end);
+    let surroundings = Surroundings {
+      before: file_text[..start].chars().next_back(),
+      after: file_text[end..].chars().next(),
+    };
+    if run_can_pair(surroundings, c) {
+      pairable.push((Span::new(start, end), c));
+    }
+  }
 }
 
 /// The line breaks within the nodes, and everything nested in them, that
@@ -521,14 +572,16 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   // a paragraph begins where a block does, and a hard break puts what follows
   // it at the start of a line too, so neither can be left to read as the start
   // of a block of its own
-  items.extend(context.with_paragraph_escapes(paragraph_escapes(paragraph), |context| {
-    gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
-  }));
+  items.extend(
+    context.with_paragraph_escapes(paragraph_escapes(paragraph, context.file_text), |context| {
+      gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+    }),
+  );
   return items;
 
   /// What the paragraph has to be written with so that the text it writes at
   /// the start of a line isn't read as the start of a block.
-  fn paragraph_escapes(paragraph: &Paragraph) -> ParagraphEscapes {
+  fn paragraph_escapes(paragraph: &Paragraph, file_text: &str) -> ParagraphEscapes {
     let mut block_starts = Vec::new();
     let mut line_starts = LineStarts::default();
     // the first line of a paragraph has nothing above it to be read together
@@ -539,7 +592,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
       if at_line_start {
         line_starts.push(child.span().start);
         if let Node::Text(text) = child {
-          if let Some(position) = escape(text.text) {
+          if let Some(position) = line_start_escape_position(text, file_text, escape) {
             block_starts.push(BlockStartEscape {
               text_start: text.span.start,
               position,
@@ -556,6 +609,20 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
       block_starts,
       line_starts,
       end: paragraph.span.end,
+    }
+  }
+
+  /// Where the text written at the start of a line has to be escaped, reading
+  /// it together with whatever follows it on that line -- a `*` with a
+  /// decoration written right after it isn't the list marker it would be on
+  /// its own.
+  fn line_start_escape_position(text: &Text, file_text: &str, escape: fn(&str) -> Option<usize>) -> Option<usize> {
+    let following = file_text[text.span.end..].chars().next().filter(|c| !c.is_whitespace());
+    match following {
+      None => escape(text.text),
+      // the position is within the text, since what makes it markup is the
+      // character that begins it or, for an ordered list, ends its marker
+      Some(following) => escape(&format!("{}{}", text.text, following)),
     }
   }
 }
@@ -1300,21 +1367,124 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
       (asterisks, underscores)
     };
 
+    let written = written_delimiter(decoration, context);
+    let beside = Beside::of(decoration, outside, context);
+
     // the delimiter of a decoration written directly against this one is read by
     // what sits beside it, so changing this one's character would change theirs.
     // What the file already had parsed as this decoration, so it is safe.
-    if is_delimiter(outside.before) || is_delimiter(outside.after) {
-      return written_delimiter(decoration, context);
+    if beside.decoration {
+      return written;
     }
 
     for candidate in [preferred, other] {
+      if candidate != written && !beside.allows(candidate, written, decoration, context) {
+        continue;
+      }
       if delimits(decoration, candidate, outside, context) && !collides(decoration, candidate, context) {
         return candidate;
       }
     }
     // neither character can be written without running into the content, so keep
     // the one the file had
-    written_delimiter(decoration, context)
+    written
+  }
+
+  /// What is written directly against the decoration on either side, as far as
+  /// the choice of its delimiter is concerned.
+  struct Beside {
+    /// Whether another decoration is written directly against this one.
+    decoration: bool,
+    /// The delimiter characters of the text written directly against this one,
+    /// where there is such text.
+    text: [Option<char>; 2],
+    /// Whether the text written against either side is part of the run of
+    /// characters the decoration's delimiter was read out of -- a run that was
+    /// longer than the delimiter, which left the rest of it behind as text.
+    leftover: bool,
+  }
+
+  impl Beside {
+    fn of(decoration: &TextDecoration, outside: Surroundings, context: &Context) -> Beside {
+      let span = decoration.span;
+      let written = written_delimiter(decoration, context).chars().next();
+      let Some(runs) = context.delimiter_runs() else {
+        // without the runs of the block, a delimiter character beside the
+        // decoration can't be told apart from another decoration
+        return Beside {
+          decoration: is_delimiter(outside.before) || is_delimiter(outside.after),
+          text: [None, None],
+          leftover: false,
+        };
+      };
+      let sides = [
+        (
+          outside.before,
+          runs.has_decoration_ending_at(span.start),
+          context.drops_break_before(span.start),
+        ),
+        (
+          outside.after,
+          runs.has_decoration_starting_at(span.end),
+          context.drops_break_after(span.end),
+        ),
+      ];
+      let mut beside = Beside {
+        decoration: false,
+        text: [None, None],
+        leftover: false,
+      };
+      for (index, (character, is_decoration, across_break)) in sides.into_iter().enumerate() {
+        let character = character.filter(|c| is_delimiter(Some(*c)));
+        if character.is_none() {
+          continue;
+        }
+        // a delimiter character brought against the decoration by a dropped
+        // line break is read differently once it's written there, so it's
+        // treated as though it were a decoration and left alone
+        if is_decoration || across_break {
+          beside.decoration = true;
+        }
+        beside.text[index] = character;
+        beside.leftover |= character == written;
+      }
+      beside
+    }
+
+    /// Whether the decoration can be written with the candidate, which the
+    /// text beside it might not allow.
+    fn allows(&self, candidate: &str, written: &str, decoration: &TextDecoration, context: &Context) -> bool {
+      let candidate_char = candidate.chars().next();
+      // the text would run into the delimiter, making a longer run of it that
+      // means something else
+      if self.text.contains(&candidate_char) {
+        return false;
+      }
+      if !self.leftover {
+        return true;
+      }
+      // what's left of the run becomes a run of its own, which is read by what
+      // surrounds it and by how long it is, so it may pair up with another run
+      // of the character it couldn't before -- the "rule of three" only bars
+      // pairing by the length of the run as written. It's safe where there is
+      // nothing of that character for it to pair with: no text holding a run
+      // of it that could open or close emphasis, and no decoration around this
+      // one written with it, which a run within its content could reach
+      let Some(runs) = context.delimiter_runs() else {
+        return false;
+      };
+      let written_char = written.chars().next().unwrap();
+      if runs.has_pairable_run_away_from(decoration.span, written_char) {
+        return false;
+      }
+      runs.decorations_around(decoration.span).all(|around| {
+        // a decoration whose delimiter hasn't been decided yet is being decided
+        // right now, and the one it wraps can't wait for it
+        context
+          .resolved_decoration_delimiter(around.start)
+          .is_some_and(|delimiter| !delimiter.starts_with(written_char))
+      })
+    }
   }
 
   /// The characters the decoration is written between, leaving out the
@@ -1439,37 +1609,47 @@ fn text_can_pair(nodes: &[Node], delimiter: char) -> bool {
 /// Whether the text holds a run of the character that could open or close
 /// emphasis, and so pair with a delimiter of that character around it.
 fn can_pair_with_delimiter(text: &str, delimiter: char) -> bool {
+  unescaped_delimiter_runs(text)
+    .filter(|(_, _, c)| *c == delimiter)
+    .any(|(start, end, _)| {
+      // what sits outside the text is the delimiter this could pair with, or
+      // another node's punctuation -- either way, not whitespace
+      let before = text[..start].chars().next_back().unwrap_or(delimiter);
+      let after = text[end..].chars().next().unwrap_or(delimiter);
+      let surroundings = Surroundings {
+        before: Some(before),
+        after: Some(after),
+      };
+      run_can_pair(surroundings, delimiter)
+    })
+}
+
+/// Each run of `*` or `_` within the text that a backslash doesn't escape, as
+/// where it starts and ends and the character it's made of.
+fn unescaped_delimiter_runs(text: &str) -> impl Iterator<Item = (usize, usize, char)> + '_ {
   let mut chars = text.char_indices().peekable();
   let mut is_escaped = false;
-  while let Some((start, c)) = chars.next() {
-    // an escaped character is text of its own and pairs with nothing
-    if std::mem::take(&mut is_escaped) {
-      continue;
+  std::iter::from_fn(move || {
+    while let Some((start, c)) = chars.next() {
+      // an escaped character is text of its own and pairs with nothing
+      if std::mem::take(&mut is_escaped) {
+        continue;
+      }
+      if c == '\\' {
+        is_escaped = true;
+        continue;
+      }
+      if c != '*' && c != '_' {
+        continue;
+      }
+      let mut end = start + 1;
+      while chars.next_if(|(_, next)| *next == c).is_some() {
+        end += 1;
+      }
+      return Some((start, end, c));
     }
-    if c == '\\' {
-      is_escaped = true;
-      continue;
-    }
-    if c != delimiter {
-      continue;
-    }
-    let mut end = start + c.len_utf8();
-    while chars.next_if(|(_, next)| *next == delimiter).is_some() {
-      end += delimiter.len_utf8();
-    }
-    // what sits outside the text is the delimiter this could pair with, or
-    // another node's punctuation -- either way, not whitespace
-    let before = text[..start].chars().next_back().unwrap_or(delimiter);
-    let after = text[end..].chars().next().unwrap_or(delimiter);
-    let surroundings = Surroundings {
-      before: Some(before),
-      after: Some(after),
-    };
-    if run_can_pair(surroundings, delimiter) {
-      return true;
-    }
-  }
-  false
+    None
+  })
 }
 
 /// The characters written on either side of a run of delimiters, which is what

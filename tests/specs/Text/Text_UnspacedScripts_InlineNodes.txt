@@ -102,12 +102,12 @@
 
 日本語 **_テスト_**
 
-!! should keep it where a delimiter written beside the decoration lengthens its run !!
+!! should write what a delimiter run left beside the decoration after it !!
 日本語
 *テスト**
 
 [expect]
-日本語 *テスト**
+日本語 _テスト_*
 
 !! should keep it where the same kind of decoration is written within !!
 日本語

@@ -145,6 +145,52 @@ _a：)、*=*
 [expect]
 (*=*)
 
+!! should write a decoration read out of a longer run of delimiters with the configured kind !!
+*a**
+
+**a*
+
+***a**
+
+**a***
+
+**a* and _b_
+
+[expect]
+_a_*
+
+*_a_
+
+***a**
+
+**a***
+
+*_a_ and _b_
+
+!! should keep asterisks where what a run left beside the decoration could pair with a run written elsewhere !!
+*a** and *b
+
+x*y *a** z*
+
+_x **a*_
+
+[expect]
+*a** and *b
+
+x*y *a** z*
+
+_x **a*_
+
+!! should not escape text at the start of a line that a decoration written after it keeps from being markup !!
+-**a**
+
+1.*a*
+
+[expect]
+-**a**
+
+1._a_
+
 !! should leave underscores that are not emphasis !!
 __太字__テキスト
 
