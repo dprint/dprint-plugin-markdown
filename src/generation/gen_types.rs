@@ -38,6 +38,50 @@ pub struct DroppedBreaks {
   pub after: Vec<(usize, char)>,
 }
 
+/// The runs of `*` and `_` within the block being written that could be read
+/// as emphasis delimiters, which is what decides whether a text decoration can
+/// be written with a character other than the one it was written with.
+#[derive(Default)]
+pub struct DelimiterRuns {
+  /// Where each text decoration within the block sits, in order.
+  pub decorations: Vec<Span>,
+  /// Each run of a delimiter character within the text of the block that can
+  /// open or close emphasis where it sits, with that character, in order.
+  pub pairable: Vec<(Span, char)>,
+}
+
+impl DelimiterRuns {
+  /// Whether a text decoration ends right where `start` is.
+  pub fn has_decoration_ending_at(&self, start: usize) -> bool {
+    self.decorations.iter().any(|span| span.end == start)
+  }
+
+  /// Whether a text decoration begins right where `end` is.
+  pub fn has_decoration_starting_at(&self, end: usize) -> bool {
+    self.decorations.iter().any(|span| span.start == end)
+  }
+
+  /// The decorations the one at `span` is written within, from outermost to
+  /// innermost.
+  pub fn decorations_around(&self, span: Span) -> impl Iterator<Item = Span> + '_ {
+    self
+      .decorations
+      .iter()
+      .copied()
+      .filter(move |other| other.start < span.start && other.end > span.end)
+  }
+
+  /// Whether the text of the block holds a run of the character that can open
+  /// or close emphasis, other than one written directly against the decoration
+  /// at `span`.
+  pub fn has_pairable_run_away_from(&self, span: Span, character: char) -> bool {
+    self
+      .pairable
+      .iter()
+      .any(|(run, c)| *c == character && run.end != span.start && run.start != span.end)
+  }
+}
+
 /// What the paragraph being written has to be written with in order to be read
 /// back as the paragraph it is.
 pub struct ParagraphEscapes {
@@ -152,6 +196,9 @@ pub struct Context<'a> {
   block_end: Option<usize>,
   /// The line breaks between the nodes being written that aren't written out.
   dropped_breaks: DroppedBreaks,
+  /// The delimiter runs of the block being written, once its content is being
+  /// written.
+  delimiter_runs: Option<DelimiterRuns>,
   /// The delimiter each text decoration is written with, by where it starts.
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The marker of the list item being generated.
@@ -205,6 +252,7 @@ impl<'a> Context<'a> {
       line_start_texts: LineStarts::default(),
       block_end: None,
       dropped_breaks: Default::default(),
+      delimiter_runs: None,
       decoration_delimiters: std::cell::RefCell::new(HashMap::new()),
       list_marker: ListItemMarker {
         char: None,
@@ -439,6 +487,21 @@ impl<'a> Context<'a> {
     result
   }
 
+  /// Generates a run of nodes, `runs` holding the delimiter runs of the block
+  /// they belong to -- or nothing, where the nodes are blocks of their own.
+  pub fn with_delimiter_runs<T>(&mut self, runs: Option<DelimiterRuns>, func: impl FnOnce(&mut Context) -> T) -> T {
+    let previous = std::mem::replace(&mut self.delimiter_runs, runs);
+    let result = func(self);
+    self.delimiter_runs = previous;
+    result
+  }
+
+  /// The delimiter runs of the block being written, if its content is what's
+  /// being written.
+  pub fn delimiter_runs(&self) -> Option<&DelimiterRuns> {
+    self.delimiter_runs.as_ref()
+  }
+
   /// Whether the line break written before the node starting here is dropped
   /// rather than written out.
   pub fn drops_break_before(&self, start: usize) -> bool {
@@ -446,6 +509,16 @@ impl<'a> Context<'a> {
       .dropped_breaks
       .before
       .binary_search_by_key(&start, |(at, _)| *at)
+      .is_ok()
+  }
+
+  /// Whether the line break written after the node ending here is dropped
+  /// rather than written out.
+  pub fn drops_break_after(&self, end: usize) -> bool {
+    self
+      .dropped_breaks
+      .after
+      .binary_search_by_key(&end, |(at, _)| *at)
       .is_ok()
   }
 
@@ -498,6 +571,12 @@ impl<'a> Context<'a> {
     let delimiter = resolve();
     self.decoration_delimiters.borrow_mut().insert(start, delimiter);
     delimiter
+  }
+
+  /// The delimiter the decoration starting at `start` is written with, if that
+  /// has been worked out already.
+  pub fn resolved_decoration_delimiter(&self, start: usize) -> Option<&'static str> {
+    self.decoration_delimiters.borrow().get(&start).copied()
   }
 
   /// Whether the html is the comment that turns off formatting for the node
