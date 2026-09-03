@@ -82,9 +82,115 @@ fn gen_nodes(nodes: &[Node], context: &mut Context) -> PrintItems {
       gen_nodes_within_breaks(nodes, context)
     } else {
       let runs = delimiter_runs(nodes, context);
-      context.with_delimiter_runs(Some(runs), |context| gen_nodes_within_breaks(nodes, context))
+      let needs_checking = decorations_need_checking(nodes, &runs, context);
+      let items = context.with_delimiter_runs(Some(runs), |context| gen_nodes_within_breaks(nodes, context));
+      if needs_checking {
+        gen_checked_decorations(nodes, items, context)
+      } else {
+        items
+      }
     }
   })
+}
+
+/// Whether the decorations of a block's content have to be read back out of
+/// what it is written as, to make sure they are the ones the file held.
+///
+/// The delimiter each decoration is written with is chosen by what sits beside
+/// it, one decoration at a time. A decoration on its own is safe that way, but
+/// where runs of delimiter characters meet -- a decoration beside another, a
+/// run left over from what a decoration was read out of, a run against a hard
+/// break that is written differently -- how they pair up is decided by all of
+/// them together, which is what a reader is asked about here.
+fn decorations_need_checking(nodes: &[Node], runs: &DelimiterRuns, context: &Context) -> bool {
+  // the text of a reference is written as it was, so there is nothing to check
+  if context.is_preserving_decorations() {
+    return false;
+  }
+  !runs.pairable.is_empty() || runs.decorations.len() > 1 || (!runs.decorations.is_empty() && holds_hard_break(nodes))
+}
+
+fn holds_hard_break(nodes: &[Node]) -> bool {
+  nodes
+    .iter()
+    .any(|node| matches!(node, Node::HardBreak(_)) || holds_hard_break(node.children()))
+}
+
+/// Writes a block's content so that its decorations read back as they were:
+/// as `items` where they already do, otherwise with the decorations and hard
+/// breaks written as they were in the file, and failing that as the text of
+/// the file itself.
+fn gen_checked_decorations(nodes: &[Node], items: PrintItems, context: &mut Context) -> PrintItems {
+  let (items, rendered) = clone_items(items);
+  if reads_back_decorations(nodes, rendered, context) {
+    return items;
+  }
+  let preserved = context.with_preserved_decorations(|context| gen_nodes(nodes, context));
+  let (preserved, rendered) = clone_items(preserved);
+  if reads_back_decorations(nodes, rendered, context) {
+    return preserved;
+  }
+  let (Some(first), Some(last)) = (nodes.first(), nodes.last()) else {
+    return preserved;
+  };
+  gen_ignored_text(&context.file_text[first.span().start..last.span().end], false, context)
+}
+
+/// Whether the decorations read out of the text the items print as are the
+/// ones the nodes hold.
+fn reads_back_decorations(nodes: &[Node], items: PrintItems, context: &Context) -> bool {
+  let line_width = context
+    .configuration
+    .line_width
+    .saturating_sub(context.indent_level)
+    .max(10);
+  let text = print(
+    items,
+    PrintOptions {
+      indent_width: 0,
+      max_width: line_width,
+      use_tabs: false,
+      new_line_text: "\n",
+    },
+  );
+  // the content is read as the lines of a paragraph that has already begun,
+  // which is where it sits: what it begins with can't start a block there
+  // (ex. a bare tag, which begins a block of its own at the start of a file)
+  let text = format!("x\n{text}");
+  let Ok(file) = crate::parser::parse(&text) else {
+    return false;
+  };
+  written_decorations(&file.children, &text) == written_decorations(nodes, context.file_text)
+}
+
+/// The decorations within the nodes in the order they are written, each as its
+/// kind and the content of the text it was read out of.
+fn written_decorations(nodes: &[Node], source: &str) -> Vec<(TextDecorationKind, String)> {
+  let mut decorations = Vec::new();
+  push_written_decorations(nodes, source, &mut decorations);
+  decorations
+}
+
+fn push_written_decorations(nodes: &[Node], source: &str, decorations: &mut Vec<(TextDecorationKind, String)>) {
+  for node in nodes {
+    if let Node::TextDecoration(decoration) = node {
+      decorations.push((decoration.kind, written_content(decoration.span.text(source))));
+    }
+    push_written_decorations(node.children(), source, decorations);
+    if let Node::Item(item) = node {
+      push_written_decorations(&item.sub_lists, source, decorations);
+    }
+  }
+}
+
+/// The text apart from the characters formatting is free to change: the
+/// delimiters of decorations and code spans, escapes, the brackets and quotes
+/// around a destination or a title, and whitespace.
+fn written_content(text: &str) -> String {
+  text
+    .chars()
+    .filter(|c| !matches!(c, '*' | '_' | '~' | '`' | '<' | '>' | '"' | '\'' | '\\') && !c.is_whitespace())
+    .collect()
 }
 
 /// The runs of delimiter characters within the content of a block, which
@@ -196,6 +302,9 @@ fn push_dropped_breaks(nodes: &[Node], context: &Context, dropped: &mut DroppedB
 
 /// Whether the node is written within a paragraph rather than as a block.
 fn is_inline_node(node: &Node) -> bool {
+  if let Node::Html(html) = node {
+    return !html.is_block;
+  }
   matches!(
     node,
     Node::Code(_)
@@ -2807,8 +2916,14 @@ fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
     // the line, so a backslash is written where there isn't -- a line holding
     // nothing but whitespace ends the paragraph rather than breaking a line
     // within it
-    let writes_double_space = context.configuration.hard_break_kind == HardBreakKind::DoubleSpace
-      && !context.is_line_start(hard_break.span.start);
+    let writes_double_space = if context.is_preserving_decorations() {
+      // the break is written as it was, since the delimiters that may sit
+      // against it are being written as they were and are read by it
+      !context.file_text[hard_break.span.start..].starts_with('\\')
+    } else {
+      context.configuration.hard_break_kind == HardBreakKind::DoubleSpace
+        && !context.is_line_start(hard_break.span.start)
+    };
     if writes_double_space {
       // the two spaces sit at the end of the line, where they take no visible
       // width, so they're written as zero columns to keep them out of the
