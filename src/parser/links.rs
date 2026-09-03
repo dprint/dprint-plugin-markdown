@@ -183,7 +183,8 @@ pub fn match_destination<'a>(text: &InlineText<'a>, start: usize) -> Option<(usi
     }
     index += 1;
   }
-  (index > start).then(|| (index, text.slice(start, index)))
+  // a parenthesis is only part of a destination as one of a balanced pair
+  (index > start && depth == 0).then(|| (index, text.slice(start, index)))
 }
 
 /// Matches a link title, which may be in double quotes, single quotes or

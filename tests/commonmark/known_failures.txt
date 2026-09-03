@@ -1,0 +1,25 @@
+# The spec examples that are known not to come out as the spec says, one per
+# line as `<example> <parse|format> <why>`. `parse` is the html rendered from
+# the parser's ast; `format` is the same for the formatter's output, compared
+# with the whitespace outside of code collapsed. An example that fails to
+# parse is not expected to format either.
+#
+# The test fails on an example that isn't listed here, and on one listed here
+# that passes, so a fix takes its line out.
+
+96 parse the document opens with `---`, which the formatter reads as front matter
+540 parse a label is matched lowercased rather than case folded, so `ẞ` doesn't match `SS`
+
+5 format the common indentation of an indented code block is dropped (codeBlock.preserveIndentation)
+6 format the common indentation of an indented code block is dropped (codeBlock.preserveIndentation)
+7 format the common indentation of an indented code block is dropped (codeBlock.preserveIndentation)
+257 format the common indentation of an indented code block is dropped (codeBlock.preserveIndentation)
+274 format the common indentation of an indented code block is dropped (codeBlock.preserveIndentation)
+118 format trailing whitespace on a line of code is dropped
+127 format blank lines at the edges of a fenced code block are dropped (codeBlock.preserveBlankLines)
+129 format blank lines at the edges of a fenced code block are dropped (codeBlock.preserveBlankLines)
+318 format blank lines at the edges of a fenced code block are dropped (codeBlock.preserveBlankLines)
+172 format the html formatter puts the `>` of a tag written over several lines on a line of its own
+196 format a definition's title loses the line endings at its edges
+349 format a code span is written with fewer backticks beside a literal backtick, which then pairs with it
+417 format the closing run of nested strong merges with the literal run after it
