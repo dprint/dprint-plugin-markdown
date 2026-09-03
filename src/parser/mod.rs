@@ -36,6 +36,7 @@ pub use source::SPACES;
 pub use source::WHITESPACE;
 
 use block::BlockParser;
+use inline::parse_inlines;
 use inline::InlineContext;
 use source::source_lines;
 use source::ContentLine;
@@ -64,7 +65,7 @@ pub fn parse(source: &str) -> Result<SourceFile<'_>, ParseError> {
   let (metadata, body_start) = parse_metadata_block(source, &lines);
 
   let (link_labels, footnote_labels) = collect_labels(source, &lines[body_start..]);
-  let context = InlineContext::new(source, link_labels, footnote_labels, false);
+  let context = InlineContext::new(source, link_labels.clone(), footnote_labels.clone(), false);
   let parser = BlockParser {
     source,
     context: &context,
@@ -86,7 +87,24 @@ pub fn parse(source: &str) -> Result<SourceFile<'_>, ParseError> {
   Ok(SourceFile {
     span: Span::new(0, source.len()),
     children,
+    link_labels,
+    footnote_labels,
   })
+}
+
+/// Parses text as the inline content of a paragraph, resolving the references
+/// within it against the given labels.
+///
+/// This is how the formatter reads back what it wrote a block's content as, to
+/// check that it holds the decorations the block did.
+pub fn parse_inline_content<'a>(
+  text: &'a str,
+  link_labels: &HashSet<String>,
+  footnote_labels: &HashSet<String>,
+) -> Vec<Node<'a>> {
+  let lines = source_lines(text);
+  let context = InlineContext::new(text, link_labels.clone(), footnote_labels.clone(), false);
+  parse_inlines(&lines, &context)
 }
 
 /// Parses the front matter at the top of the file, returning the line the rest

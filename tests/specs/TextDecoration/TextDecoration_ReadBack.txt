@@ -1,0 +1,81 @@
+!! should write nested strong as it was where a run left over from it would merge with the closing delimiter !!
+foo******bar*********baz
+
+[expect]
+foo******bar*********baz
+
+!! should write emphasis around strong as it was where a run left over from it sits before the opening delimiter !!
+.____.a___.
+
+[expect]
+.____.a___.
+
+!! should write nested emphasis as it was where alternating the characters would let the innermost close the outermost !!
+***'x
+#a*
+bar*a*
+
+[expect]
+***'x
+#a*
+bar*a*
+
+!! should keep a run of delimiters off a backslash hard break that would make it an opener !!
+**  
+foo**
+
+[expect]
+**  
+foo**
+
+!! should keep the space between a run of delimiters and a backslash hard break !!
+__ \
+'x___
+
+[expect]
+__ \
+'x___
+
+!! should not escape only the first character of a run, which leaves a run of a different length !!
+x  
+***[a](/u)a*
+
+[expect]
+x  
+***[a](/u)a*
+
+!! should write a run left over from a decoration's delimiter as it was within a list item !!
+- ***===foo---**
+  .&amp;
+  ***</b>\\<!---->***
+
+[expect]
+- ***===foo---**
+  .&amp;
+  ***</b>\\<!---->***
+
+!! should still write a decoration on its own with the configured character !!
+some *emphasis* and **strong** text
+
+[expect]
+some _emphasis_ and **strong** text
+
+!! should still alternate the characters of emphasis around strong !!
+***foo***
+
+[expect]
+_**foo**_
+
+!! should check the decorations of a paragraph that begins with a tag !!
+<a>[a][r1]a  
+****![a][r1]*****<http://x.y>*
+
+[expect]
+<a>[a][r1]a  
+****![a][r1]*****<http://x.y>*
+
+!! should compare the content of decorations that hold no letters !!
+***___]___<a/>
+
+[expect]
+***___]___<a/>

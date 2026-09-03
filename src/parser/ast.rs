@@ -7,6 +7,7 @@
 //! block quote) had to be stripped out of the middle of it.
 
 use std::borrow::Cow;
+use std::collections::HashSet;
 
 /// A byte range into the source text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,6 +38,11 @@ pub trait Ranged {
 pub struct SourceFile<'a> {
   pub span: Span,
   pub children: Vec<Node<'a>>,
+  /// The normalized labels of the link reference definitions the file holds,
+  /// which decide whether a `[label]` within it is a link.
+  pub link_labels: HashSet<String>,
+  /// The labels of the footnote definitions the file holds.
+  pub footnote_labels: HashSet<String>,
 }
 
 /// A `---` or `+++` delimited block of front matter at the top of a file.

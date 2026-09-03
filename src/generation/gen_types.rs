@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use dprint_core::formatting::PrintItemPath;
@@ -181,6 +182,11 @@ pub enum MemoizedRcPathKind {
 pub struct Context<'a> {
   pub file_text: &'a str,
   pub configuration: &'a Configuration,
+  /// The normalized labels of the file's link reference definitions, which
+  /// what the formatter writes is read back against.
+  link_labels: HashSet<String>,
+  /// The labels of the file's footnote definitions.
+  footnote_labels: HashSet<String>,
   /// The current indentation level of what's being printed out.
   pub indent_level: u32,
   /// The current indentation level within the file being formatted.
@@ -248,12 +254,16 @@ impl<'a> Context<'a> {
   pub fn new(
     file_text: &'a str,
     configuration: &'a Configuration,
+    labels: (HashSet<String>, HashSet<String>),
     format_code_block_text: impl for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a,
     code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
   ) -> Context<'a> {
+    let (link_labels, footnote_labels) = labels;
     Context {
       file_text,
       configuration,
+      link_labels,
+      footnote_labels,
       indent_level: 0,
       raw_indent_level: 0,
       is_in_list_count: 0,
@@ -685,6 +695,16 @@ impl<'a> Context<'a> {
       }),
       _ => (self.format_code_block_text)(tag, text, line_width),
     }
+  }
+
+  /// The normalized labels of the file's link reference definitions.
+  pub fn link_labels(&self) -> &HashSet<String> {
+    &self.link_labels
+  }
+
+  /// The labels of the file's footnote definitions.
+  pub fn footnote_labels(&self) -> &HashSet<String> {
+    &self.footnote_labels
   }
 
   pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {
