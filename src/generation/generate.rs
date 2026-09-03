@@ -2395,6 +2395,8 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
       let mut buffer = MarkerBuffer::default();
+      let beside = context.take_bullets_beside();
+      let mut bullets_beside = 0;
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
         let display_index = if is_all_ones_list(list, context) {
@@ -2408,7 +2410,19 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         };
         buffer.write(display_index, end_char)
       } else {
-        buffer.write_char(context.configuration.list_unordered_marker.list_char(is_alternate))
+        let mut list_char = context.configuration.list_unordered_marker.list_char(is_alternate);
+        bullets_beside = match beside {
+          Some((character, count)) if character == list_char => count + 1,
+          _ => 1,
+        };
+        // three or more bullets of one character with nothing else on the line
+        // read as a thematic break rather than as the markers they are, so the
+        // last of them is written with the other character
+        if bullets_beside >= 3 && line_ends_at_marker(child, context) {
+          list_char = context.configuration.list_unordered_marker.list_char(!is_alternate);
+          bullets_beside = 1;
+        }
+        buffer.write_char(list_char)
       };
       let marker_width = prefix_text.chars().count() as u32 + 1;
       let indent_increment = match context.configuration.list_indent_kind {
@@ -2419,6 +2433,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         // only a bullet marker shares its character with a thematic break
         char: list.start_index.is_none().then(|| prefix_text.chars().next()).flatten(),
         lines_up: indent_increment == marker_width,
+        bullets_beside,
       };
       context.indent_level += indent_increment;
       items.push_str(prefix_text);
@@ -2434,6 +2449,22 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+/// Whether nothing is written after the item's marker on the line it begins,
+/// which leaves that line holding only markers.
+fn line_ends_at_marker(item: &Node, context: &Context) -> bool {
+  let Node::Item(item) = item else {
+    return false;
+  };
+  item.marker.is_none()
+    && match item.children.first() {
+      // what an item begins with is written beside its marker, unless a blank
+      // line puts it on a line of its own
+      Some(first) => context.has_leading_blankline(first.span().start),
+      // an item holding nothing but lists has them written beside its marker
+      None => item.sub_lists.is_empty(),
+    }
 }
 
 fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
@@ -2453,6 +2484,20 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
       context.mark_marker_beside();
     }
   }
+  // a list written beside the item's marker puts its first marker on the same
+  // line, which then holds nothing but markers
+  let list_beside = match item.children.first() {
+    Some(first @ Node::List(_)) => !context.has_leading_blankline(first.span().start),
+    Some(_) => false,
+    None => !item.sub_lists.is_empty(),
+  };
+  if list_beside && item.marker.is_none() {
+    let marker = context.list_item_marker();
+    if let Some(character) = marker.char {
+      context.mark_bullets_beside(character, marker.bullets_beside);
+    }
+  }
+
   items.extend(gen_task_list_marker_children(
     &item.children,
     item.marker.as_ref(),
