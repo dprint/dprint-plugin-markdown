@@ -1,29 +1,34 @@
 //! Runs the CommonMark spec examples through the parser, rendering its ast to
-//! html the way the reference implementation does, and reports the examples
-//! whose html differs from what the spec says.
+//! html the way the reference implementation does, and checks the html against
+//! what the spec says.
 //!
 //! The same is then done with the formatter's output for each example, which
 //! is how formatting is checked to keep what a document says. The formatter
-//! decides the whitespace between words itself, so that check is also made
-//! with the whitespace outside of code collapsed, which is the count to read.
+//! decides the whitespace between words itself, so that check is made with the
+//! whitespace outside of code collapsed.
 //!
-//! Set `COMMONMARK_SPEC=<spec.json>` (from spec.commonmark.org) and
-//! `HTML_ENTITIES=<entities.json>` (from html.spec.whatwg.org); the test does
-//! nothing without them. Set `SPEC_REPORT=<file>` to write the failures out in
-//! full, `SPEC_STRICT=1` to report a formatted example that only differs in
-//! whitespace, and `SPEC_PRESERVE_CODE=1` to turn on the code block options
-//! that would otherwise change what a code block holds.
+//! The examples live under `tests/commonmark`, along with the list of the ones
+//! known to fail either check and why. The test fails on any other example
+//! that does, and on a listed one that passes, so a fix takes its line out.
 //!
-//! The spec's examples aren't the only markdown this reads: a file of the same
-//! shape (`markdown`, `html`, `example`, `section`) rendered by another
-//! implementation is checked the same way, which is how the parser is compared
-//! with one on markdown the spec has no example of.
+//! Set `SPEC_REPORT=<file>` to write the failures out in full, `SPEC_STRICT=1`
+//! to report a formatted example that only differs in whitespace, and
+//! `SPEC_PRESERVE_CODE=1` to turn on the code block options that would
+//! otherwise change what a code block holds.
+//!
+//! The spec's examples aren't the only markdown this reads: set
+//! `COMMONMARK_SPEC=<file>` to a file of the same shape (`markdown`, `html`,
+//! `example`, `section`) rendered by another implementation and it is reported
+//! on the same way, without the known failures being checked. That is how the
+//! parser is compared with another on markdown the spec has no example of.
 
 #[path = "../src/parser/mod.rs"]
 #[allow(unused_imports, dead_code)]
 mod parser;
 
 use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
 
 use parser::*;
 
@@ -37,14 +42,16 @@ struct Example {
 
 #[test]
 fn checks_the_commonmark_spec() {
-  let Ok(spec_path) = std::env::var("COMMONMARK_SPEC") else {
-    return;
-  };
-  let entities_path = std::env::var("HTML_ENTITIES").expect("HTML_ENTITIES");
+  let data_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/commonmark");
+  // another file of examples is only reported on, since the known failures
+  // are those of the spec's
+  let other_examples = std::env::var("COMMONMARK_SPEC").ok().map(PathBuf::from);
+  let spec_path = other_examples.clone().unwrap_or_else(|| data_dir.join("spec.json"));
   let examples: Vec<Example> = serde_json::from_str(&std::fs::read_to_string(spec_path).unwrap()).unwrap();
   let entities: HashMap<String, EntityValue> =
-    serde_json::from_str(&std::fs::read_to_string(entities_path).unwrap()).unwrap();
+    serde_json::from_str(&std::fs::read_to_string(data_dir.join("entities.json")).unwrap()).unwrap();
   let entities: HashMap<String, String> = entities.into_iter().map(|(k, v)| (k, v.characters)).collect();
+  let known = KnownFailures::read(&data_dir.join("known_failures.txt"));
   let mut builder = dprint_plugin_markdown::configuration::ConfigurationBuilder::new();
   // the code block options that change what a block holds are turned off
   // with `SPEC_PRESERVE_CODE`, which leaves only what the formatter does
@@ -58,6 +65,8 @@ fn checks_the_commonmark_spec() {
 
   let mut report = String::new();
   let mut sections: Vec<(String, usize, usize, usize, usize)> = Vec::new(); // name, total, parse ok, format ok, format loose ok
+  let mut parse_failures = Vec::new();
+  let mut format_failures = Vec::new();
   for example in &examples {
     let actual = render_document(&example.markdown, &entities);
     let parse_ok = actual == example.html;
@@ -87,6 +96,12 @@ fn checks_the_commonmark_spec() {
     entry.2 += parse_ok as usize;
     entry.3 += format_ok as usize;
     entry.4 += format_loose_ok as usize;
+    if !parse_ok {
+      parse_failures.push(example.example);
+    }
+    if !format_loose_ok {
+      format_failures.push(example.example);
+    }
 
     let strict = std::env::var("SPEC_STRICT").is_ok();
     if !parse_ok || (if strict { !format_ok } else { !format_loose_ok }) {
@@ -127,11 +142,79 @@ fn checks_the_commonmark_spec() {
   if let Ok(path) = std::env::var("SPEC_REPORT") {
     std::fs::write(path, format!("{summary}\n{report}")).unwrap();
   }
+  if other_examples.is_some() {
+    return;
+  }
+
+  let mut problems = Vec::new();
+  problems.extend(known.compare("parse", &parse_failures, &known.parse));
+  // an example the parser doesn't read as the spec says won't format as it
+  // says either, so it isn't listed twice
+  let expected_format: Vec<usize> = known.format.iter().chain(&known.parse).copied().collect();
+  problems.extend(known.compare("format", &format_failures, &expected_format));
+  assert!(
+    problems.is_empty(),
+    "{}\n\nSet SPEC_REPORT=<file> to write out how each failing example differs.",
+    problems.join("\n")
+  );
 }
 
 #[derive(serde::Deserialize)]
 struct EntityValue {
   characters: String,
+}
+
+/// The examples listed in `known_failures.txt` as not coming out as the spec
+/// says.
+struct KnownFailures {
+  parse: Vec<usize>,
+  format: Vec<usize>,
+}
+
+impl KnownFailures {
+  fn read(path: &Path) -> KnownFailures {
+    let mut known = KnownFailures {
+      parse: Vec::new(),
+      format: Vec::new(),
+    };
+    for line in std::fs::read_to_string(path).unwrap().lines() {
+      let line = line.trim();
+      if line.is_empty() || line.starts_with('#') {
+        continue;
+      }
+      let mut words = line.splitn(3, ' ');
+      let example: usize = words
+        .next()
+        .unwrap()
+        .parse()
+        .unwrap_or_else(|_| panic!("bad line: {line}"));
+      match words.next() {
+        Some("parse") => known.parse.push(example),
+        Some("format") => known.format.push(example),
+        _ => panic!("bad line: {line}"),
+      }
+    }
+    known
+  }
+
+  /// What differs between the examples that failed a check and the ones that
+  /// were expected to, as messages naming each.
+  fn compare(&self, check: &str, failed: &[usize], expected: &[usize]) -> Vec<String> {
+    let mut problems = Vec::new();
+    for example in failed {
+      if !expected.contains(example) {
+        problems.push(format!("example {example} doesn't {check} as the spec says"));
+      }
+    }
+    for example in expected {
+      if !failed.contains(example) {
+        problems.push(format!(
+          "example {example} now {check}s as the spec says, so its line in known_failures.txt can go"
+        ));
+      }
+    }
+    problems
+  }
 }
 
 /// The html with the whitespace outside of code collapsed, which is what the
