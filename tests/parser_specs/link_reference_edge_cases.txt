@@ -450,3 +450,134 @@ bar
     }
   ]
 }
+[[test]] an underline after a label and colon makes a heading rather than a destination
+[r1]:
+==
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 8],
+  "text": "[r1]:\n==",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 8],
+      "text": "[r1]:\n==",
+      "level": 1,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "[r1]:"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a single dash underline after a label and colon makes a heading
+[r1]:
+  -
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "[r1]:\n  -",
+  "children": [
+    {
+      "kind": "Heading",
+      "span": [0, 9],
+      "text": "[r1]:\n  -",
+      "level": 2,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "[r1]:"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an underline after a complete definition is text
+[r1]: /u
+===
+[r1]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[r1]: /u\n===\n[r1]",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 8],
+      "text": "[r1]: /u",
+      "name": "r1",
+      "link": "/u"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [9, 17],
+      "text": "===\n[r1]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [9, 12],
+          "text": "==="
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [12, 13],
+          "text": "\n"
+        },
+        {
+          "kind": "ShortcutLink",
+          "span": [13, 17],
+          "text": "[r1]",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [14, 16],
+              "text": "r1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] an underline after a definition and text makes a heading of the text
+[r1]: /u
+foo
+===
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "[r1]: /u\nfoo\n===",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 8],
+      "text": "[r1]: /u",
+      "name": "r1",
+      "link": "/u"
+    },
+    {
+      "kind": "Heading",
+      "span": [9, 16],
+      "text": "foo\n===",
+      "level": 1,
+      "headingStyle": "Setext",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [9, 12],
+          "text": "foo"
+        }
+      ]
+    }
+  ]
+}

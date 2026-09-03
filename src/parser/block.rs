@@ -567,7 +567,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
   /// the line that follows them.
   ///
   /// They can only appear where a paragraph would begin, so this looks no
-  /// further than the blank line that ends one.
+  /// further than what ends one: a blank line, a block that interrupts it, or
+  /// an underline that makes a heading of it.
   fn push_link_reference_definitions(
     &self,
     lines: &[ContentLine<'a>],
@@ -581,12 +582,17 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     }
 
     let mut block_end = index + 1;
-    while block_end < lines.len()
-      && !lines[block_end].is_blank()
-      && !(!lines[block_end].is_lazy
-        && lines[block_end].indent_columns() < CODE_INDENT
-        && self.interrupts_paragraph(lines, block_end))
-    {
+    while block_end < lines.len() && !lines[block_end].is_blank() {
+      let line = lines[block_end];
+      // a definition has to be complete before an underline, which makes a
+      // heading of whatever the definitions above it leave -- so an underline
+      // is never the destination a definition was still waiting for
+      if !line.is_lazy
+        && line.indent_columns() < CODE_INDENT
+        && (self.interrupts_paragraph(lines, block_end) || setext_heading_level(line.rest()).is_some())
+      {
+        break;
+      }
       block_end += 1;
     }
     let content = &lines[index..block_end];
