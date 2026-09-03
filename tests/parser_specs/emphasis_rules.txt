@@ -589,3 +589,89 @@ a* b* c* d* e* f*
     }
   ]
 }
+[[test]] a closer without an opener between a wrapped pair does not hide a later opener
+*a_)b*_c_
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 9],
+  "text": "*a_)b*_c_",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "*a_)b*_c_",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 6],
+          "text": "*a_)b*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 5],
+              "text": "a_)b"
+            }
+          ]
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [6, 9],
+          "text": "_c_",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [7, 8],
+              "text": "c"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+[[test]] a closer without an opener between a wrapped pair, with spaces around the later pair
+*foo_) bar* _baz_
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "*foo_) bar* _baz_",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 17],
+      "text": "*foo_) bar* _baz_",
+      "children": [
+        {
+          "kind": "TextDecoration",
+          "span": [0, 11],
+          "text": "*foo_) bar*",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 10],
+              "text": "foo_) bar"
+            }
+          ]
+        },
+        {
+          "kind": "TextDecoration",
+          "span": [12, 17],
+          "text": "_baz_",
+          "decoration": "Emphasis",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [13, 16],
+              "text": "baz"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

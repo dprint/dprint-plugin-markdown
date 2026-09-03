@@ -285,6 +285,10 @@ struct Delimiter {
   /// used up.
   start: usize,
   end: usize,
+  /// Where the run was read, which stays put as it's used up. No two
+  /// delimiters share one, and they're held in that order, so it says where a
+  /// delimiter was even after the ones around it are dropped.
+  origin: usize,
   /// How many characters the run held to begin with, which is what the rule
   /// of three weighs.
   original_len: usize,
@@ -569,6 +573,7 @@ impl<'a, 'b> InlineParser<'a, 'b> {
       node_index,
       start,
       end,
+      origin: start,
       original_len: end - start,
       can_open: true,
       can_close: false,
@@ -720,6 +725,7 @@ impl<'a, 'b> InlineParser<'a, 'b> {
       node_index,
       start,
       end,
+      origin: start,
       original_len: length,
       can_open,
       can_close,
@@ -759,7 +765,9 @@ impl<'a, 'b> InlineParser<'a, 'b> {
   fn process_emphasis(&mut self, bottom: usize) {
     // where a closer found no opener, no closer of the same kind after it will
     // find one below it either, so the search for one starts there instead of
-    // going over all of them again
+    // going over all of them again. That place is remembered as the origin of
+    // the closer rather than its index, since wrapping a pair drops the
+    // delimiters between them and moves the ones after down
     let mut openers_bottom = std::collections::HashMap::<(u8, usize, bool), usize>::new();
     let mut closer_index = bottom;
     while closer_index < self.delimiters.len() {
@@ -774,9 +782,15 @@ impl<'a, 'b> InlineParser<'a, 'b> {
       }
 
       let key = (byte, closer.original_len % 3, closer.can_open);
-      let lower = openers_bottom.get(&key).copied().unwrap_or(bottom).max(bottom);
+      let lower = match openers_bottom.get(&key) {
+        Some(&origin) => self
+          .delimiters
+          .partition_point(|delimiter| delimiter.origin < origin)
+          .max(bottom),
+        None => bottom,
+      };
       let Some(opener_index) = self.find_opener(lower, closer_index, byte) else {
-        openers_bottom.insert(key, closer_index);
+        openers_bottom.insert(key, self.delimiters[closer_index].origin);
         // a closer with no opener can still open emphasis of its own
         if !self.delimiters[closer_index].can_open {
           self.delimiters[closer_index].can_close = false;
