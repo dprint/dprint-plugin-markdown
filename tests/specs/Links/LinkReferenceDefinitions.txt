@@ -171,3 +171,45 @@ foo
 [_a_][ref]
 
 [ref]: /url
+
+!! should keep a paragraph that follows a definition on the line below it, where a bare tag can't start a block !!
+[a]: /url
+<b>
+
+[expect]
+[a]: /url
+<b>
+
+!! should do so for a closing tag !!
+[a]: /url
+</b>
+
+[expect]
+[a]: /url
+</b>
+
+!! should escape the text of such a paragraph where its indentation kept it from starting a block !!
+[a]: /url
+    ---
+
+[expect]
+[a]: /url
+
+\---
+
+!! should indent a tag that would start a block even below a definition !!
+[a]: /url
+    <div>
+
+[expect]
+[a]: /url
+    <div>
+
+!! should still separate a paragraph of text from a definition !!
+[a]: /url
+foo
+
+[expect]
+[a]: /url
+
+foo

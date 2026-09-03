@@ -143,6 +143,11 @@ pub struct NodePosition {
   /// Whether a paragraph is written directly above the node with no blank line
   /// between, which a line of dashes below would turn into a heading.
   pub after_paragraph: bool,
+  /// Whether a link reference definition is written directly above the node
+  /// with no blank line between, where the node's first line reads as text of
+  /// the paragraph the definition began rather than as the block it would
+  /// start on its own.
+  pub after_definition: bool,
 }
 
 /// The marker of a list item, which decides how what is written beside it may
@@ -400,6 +405,13 @@ impl<'a> Context<'a> {
   /// of whatever follows it for its own content.
   pub fn mark_after_list(&mut self) {
     self.next_position.after_list = true;
+  }
+
+  /// Marks that a link reference definition was just written out with nothing
+  /// between it and what comes next, which is read as the paragraph the
+  /// definition began.
+  pub fn mark_after_definition(&mut self) {
+    self.next_position.after_definition = true;
   }
 
   /// Where the node generated next sits, clearing it so that only that node
