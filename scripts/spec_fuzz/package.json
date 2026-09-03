@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "dependencies": {
-    "commonmark": "0.31.2"
-  }
-}

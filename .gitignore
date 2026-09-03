@@ -3,5 +3,3 @@
 **/*.rs.bk
 deployment/npm/plugin.wasm
 deployment/npm/node_modules
-scripts/spec_fuzz/node_modules
-scripts/spec_fuzz/package-lock.json
