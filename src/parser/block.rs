@@ -214,8 +214,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     while end < lines.len() {
       let line = lines[end];
       match &kind {
-        HtmlBlockKind::Closes(close) => {
-          let contains_close = find_ignore_ascii_case(line.text, close).is_some();
+        HtmlBlockKind::Closes(markers) => {
+          let contains_close = find_close_marker(line.text, markers).is_some();
           end += 1;
           if contains_close {
             break;
@@ -1058,8 +1058,8 @@ impl<'a> OpenParagraph<'a> {
     // an html block runs until its close marker, or until a blank line, and
     // holds no paragraph either way
     match &self.html {
-      Some(HtmlBlockKind::Closes(close)) => {
-        if find_ignore_ascii_case(line.text, close).is_some() {
+      Some(HtmlBlockKind::Closes(markers)) => {
+        if find_close_marker(line.text, markers).is_some() {
           self.html = None;
         }
         return;
@@ -1132,7 +1132,7 @@ impl<'a> OpenParagraph<'a> {
     }
     if let Some(kind) = html_block_kind(rest, false) {
       // a block closed by a marker may be closed on the line that opens it
-      let closed = matches!(&kind, HtmlBlockKind::Closes(close) if find_ignore_ascii_case(rest, close).is_some());
+      let closed = matches!(&kind, HtmlBlockKind::Closes(markers) if find_close_marker(rest, markers).is_some());
       if !closed {
         self.html = Some(kind);
       }
@@ -1299,11 +1299,15 @@ fn footnote_definition_name(text: &str) -> Option<&str> {
 /// What ends an html block.
 #[derive(PartialEq, Eq)]
 enum HtmlBlockKind {
-  /// The line containing the given text.
-  Closes(Cow<'static, str>),
+  /// The line containing any of the given markers.
+  Closes(&'static [&'static str]),
   /// The next blank line.
   BlankLine,
 }
+
+/// What closes a block opened by a raw text element: the close tag of any of
+/// them, not only the one that opened it.
+const RAW_TEXT_CLOSE_TAGS: &[&str] = &["</pre>", "</script>", "</style>", "</textarea>"];
 
 /// Whether the text is one html block of the same kind the line starts, all
 /// the way to its end.
@@ -1320,7 +1324,7 @@ pub fn is_whole_html_block(original: &str, text: &str) -> bool {
     return false;
   }
   match kind {
-    Some(HtmlBlockKind::Closes(close)) => match find_ignore_ascii_case(text, &close) {
+    Some(HtmlBlockKind::Closes(markers)) => match find_close_marker(text, markers) {
       // The block ends on the line its marker is written on, so that has to be
       // the last one: whatever was written after it would be read as markdown.
       // A marker holds no line break of its own, so it is on the last line
@@ -1341,28 +1345,24 @@ pub fn is_whole_html_block(original: &str, text: &str) -> bool {
 fn html_block_kind(text: &str, interrupting: bool) -> Option<HtmlBlockKind> {
   let rest = text.strip_prefix('<')?;
 
-  for (name, close) in [
-    ("script", "</script>"),
-    ("pre", "</pre>"),
-    ("style", "</style>"),
-    ("textarea", "</textarea>"),
-  ] {
-    if starts_with_tag_name(rest, name) {
-      return Some(HtmlBlockKind::Closes(Cow::Borrowed(close)));
-    }
+  if ["script", "pre", "style", "textarea"]
+    .iter()
+    .any(|name| starts_with_tag_name(rest, name))
+  {
+    return Some(HtmlBlockKind::Closes(RAW_TEXT_CLOSE_TAGS));
   }
   if rest.starts_with("!--") {
-    return Some(HtmlBlockKind::Closes(Cow::Borrowed("-->")));
+    return Some(HtmlBlockKind::Closes(&["-->"]));
   }
   if rest.starts_with('?') {
-    return Some(HtmlBlockKind::Closes(Cow::Borrowed("?>")));
+    return Some(HtmlBlockKind::Closes(&["?>"]));
   }
   if rest.starts_with("![CDATA[") {
-    return Some(HtmlBlockKind::Closes(Cow::Borrowed("]]>")));
+    return Some(HtmlBlockKind::Closes(&["]]>"]));
   }
   // a declaration is `<!` followed by an ascii letter
   if rest.starts_with('!') && rest[1..].starts_with(|c: char| c.is_ascii_alphabetic()) {
-    return Some(HtmlBlockKind::Closes(Cow::Borrowed(">")));
+    return Some(HtmlBlockKind::Closes(&[">"]));
   }
 
   let name_start = rest.strip_prefix('/').unwrap_or(rest);
@@ -1395,6 +1395,15 @@ fn html_block_kind(text: &str, interrupting: bool) -> Option<HtmlBlockKind> {
     .trim_matches(SPACES)
     .is_empty()
     .then_some(HtmlBlockKind::BlankLine)
+}
+
+/// Where the first of the markers that close an html block is written in the
+/// text.
+fn find_close_marker(text: &str, markers: &[&str]) -> Option<usize> {
+  markers
+    .iter()
+    .filter_map(|marker| find_ignore_ascii_case(text, marker))
+    .min()
 }
 
 /// Where the marker is first written in the text, matched without regard to
