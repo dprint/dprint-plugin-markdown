@@ -478,6 +478,12 @@ impl<'a> Context<'a> {
     self.line_start_texts.contains(start)
   }
 
+  /// Whether the position sits within the block being written, before the
+  /// end of it.
+  pub fn is_within_block(&self, position: usize) -> bool {
+    self.block_end.is_some_and(|end| position < end)
+  }
+
   /// Generates a run of nodes, `dropped` holding the line breaks within it and
   /// everything nested in it that aren't written out.
   pub fn with_dropped_breaks<T>(&mut self, dropped: DroppedBreaks, func: impl FnOnce(&mut Context) -> T) -> T {
