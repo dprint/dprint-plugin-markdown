@@ -114,3 +114,23 @@ foo
 
 [expect]
 `foo`
+
+!! should not write a code span with as many backticks as a run written before it in the block, which would pair with them !!
+`foo``bar``
+
+[expect]
+`foo``bar``
+
+!! should do so for a run written earlier on the line !!
+a` ``b``
+
+[expect]
+a` ``b``
+
+!! should do so for a run written on the line above !!
+a`
+``b``
+
+[expect]
+a`
+``b``
