@@ -10,7 +10,8 @@
   "excludes": [
     "**/node_modules",
     "**/*-lock.json",
-    "**/target"
+    "**/target",
+    "tests/commonmark/*.json"
   ],
   "plugins": [
     "npm:@dprint/typescript@0.96.1",
