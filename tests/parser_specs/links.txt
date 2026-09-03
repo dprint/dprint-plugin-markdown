@@ -655,3 +655,56 @@
     }
   ]
 }
+[[test]] an inline destination with an unbalanced parenthesis before a title is text
+[a](/u(x "t")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 13],
+  "text": "[a](/u(x \"t\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 13],
+      "text": "[a](/u(x \"t\")",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 13],
+          "text": "[a](/u(x \"t\")"
+        }
+      ]
+    }
+  ]
+}
+[[test]] an inline destination with balanced parentheses before a title
+[a](/u(x) "t")
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 14],
+  "text": "[a](/u(x) \"t\")",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 14],
+      "text": "[a](/u(x) \"t\")",
+      "children": [
+        {
+          "kind": "InlineLink",
+          "span": [0, 14],
+          "text": "[a](/u(x) \"t\")",
+          "url": "/u(x)",
+          "title": "t",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [1, 2],
+              "text": "a"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

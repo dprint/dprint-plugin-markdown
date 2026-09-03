@@ -329,6 +329,127 @@ bar
     }
   ]
 }
+[[test]] a destination with an unbalanced parenthesis is not a definition
+[r1]: /u(
+
+[r1]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 15],
+  "text": "[r1]: /u(\n\n[r1]",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 9],
+      "text": "[r1]: /u(",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 9],
+          "text": "[r1]: /u("
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [11, 15],
+      "text": "[r1]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [11, 15],
+          "text": "[r1]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a destination with an unbalanced parenthesis on its own line is not a definition
+[r1]:
+/u(x
+
+[r1]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 16],
+  "text": "[r1]:\n/u(x\n\n[r1]",
+  "children": [
+    {
+      "kind": "Paragraph",
+      "span": [0, 10],
+      "text": "[r1]:\n/u(x",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [0, 5],
+          "text": "[r1]:"
+        },
+        {
+          "kind": "SoftBreak",
+          "span": [5, 6],
+          "text": "\n"
+        },
+        {
+          "kind": "Text",
+          "span": [6, 10],
+          "text": "/u(x"
+        }
+      ]
+    },
+    {
+      "kind": "Paragraph",
+      "span": [12, 16],
+      "text": "[r1]",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [12, 16],
+          "text": "[r1]"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a destination with balanced parentheses is a definition
+[r1]: /u(x)
+
+[r1]
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 17],
+  "text": "[r1]: /u(x)\n\n[r1]",
+  "children": [
+    {
+      "kind": "LinkReference",
+      "span": [0, 11],
+      "text": "[r1]: /u(x)",
+      "name": "r1",
+      "link": "/u(x)"
+    },
+    {
+      "kind": "Paragraph",
+      "span": [13, 17],
+      "text": "[r1]",
+      "children": [
+        {
+          "kind": "ShortcutLink",
+          "span": [13, 17],
+          "text": "[r1]",
+          "children": [
+            {
+              "kind": "Text",
+              "span": [14, 16],
+              "text": "r1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
 [[test]] an underline after a label and colon makes a heading rather than a destination
 [r1]:
 ==
