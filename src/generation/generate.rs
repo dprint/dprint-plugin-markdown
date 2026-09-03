@@ -354,6 +354,10 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
+                } else if ends_with_literal_backslash(last_node) {
+                  // the node before can't end a line, where its backslash
+                  // would be read as a hard break
+                  items.push_space();
                 } else {
                   items.extend(get_space_or_newline_based_on_config(
                     context,
@@ -1135,8 +1139,18 @@ fn push_code_delimiter(items: &mut PrintItems, backticks: usize, separator: &str
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  // a backslash at the end of a line is a hard break, and one before the
+  // whitespace that ends a line is the text it is -- so the latter is escaped,
+  // since that whitespace isn't written back out
+  let escaped_end;
+  let (text_str, text_start) = if ends_line_with_literal_backslash(text, context) {
+    escaped_end = format!("{}\\", text.text);
+    (escaped_end.as_str(), None)
+  } else {
+    (text.text, Some(text.span.start))
+  };
   if let Some(position) = context.block_start_escape_at(text.span.start) {
-    let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
+    let escaped = format!("{}\\{}", &text_str[..position], &text_str[position..]);
     return gen_str(&escaped, None, context);
   }
   if context.is_escaping_closing_hashes(text.span.start) {
@@ -1150,7 +1164,27 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
     );
     return gen_str(&escaped, None, context);
   }
-  gen_str(text.text, Some(text.span.start), context)
+  gen_str(text_str, text_start, context)
+}
+
+/// Whether the text ends with a literal backslash written before the
+/// whitespace that ends its line, within the block being written.
+///
+/// That whitespace isn't written back out, and a backslash that ends a line
+/// is read as a hard break rather than as the text it was.
+fn ends_line_with_literal_backslash(text: &Text, context: &Context) -> bool {
+  if last_unescaped_char(text.text) != Some('\\') {
+    return false;
+  }
+  let after = &context.file_text[text.span.end..];
+  let line_end = text.span.end + (after.len() - after.trim_start_matches([' ', '\t']).len());
+  context.file_text[line_end..].starts_with(['\n', '\r']) && context.is_within_block(line_end)
+}
+
+/// Whether the node is text that ends with a literal backslash, which can't be
+/// written at the end of a line without being read as a hard break.
+fn ends_with_literal_backslash(node: &Node) -> bool {
+  matches!(node, Node::Text(text) if last_unescaped_char(text.text) == Some('\\'))
 }
 
 /// Whether the node is a callout header (ex. `[!NOTE]`), which is only
@@ -1204,6 +1238,9 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
+    /// Whether the last word written ends with a literal backslash, which a
+    /// line can't end with without it being read as a hard break.
+    last_word_ends_with_backslash: bool,
     /// Where the word being read runs from and to.
     current_word: Option<(usize, usize)>,
     context: &'a Context<'a>,
@@ -1218,6 +1255,7 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
         leading_block_words_end: utils::leading_block_words_end(text).unwrap_or(0),
         last_word_start: 0,
         last_char: None,
+        last_word_ends_with_backslash: false,
         current_word: None,
         context,
       }
@@ -1252,6 +1290,7 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
 
         self.last_word_start = start;
         self.last_char = current_word.chars().next_back();
+        self.last_word_ends_with_backslash = last_unescaped_char(current_word) == Some('\\');
         self
           .items
           .extend(gen_word_with_unspaced_script_breaks(current_word, self.context));
@@ -1260,6 +1299,11 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
 
     /// What to write in place of the space that ran up to the next word.
     fn space_items(&self, next_word_start: usize, next_word: &str) -> PrintItems {
+      if self.last_word_ends_with_backslash {
+        // the word before this one can't end a line, where its backslash
+        // would be read as a hard break
+        return space();
+      }
       if self.last_word_start < self.leading_block_words_end && self.is_at_line_start() {
         // the word before this one is one of the leading words, which have to
         // be kept off a line of their own

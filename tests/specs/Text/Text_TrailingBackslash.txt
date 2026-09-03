@@ -1,0 +1,35 @@
+!! should escape a backslash written before the whitespace that ends a line, which would otherwise become a hard break !!
+a\ 
+b
+
+[expect]
+a\\
+b
+
+!! should do so before a double space hard break, which keeps its break !!
+a\  
+b
+
+[expect]
+a\\\
+b
+
+!! should keep a backslash at the end of a paragraph as it is !!
+a\ 
+
+[expect]
+a\
+
+!! should keep an escaped backslash before the whitespace that ends a line as it is !!
+a\\ 
+b
+
+[expect]
+a\\
+b
+
+!! should keep a backslash before a space within a line as it is !!
+a\ b
+
+[expect]
+a\ b
