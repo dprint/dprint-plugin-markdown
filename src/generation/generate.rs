@@ -153,44 +153,46 @@ fn reads_back_decorations(nodes: &[Node], items: PrintItems, context: &Context) 
       new_line_text: "\n",
     },
   );
-  // the content is read as the lines of a paragraph that has already begun,
-  // which is where it sits: what it begins with can't start a block there
-  // (ex. a bare tag, which begins a block of its own at the start of a file)
-  let text = format!("x\n{text}");
-  let Ok(file) = crate::parser::parse(&text) else {
-    return false;
-  };
-  written_decorations(&file.children, &text) == written_decorations(nodes, context.file_text)
+  let read = crate::parser::parse_inline_content(&text, context.link_labels(), context.footnote_labels());
+  written_decorations(&read) == written_decorations(nodes)
 }
 
 /// The decorations within the nodes in the order they are written, each as its
-/// kind and the content of the text it was read out of.
-fn written_decorations(nodes: &[Node], source: &str) -> Vec<(TextDecorationKind, String)> {
+/// kind and the text it holds.
+fn written_decorations(nodes: &[Node]) -> Vec<(TextDecorationKind, String)> {
   let mut decorations = Vec::new();
-  push_written_decorations(nodes, source, &mut decorations);
+  push_written_decorations(nodes, &mut decorations);
   decorations
 }
 
-fn push_written_decorations(nodes: &[Node], source: &str, decorations: &mut Vec<(TextDecorationKind, String)>) {
+fn push_written_decorations(nodes: &[Node], decorations: &mut Vec<(TextDecorationKind, String)>) {
   for node in nodes {
     if let Node::TextDecoration(decoration) = node {
-      decorations.push((decoration.kind, written_content(decoration.span.text(source))));
+      decorations.push((decoration.kind, written_content(&decoration.children)));
     }
-    push_written_decorations(node.children(), source, decorations);
-    if let Node::Item(item) = node {
-      push_written_decorations(&item.sub_lists, source, decorations);
-    }
+    push_written_decorations(node.children(), decorations);
   }
 }
 
-/// The text apart from the characters formatting is free to change: the
-/// delimiters of decorations and code spans, escapes, the brackets and quotes
-/// around a destination or a title, and whitespace.
-fn written_content(text: &str) -> String {
-  text
-    .chars()
-    .filter(|c| !matches!(c, '*' | '_' | '~' | '`' | '<' | '>' | '"' | '\'' | '\\') && !c.is_whitespace())
-    .collect()
+/// The text the nodes hold, apart from what formatting may change about it:
+/// the backslashes of escapes, and whitespace. The delimiters of a code span
+/// and the destination of a link aren't text the nodes hold, so they don't come
+/// into it either.
+fn written_content(nodes: &[Node]) -> String {
+  let mut content = String::new();
+  push_written_content(nodes, &mut content);
+  content
+}
+
+fn push_written_content(nodes: &[Node], content: &mut String) {
+  for node in nodes {
+    match node {
+      Node::Text(text) => content.extend(text.text.chars().filter(|c| *c != '\\' && !c.is_whitespace())),
+      Node::Code(code) => content.extend(code.code.chars().filter(|c| !c.is_whitespace())),
+      _ => {}
+    }
+    push_written_content(node.children(), content);
+  }
 }
 
 /// The runs of delimiter characters within the content of a block, which
