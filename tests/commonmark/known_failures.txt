@@ -21,5 +21,4 @@
 318 format blank lines at the edges of a fenced code block are dropped (codeBlock.preserveBlankLines)
 172 format the html formatter puts the `>` of a tag written over several lines on a line of its own
 196 format a definition's title loses the line endings at its edges
-349 format a code span is written with fewer backticks beside a literal backtick, which then pairs with it
 417 format the closing run of nested strong merges with the literal run after it

@@ -48,6 +48,10 @@ pub struct DelimiterRuns {
   /// Each run of a delimiter character within the text of the block that can
   /// open or close emphasis where it sits, with that character, in order.
   pub pairable: Vec<(Span, char)>,
+  /// The length of each run of backticks within the text of the block, which
+  /// a code span written after it with a run of the same length would be
+  /// paired with.
+  pub backticks: Vec<usize>,
 }
 
 impl DelimiterRuns {

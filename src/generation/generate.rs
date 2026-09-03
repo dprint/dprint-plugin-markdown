@@ -100,7 +100,10 @@ fn push_delimiter_runs(nodes: &[Node], context: &Context, runs: &mut DelimiterRu
   for node in nodes {
     match node {
       Node::TextDecoration(decoration) => runs.decorations.push(decoration.span),
-      Node::Text(text) => push_pairable_runs(text.span, context.file_text, &mut runs.pairable),
+      Node::Text(text) => {
+        push_pairable_runs(text.span, context.file_text, &mut runs.pairable);
+        push_backtick_runs(text.text, &mut runs.backticks);
+      }
       _ => {}
     }
     // a block nested within the content is written with runs of its own
@@ -123,6 +126,27 @@ fn push_pairable_runs(span: Span, file_text: &str, pairable: &mut Vec<(Span, cha
     if run_can_pair(surroundings, c) {
       pairable.push((Span::new(start, end), c));
     }
+  }
+}
+
+/// Pushes the length of each run of backticks within the text that isn't
+/// escaped, which is a run a code span's delimiter could be paired with.
+fn push_backtick_runs(text: &str, runs: &mut Vec<usize>) {
+  let mut count = 0;
+  let mut is_escaped = false;
+  for c in text.chars() {
+    if c == '`' && !is_escaped {
+      count += 1;
+      continue;
+    }
+    if count > 0 {
+      runs.push(count);
+      count = 0;
+    }
+    is_escaped = c == '\\' && !is_escaped;
+  }
+  if count > 0 {
+    runs.push(count);
   }
 }
 
@@ -931,7 +955,11 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   // a code span holds its text as it is, so the only choice here is how to
   // write the delimiters so that the text is read back out of them
   let text = code.code.as_ref();
-  let backticks = get_backtick_count(text);
+  let text_runs = context
+    .delimiter_runs()
+    .map(|runs| runs.backticks.as_slice())
+    .unwrap_or_default();
+  let backticks = get_backtick_count(text, text_runs);
   // a reader takes one space off each end of a span that has one at both, and
   // a backtick written against the delimiter would make the delimiter longer.
   // A space on each end handles either: the reader takes it straight back off
@@ -954,8 +982,10 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
 
   /// A code span ends at the first run of backticks with the same length as
   /// the one that opened it, so the delimiter must be a length that doesn't
-  /// appear in the text.
-  fn get_backtick_count(text: &str) -> usize {
+  /// appear in the text -- nor in the text of the block around the span, since
+  /// a run written there before the span would be paired with its delimiter
+  /// instead.
+  fn get_backtick_count(text: &str, block_runs: &[usize]) -> usize {
     let mut text_counts = Vec::new();
     let mut current_count = 0;
     for c in text.chars() {
@@ -973,7 +1003,7 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
     }
 
     let mut count = 1;
-    while text_counts.contains(&count) {
+    while text_counts.contains(&count) || block_runs.contains(&count) {
       count += 1;
     }
     count
