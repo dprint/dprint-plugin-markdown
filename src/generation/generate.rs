@@ -378,6 +378,10 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
                   // the node would start a block of its own at the start of a
                   // line, so it has to be kept off one
                   items.push_space();
+                } else if ends_with_literal_backslash(last_node) {
+                  // the node before can't end a line, where its backslash
+                  // would be read as a hard break
+                  items.push_space();
                 } else {
                   items.extend(get_space_or_newline_based_on_config(
                     context,
@@ -1164,8 +1168,18 @@ fn push_code_delimiter(items: &mut PrintItems, backticks: usize, separator: &str
 }
 
 fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
+  // a backslash at the end of a line is a hard break, and one before the
+  // whitespace that ends a line is the text it is -- so the latter is escaped,
+  // since that whitespace isn't written back out
+  let escaped_end;
+  let (text_str, text_start) = if ends_line_with_literal_backslash(text, context) {
+    escaped_end = format!("{}\\", text.text);
+    (escaped_end.as_str(), None)
+  } else {
+    (text.text, Some(text.span.start))
+  };
   if let Some(position) = context.block_start_escape_at(text.span.start) {
-    let escaped = format!("{}\\{}", &text.text[..position], &text.text[position..]);
+    let escaped = format!("{}\\{}", &text_str[..position], &text_str[position..]);
     return gen_str(&escaped, None, context);
   }
   if context.is_escaping_closing_hashes(text.span.start) {
@@ -1179,7 +1193,27 @@ fn gen_text(text: &Text, context: &mut Context) -> PrintItems {
     );
     return gen_str(&escaped, None, context);
   }
-  gen_str(text.text, Some(text.span.start), context)
+  gen_str(text_str, text_start, context)
+}
+
+/// Whether the text ends with a literal backslash written before the
+/// whitespace that ends its line, within the block being written.
+///
+/// That whitespace isn't written back out, and a backslash that ends a line
+/// is read as a hard break rather than as the text it was.
+fn ends_line_with_literal_backslash(text: &Text, context: &Context) -> bool {
+  if last_unescaped_char(text.text) != Some('\\') {
+    return false;
+  }
+  let after = &context.file_text[text.span.end..];
+  let line_end = text.span.end + (after.len() - after.trim_start_matches([' ', '\t']).len());
+  context.file_text[line_end..].starts_with(['\n', '\r']) && context.is_within_block(line_end)
+}
+
+/// Whether the node is text that ends with a literal backslash, which can't be
+/// written at the end of a line without being read as a hard break.
+fn ends_with_literal_backslash(node: &Node) -> bool {
+  matches!(node, Node::Text(text) if last_unescaped_char(text.text) == Some('\\'))
 }
 
 /// Whether the node is a callout header (ex. `[!NOTE]`), which is only
@@ -1233,6 +1267,9 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
     /// The last character written, which decides how the space that follows it
     /// reads.
     last_char: Option<char>,
+    /// Whether the last word written ends with a literal backslash, which a
+    /// line can't end with without it being read as a hard break.
+    last_word_ends_with_backslash: bool,
     /// Where the word being read runs from and to.
     current_word: Option<(usize, usize)>,
     context: &'a Context<'a>,
@@ -1247,6 +1284,7 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
         leading_block_words_end: utils::leading_block_words_end(text).unwrap_or(0),
         last_word_start: 0,
         last_char: None,
+        last_word_ends_with_backslash: false,
         current_word: None,
         context,
       }
@@ -1281,6 +1319,7 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
 
         self.last_word_start = start;
         self.last_char = current_word.chars().next_back();
+        self.last_word_ends_with_backslash = last_unescaped_char(current_word) == Some('\\');
         self
           .items
           .extend(gen_word_with_unspaced_script_breaks(current_word, self.context));
@@ -1289,6 +1328,11 @@ fn gen_str(text: &str, text_start: Option<usize>, context: &mut Context) -> Prin
 
     /// What to write in place of the space that ran up to the next word.
     fn space_items(&self, next_word_start: usize, next_word: &str) -> PrintItems {
+      if self.last_word_ends_with_backslash {
+        // the word before this one can't end a line, where its backslash
+        // would be read as a hard break
+        return space();
+      }
       if self.last_word_start < self.leading_block_words_end && self.is_at_line_start() {
         // the word before this one is one of the leading words, which have to
         // be kept off a line of their own
@@ -2424,6 +2468,8 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         items.extend(get_blank_lines(context.get_leading_blank_lines(child.span().start)));
       }
       let mut buffer = MarkerBuffer::default();
+      let beside = context.take_bullets_beside();
+      let mut bullets_beside = 0;
       let prefix_text = if let Some(start_index) = list.start_index {
         let end_char = if is_alternate { ")" } else { "." };
         let display_index = if is_all_ones_list(list, context) {
@@ -2437,7 +2483,19 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         };
         buffer.write(display_index, end_char)
       } else {
-        buffer.write_char(context.configuration.list_unordered_marker.list_char(is_alternate))
+        let mut list_char = context.configuration.list_unordered_marker.list_char(is_alternate);
+        bullets_beside = match beside {
+          Some((character, count)) if character == list_char => count + 1,
+          _ => 1,
+        };
+        // three or more bullets of one character with nothing else on the line
+        // read as a thematic break rather than as the markers they are, so the
+        // last of them is written with the other character
+        if bullets_beside >= 3 && line_ends_at_marker(child, context) {
+          list_char = context.configuration.list_unordered_marker.list_char(!is_alternate);
+          bullets_beside = 1;
+        }
+        buffer.write_char(list_char)
       };
       let marker_width = prefix_text.chars().count() as u32 + 1;
       let indent_increment = match context.configuration.list_indent_kind {
@@ -2448,6 +2506,7 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
         // only a bullet marker shares its character with a thematic break
         char: list.start_index.is_none().then(|| prefix_text.chars().next()).flatten(),
         lines_up: indent_increment == marker_width,
+        bullets_beside,
       };
       context.indent_level += indent_increment;
       items.push_str(prefix_text);
@@ -2463,6 +2522,22 @@ fn gen_list(list: &List, is_alternate: bool, context: &mut Context) -> PrintItem
 
     items
   })
+}
+
+/// Whether nothing is written after the item's marker on the line it begins,
+/// which leaves that line holding only markers.
+fn line_ends_at_marker(item: &Node, context: &Context) -> bool {
+  let Node::Item(item) = item else {
+    return false;
+  };
+  item.marker.is_none()
+    && match item.children.first() {
+      // what an item begins with is written beside its marker, unless a blank
+      // line puts it on a line of its own
+      Some(first) => context.has_leading_blankline(first.span().start),
+      // an item holding nothing but lists has them written beside its marker
+      None => item.sub_lists.is_empty(),
+    }
 }
 
 fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
@@ -2482,6 +2557,20 @@ fn gen_item(item: &Item, context: &mut Context) -> PrintItems {
       context.mark_marker_beside();
     }
   }
+  // a list written beside the item's marker puts its first marker on the same
+  // line, which then holds nothing but markers
+  let list_beside = match item.children.first() {
+    Some(first @ Node::List(_)) => !context.has_leading_blankline(first.span().start),
+    Some(_) => false,
+    None => !item.sub_lists.is_empty(),
+  };
+  if list_beside && item.marker.is_none() {
+    let marker = context.list_item_marker();
+    if let Some(character) = marker.char {
+      context.mark_bullets_beside(character, marker.bullets_beside);
+    }
+  }
+
   items.extend(gen_task_list_marker_children(
     &item.children,
     item.marker.as_ref(),

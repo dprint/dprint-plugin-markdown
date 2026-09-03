@@ -1,0 +1,16 @@
+~~ textWrap: always, lineWidth: 10 ~~
+!! should keep a word ending with a backslash off the end of a line, where it would be read as a hard break !!
+one two\ three four
+
+[expect]
+one
+two\ three
+four
+
+!! should do so between nodes !!
+one two\ *three* four
+
+[expect]
+one
+two\ _three_
+four

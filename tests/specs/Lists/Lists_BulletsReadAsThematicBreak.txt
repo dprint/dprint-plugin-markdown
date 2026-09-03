@@ -1,0 +1,52 @@
+!! should not write three bullets of one character alone on a line, which would read as a thematic break !!
+- - *
+
+[expect]
+- - *
+
+!! should do so whatever the bullets were written as !!
+- * -
+
+[expect]
+- - *
+
+!! should do so for a deeper item that holds nothing !!
+- - - *
+
+[expect]
+- - - *
+
+!! should keep the bullets where text follows them on the line !!
+- - * a
+
+[expect]
+- - - a
+
+!! should keep the bullets where the last item's text is drawn up beside its marker !!
+- - *
+      a
+
+[expect]
+- - - a
+
+!! should switch the last bullet where the last item begins with a blank line !!
+- - *
+
+      a
+
+[expect]
+- - *
+
+    a
+
+!! should keep the bullets after a number, which no thematic break begins with !!
+1. - -
+
+[expect]
+1. - -
+
+!! should keep two bullets, which no thematic break is made of !!
+- *
+
+[expect]
+- -

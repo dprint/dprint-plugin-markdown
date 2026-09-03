@@ -160,6 +160,9 @@ pub struct ListItemMarker {
   /// the column its marker leaves the first line at. Where it doesn't, nothing
   /// that has to keep its own indentation can be written beside the marker.
   pub lines_up: bool,
+  /// How many bullet markers of `char` the line the item begins on holds up to
+  /// and including its own, where the line holds nothing else before it.
+  pub bullets_beside: u32,
 }
 
 #[allow(clippy::enum_variant_names)]
@@ -207,6 +210,9 @@ pub struct Context<'a> {
   decoration_delimiters: std::cell::RefCell<HashMap<usize, &'static str>>,
   /// The marker of the list item being generated.
   list_marker: ListItemMarker,
+  /// The bullet markers the line the next list marker is written on already
+  /// holds, where it holds nothing else: their character and how many.
+  bullets_beside: Option<(char, u32)>,
   /// Where the node generated next sits.
   next_position: NodePosition,
   pub format_code_block_text: Box<dyn for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a>,
@@ -261,7 +267,9 @@ impl<'a> Context<'a> {
       list_marker: ListItemMarker {
         char: None,
         lines_up: true,
+        bullets_beside: 0,
       },
+      bullets_beside: None,
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
       code_block_error,
@@ -394,6 +402,23 @@ impl<'a> Context<'a> {
     self.next_position.marker = Some(self.list_marker);
   }
 
+  /// The marker of the list item being generated.
+  pub fn list_item_marker(&self) -> ListItemMarker {
+    self.list_marker
+  }
+
+  /// Marks that the next list marker written sits on a line that holds `count`
+  /// bullet markers of `character` before it and nothing else.
+  pub fn mark_bullets_beside(&mut self, character: char, count: u32) {
+    self.bullets_beside = Some((character, count));
+  }
+
+  /// The bullet markers the line the next list marker is written on already
+  /// holds, cleared so that only that marker sees them.
+  pub fn take_bullets_beside(&mut self) -> Option<(char, u32)> {
+    self.bullets_beside.take()
+  }
+
   /// Marks that a paragraph was just written out with nothing between it and
   /// what comes next, which a line of dashes would underline into a heading.
   pub fn mark_after_paragraph(&mut self) {
@@ -480,6 +505,12 @@ impl<'a> Context<'a> {
   /// before it on that line.
   pub fn is_line_start(&self, start: usize) -> bool {
     self.line_start_texts.contains(start)
+  }
+
+  /// Whether the position sits within the block being written, before the
+  /// end of it.
+  pub fn is_within_block(&self, position: usize) -> bool {
+    self.block_end.is_some_and(|end| position < end)
   }
 
   /// Generates a run of nodes, `dropped` holding the line breaks within it and
