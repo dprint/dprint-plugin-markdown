@@ -1,0 +1,31 @@
+!! should indent a tag after a hard break that would otherwise start a block !!
+a\
+    <!-- c -->
+
+[expect]
+a\
+    <!-- c -->
+
+!! should do so after a double space hard break !!
+a  
+    <div>
+
+[expect]
+a\
+    <div>
+
+!! should do so within a block quote !!
+> a\
+>     <div>
+
+[expect]
+> a\
+>     <div>
+
+!! should not indent a tag that can't start a block !!
+a\
+    <b>
+
+[expect]
+a\
+<b>

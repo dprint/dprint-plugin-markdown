@@ -17,7 +17,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
     Node::Heading(node) => gen_heading(node, context),
-    Node::Paragraph(node) => gen_paragraph(node, context),
+    Node::Paragraph(node) => gen_paragraph(node, position, context),
     Node::BlockQuote(node) => gen_block_quote(node, context),
     Node::CodeBlock(node) => gen_code_block(node, position, context),
     Node::Code(node) => gen_code(node, context),
@@ -284,7 +284,26 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
-        items.extend(get_conditional_blank_line(node, context));
+        if matches!(last_node, Node::LinkReference(_)) && continues_definition(node) {
+          // the paragraph's first line only reads as text because it follows
+          // the definition with nothing between: what it holds would start a
+          // block where one begins, but can't interrupt one. Text is written
+          // where a block begins and escaped there, but a tag can't be, so it
+          // stays where it was -- indented where it would interrupt a
+          // paragraph, since only that keeps a tag from doing so
+          context.mark_after_definition();
+          match paragraph_start(node) {
+            Some(tag @ Node::Html(_)) => {
+              items.push_signal(Signal::NewLine);
+              if starts_html_block(Some(tag)) {
+                items.push_sc(sc!("    "));
+              }
+            }
+            _ => items.extend(get_conditional_blank_line(node, context)),
+          }
+        } else {
+          items.extend(get_conditional_blank_line(node, context));
+        }
       } else if !matches!(node, Node::HardBreak(_)) {
         match last_node {
           Node::Heading(_)
@@ -402,6 +421,13 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
               items.extend(get_conditional_blank_line(node, context));
             }
           }
+          // a hard break puts the node at the start of a line, where a tag
+          // that starts a block would be read as one. Text there is escaped,
+          // but a tag can only be kept from starting a block by indentation,
+          // which a line within a paragraph may have any amount of
+          Node::HardBreak(_) if starts_html_block(Some(node)) => {
+            items.push_sc(sc!("    "));
+          }
           Node::SourceFile(_)
           | Node::Item(_)
           | Node::DefinitionListTitle(_)
@@ -511,6 +537,41 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
   }
 }
 
+/// Where a backslash goes in the text a paragraph begins with when the
+/// paragraph follows a definition, which is the only place a paragraph can
+/// begin with text that would start a block of its own where a block begins
+/// (ex. a thematic break that its indentation kept from being one).
+fn block_start_escape_after_definition(text: &str) -> Option<usize> {
+  // an underline is only read as one below text, and there is none above a
+  // block start, so it's the text it is there
+  let is_underline = text.trim().chars().all(|c| c == '=');
+  if is_underline || !starts_block_at_block_start(text) {
+    return None;
+  }
+  line_start_escape(text)
+}
+
+/// Whether the node is a paragraph whose first line would start a block of its
+/// own where a block begins, which it only doesn't because of where it was
+/// written.
+fn continues_definition(node: &Node) -> bool {
+  paragraph_start(node).is_some_and(|first| first.starts_block_at_block_start())
+}
+
+/// The node a paragraph begins with.
+fn paragraph_start<'a>(node: &'a Node<'a>) -> Option<&'a Node<'a>> {
+  match node {
+    Node::Paragraph(paragraph) => paragraph.children.first(),
+    _ => None,
+  }
+}
+
+/// Whether the node is a tag that would start an html block at the start of a
+/// line within a paragraph, which no backslash can keep it from doing.
+fn starts_html_block(node: Option<&Node>) -> bool {
+  matches!(node, Some(Node::Html(html)) if !html.is_block && starts_block_in_paragraph(&html.text))
+}
+
 fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
   // setext headings only apply to level 1 and level 2, and only where the text
   // they underline reads as the paragraph a heading is made of -- an html
@@ -587,7 +648,7 @@ fn gen_atx_heading(level: u8, children: PrintItems) -> PrintItems {
   items
 }
 
-fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
+fn gen_paragraph(paragraph: &Paragraph, position: NodePosition, context: &mut Context) -> PrintItems {
   let mut items = PrintItems::new();
 
   if let Some(marker) = &paragraph.marker {
@@ -601,7 +662,7 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
   // it at the start of a line too, so neither can be left to read as the start
   // of a block of its own
   items.extend(
-    context.with_paragraph_escapes(paragraph_escapes(paragraph, context.file_text), |context| {
+    context.with_paragraph_escapes(paragraph_escapes(paragraph, position, context.file_text), |context| {
       gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
     }),
   );
@@ -609,12 +670,18 @@ fn gen_paragraph(paragraph: &Paragraph, context: &mut Context) -> PrintItems {
 
   /// What the paragraph has to be written with so that the text it writes at
   /// the start of a line isn't read as the start of a block.
-  fn paragraph_escapes(paragraph: &Paragraph, file_text: &str) -> ParagraphEscapes {
+  fn paragraph_escapes(paragraph: &Paragraph, position: NodePosition, file_text: &str) -> ParagraphEscapes {
     let mut block_starts = Vec::new();
     let mut line_starts = LineStarts::default();
     // the first line of a paragraph has nothing above it to be read together
-    // with, so less of what it holds is markup than on the lines after it
-    let mut escape: fn(&str) -> Option<usize> = block_start_escape;
+    // with, so less of what it holds is markup than on the lines after it --
+    // unless it follows a definition, where it holds whatever its position
+    // kept from being a block of its own
+    let mut escape: fn(&str) -> Option<usize> = if position.after_definition {
+      block_start_escape_after_definition
+    } else {
+      block_start_escape
+    };
     let mut at_line_start = true;
     for child in &paragraph.children {
       if at_line_start {
