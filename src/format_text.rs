@@ -67,17 +67,24 @@ fn format_text_inner(
   // the lines taken off the front of the file, which the lines the rest of it
   // is reported on are still counted from
   let stripped_lines = count_new_lines(&full_text[..full_text.len() - file_text.len()]);
-  let (source_file, markdown_text) = match parse_source_file(file_text, config)? {
+  let (mut source_file, markdown_text) = match parse_source_file(file_text, config)? {
     ParseFileResult::IgnoreFile => return Ok(None),
     ParseFileResult::SourceFile(file) => file,
   };
+  let labels = take_labels(&mut source_file);
 
   // a code block whose plugin errors can't fail the file from where it's
   // generated, so the error is carried out of the generation and raised here
   let code_block_error = Rc::new(RefCell::new(None));
   let text = dprint_core::formatting::format(
     || {
-      let mut context = Context::new(markdown_text, config, format_code_block_text, code_block_error.clone());
+      let mut context = Context::new(
+        markdown_text,
+        config,
+        labels,
+        format_code_block_text,
+        code_block_error.clone(),
+      );
       generate(&source_file.into(), &mut context)
     },
     config_to_print_options(file_text, config),
@@ -99,13 +106,20 @@ pub fn trace_file(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> dprint_core::formatting::TracingResult {
-  let (source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
+  let (mut source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
     ParseFileResult::SourceFile(file) => file,
   };
+  let labels = take_labels(&mut source_file);
   dprint_core::formatting::trace_printing(
     || {
-      let mut context = Context::new(markdown_text, config, format_code_block_text, Default::default());
+      let mut context = Context::new(
+        markdown_text,
+        config,
+        labels,
+        format_code_block_text,
+        Default::default(),
+      );
       generate(&source_file.into(), &mut context)
     },
     config_to_print_options(file_text, config),
@@ -143,6 +157,17 @@ fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<P
 
   let file = crate::parser::parse(file_text).map_err(|err| FormatError::Parse(err.to_string()))?;
   Ok(ParseFileResult::SourceFile((file, file_text)))
+}
+
+/// Takes the labels the file's references were resolved against, which what
+/// the formatter writes is read back against.
+fn take_labels(
+  source_file: &mut crate::parser::SourceFile<'_>,
+) -> (std::collections::HashSet<String>, std::collections::HashSet<String>) {
+  (
+    std::mem::take(&mut source_file.link_labels),
+    std::mem::take(&mut source_file.footnote_labels),
+  )
 }
 
 /// An error a code block's plugin ran into, along with where in the file the
