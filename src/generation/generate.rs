@@ -957,7 +957,8 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   let text = code.code.as_ref();
   let text_runs = context
     .delimiter_runs()
-    .map_or(&[][..], |runs| runs.backticks.as_slice());
+    .map(|runs| runs.backticks.as_slice())
+    .unwrap_or_default();
   let backticks = get_backtick_count(text, text_runs);
   // a reader takes one space off each end of a span that has one at both, and
   // a backtick written against the delimiter would make the delimiter longer.
