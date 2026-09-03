@@ -281,3 +281,63 @@ var s = "</SCRIPT>";
     }
   ]
 }
+[[test]] a script block ended by the close tag of another raw text element
+<script>
+foo
+</pre>
+bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 23],
+  "text": "<script>\nfoo\n</pre>\nbar",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 19],
+      "text": "<script>\nfoo\n</pre>",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [20, 23],
+      "text": "bar",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [20, 23],
+          "text": "bar"
+        }
+      ]
+    }
+  ]
+}
+[[test]] a style block whose close tag is on the opening line
+<style>a{}</textarea>
+bar
+[[ast]]
+{
+  "kind": "SourceFile",
+  "span": [0, 25],
+  "text": "<style>a{}</textarea>\nbar",
+  "children": [
+    {
+      "kind": "Html",
+      "span": [0, 21],
+      "text": "<style>a{}</textarea>",
+      "isBlock": true
+    },
+    {
+      "kind": "Paragraph",
+      "span": [22, 25],
+      "text": "bar",
+      "children": [
+        {
+          "kind": "Text",
+          "span": [22, 25],
+          "text": "bar"
+        }
+      ]
+    }
+  ]
+}
