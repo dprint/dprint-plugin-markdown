@@ -1,6 +1,6 @@
 # dprint-plugin-markdown
 
-[![](https://img.shields.io/crates/v/dprint-plugin-markdown.svg)](https://crates.io/crates/dprint-plugin-markdown) [![CI](https://github.com/dprint/dprint-plugin-markdown/workflows/CI/badge.svg)](https://github.com/dprint/dprint-plugin-markdown/actions?query=workflow%3ACI)
+[![](https://img.shields.io/crates/v/dprint-plugin-markdown.svg)](https://crates.io/crates/dprint-plugin-markdown) [![npm version](https://img.shields.io/npm/v/@dprint/markdown.svg)](https://www.npmjs.com/package/@dprint/markdown) [![CI](https://github.com/dprint/dprint-plugin-markdown/workflows/CI/badge.svg)](https://github.com/dprint/dprint-plugin-markdown/actions?query=workflow%3ACI)
 
 Markdown formatting plugin for dprint.
 
