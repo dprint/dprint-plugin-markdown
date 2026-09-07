@@ -7,7 +7,7 @@ out`.
 Testing `this
 out`.
 
-!! should leave a code span that runs past the line width where it is !!
+!! should still leave a line that runs past the line width where it is !!
 Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy.
 
 [expect]

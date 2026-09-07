@@ -55,7 +55,7 @@
       }]
     },
     "wrapCodeSpans": {
-      "description": "Whether to break a line within a code span when wrapping text. When off, a code span is written on the one line however long it runs, so that the command or path it holds can be searched for and copied out whole, and the text around it is broken before or after it instead.",
+      "description": "Whether to break a line within a code span when wrapping text. Off leaves the command or path a span holds whole in the source, where it is searched for and copied out of.",
       "type": "boolean",
       "default": true,
       "oneOf": [{
@@ -63,7 +63,7 @@
         "description": "Breaks a line within a code span at a space between its words, the same as within any other text."
       }, {
         "const": false,
-        "description": "Writes a code span on the one line however long it runs, and breaks the text around it before or after it instead. A line break written within a span is still kept where `textWrap` keeps line breaks."
+        "description": "Leaves a code span on one line, however long it runs, and breaks the text around it before or after it instead. A line break written within one is still kept where `textWrap` keeps line breaks."
       }]
     },
     "emphasisKind": {

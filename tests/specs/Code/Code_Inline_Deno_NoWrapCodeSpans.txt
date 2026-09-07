@@ -1,0 +1,19 @@
+~~ deno: true, wrapCodeSpans: false ~~
+!! should not break a code span with the deno preset !!
+Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy and then `gh api repos/denoland/deno/issues --paginate --jq '.[].title'` to list issues.
+
+[expect]
+Run
+`npm run issue-stack:policy:check --workspace packages/policy --verbose --json`
+to check the policy and then
+`gh api repos/denoland/deno/issues --paginate --jq '.[].title'` to list issues.
+
+!! should not break a code span in a nested list item with the deno preset !!
+- aaaa
+  - Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy and then some more text after it.
+
+[expect]
+- aaaa
+  - Run
+    `npm run issue-stack:policy:check --workspace packages/policy --verbose --json`
+    to check the policy and then some more text after it.

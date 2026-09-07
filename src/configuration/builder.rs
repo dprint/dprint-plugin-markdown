@@ -70,8 +70,8 @@ impl ConfigurationBuilder {
   }
 
   /// Whether to break a line within a code span when wrapping text. When off,
-  /// a code span is written on the one line however long it runs and the text
-  /// around it is broken before or after it instead.
+  /// a code span is left on one line, however long it runs, so that what it
+  /// holds reads whole in the source.
   /// Default: `true`
   pub fn wrap_code_spans(&mut self, value: bool) -> &mut Self {
     self.insert("wrapCodeSpans", value.into())

@@ -1157,8 +1157,8 @@ fn gen_code(code: &Code, context: &mut Context) -> PrintItems {
   if context.configuration.wrap_code_spans {
     items.extend(gen_code_str(text, context));
   } else {
-    // the span is written on the one line however long it runs, which leaves
-    // the text around it to be broken before or after it
+    // the span is never broken to fit the line width, which leaves the text
+    // around it to be broken before or after it instead
     items.extend(context.with_no_text_wrap(|context| gen_code_str(text, context)));
   }
   push_code_delimiter(&mut items, backticks, separator, false);

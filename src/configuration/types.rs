@@ -19,11 +19,11 @@ pub struct Configuration {
   /// show up in the rendered text for most readers.
   pub wrap_unspaced_scripts: bool,
   /// Whether to break a line within a code span when wrapping text. On by
-  /// default. When off, a code span is written on the one line however long it
-  /// runs, so that the command or path it holds can be searched for and copied
-  /// out whole, and the text around it is broken before or after it instead. A
-  /// line break written within a span is still kept where `text_wrap` keeps
-  /// line breaks, the same as one written anywhere else.
+  /// default. When off, a code span is left on one line, however long it runs,
+  /// so that the command or path it holds reads whole in the source, where it
+  /// is searched for and copied out of, and the text around it is broken
+  /// before or after it instead. A line break written within a span is still
+  /// kept where `text_wrap` keeps line breaks.
   pub wrap_code_spans: bool,
   pub emphasis_kind: EmphasisKind,
   pub strong_kind: StrongKind,

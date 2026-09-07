@@ -1,0 +1,111 @@
+~~ textWrap: always, wrapCodeSpans: false, lineWidth: 40 ~~
+!! should move the punctuation after a code span down with it !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk`. llll mmmm nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`iiii jjjj kkkk`. llll mmmm nnnn oooo
+pppp
+
+!! should move the parentheses around a code span down with it !!
+aaaa bbbb cccc dddd eeee ffff gggg hhh (`iiii jjjj kkkk`), llll mmmm nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhh
+(`iiii jjjj kkkk`), llll mmmm nnnn oooo
+pppp
+
+!! should write each of several long code spans on a line of its own !!
+Run `gh api repos/owner/name/issues --paginate` or `gh api repos/owner/name/pulls --paginate` or `gh issue list --state all --limit 1000` to list them.
+
+[expect]
+Run
+`gh api repos/owner/name/issues --paginate`
+or
+`gh api repos/owner/name/pulls --paginate`
+or
+`gh issue list --state all --limit 1000`
+to list them.
+
+!! should not break a url within a code span !!
+See the docs at `https://example.com/some/really/long/path/to/a/page.html` for more.
+
+[expect]
+See the docs at
+`https://example.com/some/really/long/path/to/a/page.html`
+for more.
+
+!! should keep a code span whole where the indentation of a nested list item pushes it past the line width !!
+- aaaa bbbb
+  - cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk` llll mmmm nnnn oooo pppp
+    - qqqq rrrr ssss tttt uuuu vvvv `wwww xxxx yyyy zzzz aaaa bbbb cccc dddd eeee` ffff
+
+[expect]
+- aaaa bbbb
+  - cccc dddd eeee ffff gggg hhhh
+    `iiii jjjj kkkk` llll mmmm nnnn oooo
+    pppp
+    - qqqq rrrr ssss tttt uuuu vvvv
+      `wwww xxxx yyyy zzzz aaaa bbbb cccc dddd eeee`
+      ffff
+
+!! should not break a code span in a footnote !!
+aaaa[^1] bbbb
+
+[^1]: aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk` llll mmmm nnnn oooo pppp
+
+[expect]
+aaaa[^1] bbbb
+
+[^1]: aaaa bbbb cccc dddd eeee ffff gggg
+    hhhh `iiii jjjj kkkk` llll mmmm nnnn
+    oooo pppp
+
+!! should keep a code span at the start of a paragraph on its line !!
+`aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj` kkkk llll mmmm nnnn oooo pppp
+
+[expect]
+`aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj`
+kkkk llll mmmm nnnn oooo pppp
+
+!! should move a code span at the end of a paragraph down whole with its period !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk llll mmmm nnnn oooo pppp`.
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`iiii jjjj kkkk llll mmmm nnnn oooo pppp`.
+
+!! should keep a hard break after a code span !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk`\
+llll mmmm nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`iiii jjjj kkkk`\
+llll mmmm nnnn oooo pppp
+
+!! should move a link holding a code span down whole !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh [`iiii jjjj kkkk` llll](https://example.com) mmmm nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+[`iiii jjjj kkkk` llll](https://example.com)
+mmmm nnnn oooo pppp
+
+!! should keep the spaces that pad a double backtick code span !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `` `iiii jjjj kkkk` `` llll mmmm nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`` `iiii jjjj kkkk` `` llll mmmm nnnn
+oooo pppp
+
+!! should not break a code span in a definition list !!
+Term
+: aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk` llll mmmm nnnn oooo pppp
+
+[expect]
+Term
+: aaaa bbbb cccc dddd eeee ffff gggg
+  hhhh `iiii jjjj kkkk` llll mmmm nnnn
+  oooo pppp

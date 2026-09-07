@@ -46,7 +46,7 @@ Testing `this out`.
 - This is some long text, which will have a bit of inline code across the
   `80 character limit` and then more after that.
 
-!! should move a code span holding a block marker down whole !!
+!! should still keep a block marker within a code span off the start of a line !!
 aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo # pppp` qqqq
 
 [expect]

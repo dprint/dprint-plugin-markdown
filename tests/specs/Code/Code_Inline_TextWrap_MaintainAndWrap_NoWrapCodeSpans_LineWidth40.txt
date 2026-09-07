@@ -1,0 +1,19 @@
+~~ textWrap: maintainAndWrap, wrapCodeSpans: false, lineWidth: 40 ~~
+!! should keep a line break written within a code span that also runs past the line width !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk llll
+mmmm nnnn oooo pppp qqqq rrrr ssss tttt` uuuu
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`iiii jjjj kkkk llll
+mmmm nnnn oooo pppp qqqq rrrr ssss tttt`
+uuuu
+
+!! should keep the line breaks written around a code span while breaking the line it runs past the width on !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj kkkk` llll mmmm
+nnnn oooo pppp
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh
+`iiii jjjj kkkk` llll mmmm
+nnnn oooo pppp
