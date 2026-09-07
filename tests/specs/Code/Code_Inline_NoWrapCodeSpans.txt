@@ -1,0 +1,14 @@
+~~ wrapCodeSpans: false ~~
+!! should keep a line break written within a code span where line breaks are maintained !!
+Testing `this
+out`.
+
+[expect]
+Testing `this
+out`.
+
+!! should leave a code span that runs past the line width where it is !!
+Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy.
+
+[expect]
+Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy.
