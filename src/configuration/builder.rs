@@ -69,6 +69,14 @@ impl ConfigurationBuilder {
     self.insert("wrapUnspacedScripts", value.into())
   }
 
+  /// Whether to break a line within a code span when wrapping text. When off,
+  /// a code span is left on one line, however long it runs, so that what it
+  /// holds reads whole in the source.
+  /// Default: `true`
+  pub fn wrap_code_spans(&mut self, value: bool) -> &mut Self {
+    self.insert("wrapCodeSpans", value.into())
+  }
+
   /// The character to use for emphasis/italics.
   /// Default: `EmphasisKind::Underscores`
   pub fn emphasis_kind(&mut self, value: EmphasisKind) -> &mut Self {
@@ -268,6 +276,7 @@ mod tests {
       .line_width(90)
       .text_wrap(TextWrap::Always)
       .wrap_unspaced_scripts(true)
+      .wrap_code_spans(false)
       .emphasis_kind(EmphasisKind::Asterisks)
       .strong_kind(StrongKind::Underscores)
       .hard_break_kind(HardBreakKind::DoubleSpace)
@@ -295,7 +304,7 @@ mod tests {
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 29);
+    assert_eq!(inner_config.len(), 30);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }

@@ -1,0 +1,15 @@
+~~ textWrap: maintainAndWrap, wrapCodeSpans: false ~~
+!! should not break a code span within a line that runs past the line width !!
+This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+
+[expect]
+This is some long text, which will have a bit of inline code across the
+`80 character limit` and then more after that.
+
+!! should keep a line break written within a code span !!
+Testing `this
+out`.
+
+[expect]
+Testing `this
+out`.

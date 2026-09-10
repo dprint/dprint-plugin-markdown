@@ -1,0 +1,49 @@
+~~ textWrap: always, wrapCodeSpans: false, lineWidth: 20 ~~
+!! should write the text between code spans that run past the line width on lines of their own !!
+Run `npm run build --watch` to start it and `deno task test --coverage` to test.
+
+[expect]
+Run
+`npm run build --watch`
+to start it and
+`deno task test --coverage`
+to test.
+
+!! should do the same within a block quote !!
+> Run `npm run build --watch` to start it and `deno task test --coverage` to test.
+
+[expect]
+> Run
+> `npm run build --watch`
+> to start it and
+> `deno task test --coverage`
+> to test.
+
+!! should do the same within nested list items !!
+- Run `npm run build --watch` to start it
+  - and `deno task test --coverage` to test.
+
+[expect]
+- Run
+  `npm run build --watch`
+  to start it
+  - and
+    `deno task test --coverage`
+    to test.
+
+!! should keep the punctuation after each of a run of code spans with it !!
+`aaaa bbbb`, `cccc dddd`, `eeee ffff`, `gggg hhhh`, `iiii jjjj`.
+
+[expect]
+`aaaa bbbb`,
+`cccc dddd`,
+`eeee ffff`,
+`gggg hhhh`,
+`iiii jjjj`.
+
+!! should move a code span opening with a block marker down whole !!
+aaaa bbbb cccc ddddd `# eeee` ffff
+
+[expect]
+aaaa bbbb cccc ddddd
+`# eeee` ffff

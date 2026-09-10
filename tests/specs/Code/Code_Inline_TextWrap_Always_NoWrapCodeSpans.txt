@@ -1,0 +1,61 @@
+~~ textWrap: always, wrapCodeSpans: false ~~
+!! should not break a code span across lines !!
+This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+
+[expect]
+This is some long text, which will have a bit of inline code across the
+`80 character limit` and then more after that.
+
+!! should write a code span that runs past the line width on a line of its own !!
+Run `npm run issue-stack:policy:check --workspace packages/policy --verbose --json` to check the policy.
+
+[expect]
+Run
+`npm run issue-stack:policy:check --workspace packages/policy --verbose --json`
+to check the policy.
+
+!! should leave a code span that is a paragraph of its own on one line !!
+`This is a long inline code span that should not have its text wrapped even where it runs past the line width.`
+
+[expect]
+`This is a long inline code span that should not have its text wrapped even where it runs past the line width.`
+
+!! should join a code span written across lines onto one !!
+Testing `this
+out`.
+
+[expect]
+Testing `this out`.
+
+!! should not break a code span in a block quote !!
+> This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+>
+> Testing `this
+> out`.
+
+[expect]
+> This is some long text, which will have a bit of inline code across the
+> `80 character limit` and then more after that.
+>
+> Testing `this out`.
+
+!! should not break a code span in a list item !!
+- This is some long text, which will have a bit of inline code across the `80 character limit` and then more after that.
+
+[expect]
+- This is some long text, which will have a bit of inline code across the
+  `80 character limit` and then more after that.
+
+!! should still keep a block marker within a code span off the start of a line !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn `oooooooo # pppp` qqqq
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll mmmm nnnn
+`oooooooo # pppp` qqqq
+
+!! should still wrap the text around a code span !!
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj` kkkk llll mmmm nnnn oooo pppp qqqq rrrr ssss tttt uuuu vvvv wwww xxxx yyyy zzzz
+
+[expect]
+aaaa bbbb cccc dddd eeee ffff gggg hhhh `iiii jjjj` kkkk llll mmmm nnnn oooo
+pppp qqqq rrrr ssss tttt uuuu vvvv wwww xxxx yyyy zzzz

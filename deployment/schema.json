@@ -54,6 +54,18 @@
         "description": "Leaves a run of a script written without spaces between its words on one line, however long it runs, and keeps any line break written within one where it was."
       }]
     },
+    "wrapCodeSpans": {
+      "description": "Whether to break a line within a code span when wrapping text. Off leaves the command or path a span holds whole in the source, where it is searched for and copied out of.",
+      "type": "boolean",
+      "default": true,
+      "oneOf": [{
+        "const": true,
+        "description": "Breaks a line within a code span at a space between its words, the same as within any other text."
+      }, {
+        "const": false,
+        "description": "Leaves a code span on one line, however long it runs, and breaks the text around it before or after it instead. A line break written within one is still kept where `textWrap` keeps line breaks."
+      }]
+    },
     "emphasisKind": {
       "description": "The character to use for emphasis/italics.",
       "type": "string",
@@ -300,6 +312,9 @@
     },
     "wrapUnspacedScripts": {
       "$ref": "#/definitions/wrapUnspacedScripts"
+    },
+    "wrapCodeSpans": {
+      "$ref": "#/definitions/wrapCodeSpans"
     },
     "emphasisKind": {
       "$ref": "#/definitions/emphasisKind"
