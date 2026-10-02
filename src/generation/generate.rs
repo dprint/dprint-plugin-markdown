@@ -2980,7 +2980,12 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
   // only a cell that's aligned is written out to the width of its column, so
   // any other padding leaves the cells of a column no width to be written to
   let column_widths = match padding {
-    TableCellPadding::Align => Some(get_column_widths(&header, &rows, &table.column_alignment)),
+    TableCellPadding::Align => Some(get_column_widths(
+      &header,
+      &rows,
+      &table.column_alignment,
+      context.configuration.table_min_column_width as usize,
+    )),
     TableCellPadding::Space | TableCellPadding::None => None,
   };
   let column_widths = column_widths.as_deref();
@@ -3112,11 +3117,13 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     header: &[GeneratedCell],
     rows: &[Vec<GeneratedCell>],
     column_alignments: &[ColumnAlignment],
+    min_column_width: usize,
   ) -> Vec<usize> {
     let mut column_widths = Vec::with_capacity(column_alignments.len());
     for (i, column_alignment) in column_alignments.iter().enumerate() {
       // + 1 in order to have at least one dash
-      let mut max_width = get_column_alignment_properties(*column_alignment).count() + 1;
+      let delimiter_width = get_column_alignment_properties(*column_alignment).count() + 1;
+      let mut max_width = std::cmp::max(delimiter_width, min_column_width);
 
       if let Some(cell) = header.get(i) {
         max_width = std::cmp::max(max_width, cell.width);

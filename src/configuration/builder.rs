@@ -217,6 +217,15 @@ impl ConfigurationBuilder {
     self.insert("table.cellPadding", value.to_string().into())
   }
 
+  /// The least number of characters to write a table's column out to, which
+  /// counts the colons of its delimiter. A column is never narrower than its
+  /// delimiter needs, which is a dash and any colons. Only has an effect when
+  /// the cells are padded with `TableCellPadding::Align`.
+  /// Default: `1`
+  pub fn table_min_column_width(&mut self, value: u8) -> &mut Self {
+    self.insert("table.minColumnWidth", (value as i32).into())
+  }
+
   /// The directive used to ignore a line.
   /// Default: `dprint-ignore`
   pub fn ignore_directive(&mut self, value: &str) -> &mut Self {
@@ -298,13 +307,14 @@ mod tests {
       .html_prefer_single_line(true)
       .table_skip_format(true)
       .table_cell_padding(TableCellPadding::Space)
+      .table_min_column_width(3)
       .ignore_directive("test")
       .ignore_file_directive("test")
       .ignore_start_directive("test")
       .ignore_end_directive("test");
 
     let inner_config = config.get_inner_config();
-    assert_eq!(inner_config.len(), 30);
+    assert_eq!(inner_config.len(), 31);
     let diagnostics = resolve_config(inner_config, &Default::default()).diagnostics;
     assert_eq!(diagnostics.len(), 0);
   }
@@ -362,6 +372,27 @@ mod tests {
     assert_eq!(result.diagnostics[0].property_name, "maxBlankLines");
     assert!(result.diagnostics[0].message.contains("at least 1"));
     assert_eq!(result.config.max_blank_lines, 1);
+  }
+
+  #[test]
+  fn table_min_column_width_default() {
+    let config = ConfigurationBuilder::new().build();
+    assert_eq!(config.table_min_column_width, 1);
+
+    let config = ConfigurationBuilder::new().table_min_column_width(3).build();
+    assert_eq!(config.table_min_column_width, 3);
+  }
+
+  #[test]
+  fn table_min_column_width_below_one() {
+    let mut config = ConfigKeyMap::new();
+    config.insert("table.minColumnWidth".into(), 0.into());
+
+    let result = resolve_config(config, &Default::default());
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].property_name, "table.minColumnWidth");
+    assert!(result.diagnostics[0].message.contains("at least 1"));
+    assert_eq!(result.config.table_min_column_width, 1);
   }
 
   #[test]

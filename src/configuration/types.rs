@@ -91,6 +91,13 @@ pub struct Configuration {
   /// a table left as it was written by `table.skipFormat`.
   #[serde(rename = "table.cellPadding")]
   pub table_cell_padding: TableCellPadding,
+  /// The least number of characters to write a table's column out to, which
+  /// counts the colons of its delimiter. A column is never narrower than its
+  /// delimiter needs, which is a dash and any colons. Only has an effect when
+  /// `table.cellPadding` is `align`, since no other padding writes a column
+  /// out to a width.
+  #[serde(rename = "table.minColumnWidth")]
+  pub table_min_column_width: u8,
   pub ignore_directive: String,
   pub ignore_file_directive: String,
   pub ignore_start_directive: String,

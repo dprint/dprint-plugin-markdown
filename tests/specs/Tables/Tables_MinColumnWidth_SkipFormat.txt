@@ -1,0 +1,10 @@
+~~ table.minColumnWidth: 3, table.skipFormat: true ~~
+!! should leave a table as it was written !!
+| a | b |
+| - | - |
+| c | d |
+
+[expect]
+| a | b |
+| - | - |
+| c | d |

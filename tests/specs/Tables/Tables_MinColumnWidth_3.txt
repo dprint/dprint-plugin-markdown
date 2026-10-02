@@ -1,0 +1,40 @@
+~~ table.minColumnWidth: 3 ~~
+!! should write a column out to at least the minimum width !!
+|a|b|c|d|
+|-|:-|-:|:-:|
+|1|2|3|4|
+
+[expect]
+| a   | b   |   c |  d  |
+| --- | :-- | --: | :-: |
+| 1   | 2   |   3 |  4  |
+
+!! should leave a column that is wider than the minimum at its width !!
+|a|testing|
+|-|:-:|
+|1|2|
+
+[expect]
+| a   | testing |
+| --- | :-----: |
+| 1   |    2    |
+
+!! should write a column with no text out to the minimum width !!
+|||
+|-|-|
+|||
+
+[expect]
+|     |     |
+| --- | --- |
+|     |     |
+
+!! should not pad a cell written past the last column !!
+|a|
+|-|
+|b|c|
+
+[expect]
+| a   |
+| --- |
+| b   | c |
