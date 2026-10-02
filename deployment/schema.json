@@ -281,6 +281,13 @@
         "description": "Writes no space around a cell's text."
       }]
     },
+    "table.minColumnWidth": {
+      "description": "The least number of characters to write a table's column out to, which counts the colons of its delimiter. A column is never narrower than its delimiter needs, which is a dash and any colons. Only has an effect when `table.cellPadding` is `align`, since no other padding writes a column out to a width.",
+      "type": "number",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 255
+    },
     "deno": {
       "description": "Top level configuration that sets the configuration to what is used in Deno.",
       "type": "boolean",
@@ -383,6 +390,9 @@
     },
     "table.cellPadding": {
       "$ref": "#/definitions/table.cellPadding"
+    },
+    "table.minColumnWidth": {
+      "$ref": "#/definitions/table.minColumnWidth"
     },
     "deno": {
       "$ref": "#/definitions/deno"

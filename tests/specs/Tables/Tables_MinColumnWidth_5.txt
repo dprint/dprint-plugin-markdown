@@ -1,0 +1,10 @@
+~~ table.minColumnWidth: 5 ~~
+!! should count the colons of the delimiter in the width !!
+|a|b|c|d|
+|-|:-|-:|:-:|
+|1|22|3|4|
+
+[expect]
+| a     | b     |     c |   d   |
+| ----- | :---- | ----: | :---: |
+| 1     | 22    |     3 |   4   |

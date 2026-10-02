@@ -112,6 +112,7 @@ pub fn resolve_config(
       TableCellPadding::Align,
       &mut diagnostics,
     ),
+    table_min_column_width: get_table_min_column_width(&mut config, &mut diagnostics),
     ignore_directive: get_value(
       &mut config,
       "ignoreDirective",
@@ -209,7 +210,7 @@ where
 /// maximum below one isn't something the formatter could ever stay under.
 fn get_max_blank_lines(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> u32 {
   let value = get_value(config, "maxBlankLines", 1, diagnostics);
-  ensure_at_least_one_blank_line("maxBlankLines", value, diagnostics)
+  ensure_at_least_one("maxBlankLines", value, diagnostics)
 }
 
 /// With `heading.kind: setext` a heading written against the paragraph above it
@@ -220,24 +221,26 @@ fn get_heading_blank_lines_above(
   diagnostics: &mut Vec<ConfigurationDiagnostic>,
 ) -> Option<u32> {
   let value = get_nullable_value(config, "heading.blankLinesAbove", diagnostics)?;
-  Some(ensure_at_least_one_blank_line(
-    "heading.blankLinesAbove",
-    value,
-    diagnostics,
-  ))
+  Some(ensure_at_least_one("heading.blankLinesAbove", value, diagnostics))
 }
 
-fn ensure_at_least_one_blank_line(
-  property_name: &str,
-  value: u32,
-  diagnostics: &mut Vec<ConfigurationDiagnostic>,
-) -> u32 {
-  if value < 1 {
+/// A column's delimiter is at least a dash, so a width below one isn't one a
+/// column could ever be written to.
+fn get_table_min_column_width(config: &mut ConfigKeyMap, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> u8 {
+  let value = get_value(config, "table.minColumnWidth", 1, diagnostics);
+  ensure_at_least_one("table.minColumnWidth", value, diagnostics)
+}
+
+fn ensure_at_least_one<T>(property_name: &str, value: T, diagnostics: &mut Vec<ConfigurationDiagnostic>) -> T
+where
+  T: PartialOrd + From<u8>,
+{
+  if value < T::from(1) {
     diagnostics.push(ConfigurationDiagnostic {
       property_name: property_name.to_string(),
       message: "Expected a value of at least 1.".to_string(),
     });
-    return 1;
+    return T::from(1);
   }
   value
 }
@@ -408,6 +411,7 @@ mod tests {
     config.insert("codeBlock.useTabs".into(), "yes".into());
     config.insert("heading.blankLinesAbove".into(), "x".into());
     config.insert("html.indentWidth".into(), 300.into());
+    config.insert("table.minColumnWidth".into(), 256.into());
 
     let result = resolve_config(config, &Default::default());
     let mut names = result
@@ -422,13 +426,15 @@ mod tests {
         "codeBlock.useTabs",
         "heading.blankLinesAbove",
         "html.indentWidth",
-        "lineWidth"
+        "lineWidth",
+        "table.minColumnWidth"
       ]
     );
     assert_eq!(result.config.line_width, 80);
     assert_eq!(result.config.code_block_use_tabs, None);
     assert_eq!(result.config.heading_blank_lines_above, None);
     assert_eq!(result.config.html_indent_width, 2);
+    assert_eq!(result.config.table_min_column_width, 1);
   }
 
   #[test]

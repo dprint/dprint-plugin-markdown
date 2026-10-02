@@ -1,0 +1,10 @@
+~~ table.minColumnWidth: 3, table.cellPadding: space ~~
+!! should have no effect when the cells are not aligned !!
+|a|b|
+|-|:-:|
+|1|2|
+
+[expect]
+| a | b |
+| - | :-: |
+| 1 | 2 |
