@@ -24,19 +24,23 @@ fn main() {
     },
     {
       let global_config = global_config.clone();
-      Arc::new(move |_, file_text, spec_config| {
+      Arc::new(move |_, file_text, range, spec_config| {
         let spec_config: ConfigKeyMap = serde_json::from_value(spec_config.clone().into()).unwrap();
         let config_result = resolve_config(spec_config, &global_config);
         ensure_no_diagnostics(&config_result.diagnostics);
 
-        format_text(file_text, &config_result.config, |tag, file_text, line_width| {
+        let format_code_block_text = |tag: &str, file_text: &str, line_width: u32| {
           let end = format!("_formatted_{}", line_width);
           if tag == "format" && !file_text.ends_with(&end) {
             Ok(Some(format!("{}{}", file_text, end)))
           } else {
             Ok(None)
           }
-        })
+        };
+        match range {
+          Some(range) => format_text_range(file_text, range, &config_result.config, format_code_block_text),
+          None => format_text(file_text, &config_result.config, format_code_block_text),
+        }
         .map_err(Into::into)
       })
     },

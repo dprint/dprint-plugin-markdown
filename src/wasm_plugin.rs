@@ -45,6 +45,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
           "markdown".to_string(),
         ],
         file_names: vec![],
+        additive: false,
       },
     }
   }
@@ -92,7 +93,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
   ) -> FormatResult {
     let file_text = String::from_utf8(request.file_bytes)?;
     let config = request.config.clone();
-    return super::format_text(&file_text, request.config, |tag, file_text, line_width| {
+    let format_code_block_text = |tag: &str, file_text: &str, line_width: u32| {
       if let Some(ext) = tag_to_extension(tag, &config) {
         let file_path = PathBuf::from(format!("file.{}", ext));
         let mut additional_config = ConfigKeyMap::new();
@@ -118,7 +119,11 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
       } else {
         Ok(None)
       }
-    })
+    };
+    return match request.range {
+      Some(range) => super::format_text_range(&file_text, range, request.config, format_code_block_text),
+      None => super::format_text(&file_text, request.config, format_code_block_text),
+    }
     .map(|maybe_text| maybe_text.map(|t| t.into_bytes()))
     .map_err(CoreFormatError::new);
 

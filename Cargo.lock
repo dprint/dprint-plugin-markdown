@@ -108,9 +108,9 @@ dependencies = [
 
 [[package]]
 name = "dprint-core"
-version = "0.69.1"
+version = "0.70.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67359cea061dd052fca921d3589a9ce59bc16fa23bfb9d06d5c669a1dbd23915"
+checksum = "f6c66c17f6a0648b838e9a54fcf6ce2e237d060edbd3a65a724687d563fb8f28"
 dependencies = [
  "bumpalo",
  "hashbrown 0.15.2",
@@ -134,9 +134,9 @@ dependencies = [
 
 [[package]]
 name = "dprint-development"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90b3b095f94733262261bfeb860a6550e1d656dd108240c43004bd0f1b419837"
+checksum = "b6696b3acf01bba505d35c400115ce277e6a5208ce41defa11799c53f6d02c5e"
 dependencies = [
  "console",
  "file_test_runner",

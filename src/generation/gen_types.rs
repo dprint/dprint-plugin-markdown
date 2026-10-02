@@ -233,6 +233,9 @@ pub struct Context<'a> {
   /// It's held outside the context so that it's still there to be read once
   /// the context has been dropped.
   code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
+  /// The range of the file the code blocks are formatted within, when only
+  /// part of the file is being formatted.
+  pub code_block_range: Option<std::ops::Range<usize>>,
   memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
   /// How much each of the paths above indents by, keyed by address, so that
   /// they can be told apart from the paths that hold generated content and
@@ -288,6 +291,7 @@ impl<'a> Context<'a> {
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
       code_block_error,
+      code_block_range: None,
       memoized_rc_paths: HashMap::new(),
       memoized_rc_path_indents: HashMap::new(),
     }

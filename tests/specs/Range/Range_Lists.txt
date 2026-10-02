@@ -1,0 +1,97 @@
+!! should format only the touched list item !!
+-   a    b
+-   [|c    d|]
+-   e    f
+
+[expect]
+-   a    b
+- [|c d|]
+-   e    f
+
+!! should format the list when its items would no longer be one list !!
+*   a    b
+*   [|c    d
+*   e|]    f
+*   g    h
+
+[expect]
+[|- a b
+- c d
+- e f
+- g h|]
+
+!! should format the item within a nested list !!
+- a    b
+  - [|c    d|]
+  - e    f
+- g    h
+
+[expect]
+- a    b
+  - [|c d|]
+  - e    f
+- g    h
+
+!! should format the outer item when the nested list's indentation changes !!
+- a    b
+    - [|c    d|]
+    - e    f
+- g    h
+
+[expect]
+[|- a b
+  - c d
+  - e f|]
+- g    h
+
+!! should renumber the touched item !!
+1. a    b
+2. c    d
+7. [|e    f|]
+
+[expect]
+1. a    b
+2. c    d
+[|3. e f|]
+
+!! should format the whole list when the range covers it !!
+a    b
+
+[|- c    d
+- e    f|]
+
+g    h
+
+[expect]
+a    b
+
+[|- c d
+- e f|]
+
+g    h
+
+!! should format the touched list items !!
+-   a    b
+-   [|c    d
+-   e|]    f
+-   g    h
+
+[expect]
+-   a    b
+- [|c d
+- e f|]
+-   g    h
+
+!! should format a paragraph within a list item !!
+- a    b
+
+  [|c    d|]
+
+  e    f
+
+[expect]
+- a    b
+
+  [|c d|]
+
+  e    f

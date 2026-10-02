@@ -11,11 +11,13 @@
 #![deny(clippy::print_stdout)]
 
 pub mod configuration;
+mod format_range;
 mod format_text;
 mod generation;
 mod html;
 mod parser;
 
+pub use format_range::format_text_range;
 pub use format_text::format_text;
 pub use format_text::FormatError;
 

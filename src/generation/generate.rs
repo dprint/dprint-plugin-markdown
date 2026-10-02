@@ -1076,7 +1076,11 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
       let start_pos = get_code_block_start_pos(code);
       code[start_pos..].trim_end_matches(WHITESPACE)
     };
-    if !context.configuration.code_block_skip_format {
+    let is_in_range = context
+      .code_block_range
+      .as_ref()
+      .is_none_or(|range| range.start <= code_block.span.start && code_block.span.end <= range.end);
+    if !context.configuration.code_block_skip_format && is_in_range {
       if let Some(tag) = code_block.tag() {
         // allow situations like ```rust,ignore
         let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();

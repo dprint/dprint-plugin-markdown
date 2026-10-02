@@ -1,0 +1,45 @@
+!! should format a block within a block quote !!
+> a    b
+>
+> [|c    d|]
+>
+> e    f
+
+[expect]
+> a    b
+>
+> [|c d|]
+>
+> e    f
+
+!! should format the block quote when its prefixes change !!
+>a    b
+>
+>[|c    d|]
+
+[expect]
+[|> a b
+>
+> c d|]
+
+!! should format a code block within the range !!
+a    b
+
+```format
+[|code|]
+```
+
+```format
+other
+```
+
+[expect]
+a    b
+
+[|```format
+code_formatted_80
+```|]
+
+```format
+other
+```

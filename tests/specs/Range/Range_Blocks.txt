@@ -1,0 +1,110 @@
+!! should format only the touched paragraph !!
+#  Title
+
+some    [|text|]
+here
+
+other    text
+
+[expect]
+#  Title
+
+[|some text
+here|]
+
+other    text
+
+!! should format several touched blocks along with the blank lines between them !!
+#  Title
+
+
+
+[|Para    one
+
+
+
+#   Heading|]
+
+
+
+other    text
+
+[expect]
+#  Title
+
+
+
+[|Para one
+
+# Heading|]
+
+
+
+other    text
+
+!! should fix the indentation of the touched block !!
+a    b
+
+   [|c|]    d
+
+e    f
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+!! should format a block under the cursor !!
+a    b
+
+c  [||]  d
+
+e    f
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+!! should format nothing for a range in blank lines between blocks !!
+a    b
+
+[||]
+
+e    f
+
+[expect]
+a    b
+
+
+
+e    f
+
+!! should format the whole file when the range covers every block !!
+[|a    b
+
+e    f|]
+
+[expect]
+a b
+
+e f
+
+!! should format a setext heading in place !!
+a    b
+
+[|Title|]
+=====
+
+e    f
+
+[expect]
+a    b
+
+[|# Title|]
+
+e    f

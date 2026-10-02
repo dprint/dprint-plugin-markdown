@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::ops::Range;
 use std::rc::Rc;
 
 use dprint_core::configuration::resolve_new_line_kind;
@@ -48,7 +49,7 @@ pub fn format_text(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
-  let result = format_text_inner(file_text, config, format_code_block_text)?;
+  let result = format_text_inner(file_text, config, None, format_code_block_text)?;
 
   match result {
     Some(result) if result == file_text => Ok(None),
@@ -57,9 +58,12 @@ pub fn format_text(
   }
 }
 
-fn format_text_inner(
+/// Formats a file, only formatting the code blocks within `code_block_range`
+/// when there is one.
+pub(crate) fn format_text_inner(
   file_text: &str,
   config: &Configuration,
+  code_block_range: Option<Range<usize>>,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
   let full_text = file_text;
@@ -85,6 +89,7 @@ fn format_text_inner(
         format_code_block_text,
         code_block_error.clone(),
       );
+      context.code_block_range = code_block_range;
       generate(&source_file.into(), &mut context)
     },
     config_to_print_options(file_text, config),
@@ -133,7 +138,7 @@ pub fn trace_file(
 /// only the first would leave another at the start of the file once the
 /// whitespace around it was written out -- for the next run to take off in
 /// turn. Text that begins with no mark at all is left as it is.
-fn strip_bom(text: &str) -> &str {
+pub(crate) fn strip_bom(text: &str) -> &str {
   let mut rest = text;
   loop {
     let trimmed = rest.trim_start_matches([' ', '\t', '\n', '\r']);
