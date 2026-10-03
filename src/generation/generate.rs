@@ -1076,11 +1076,7 @@ fn gen_code_block(code_block: &CodeBlock, position: NodePosition, context: &mut 
       let start_pos = get_code_block_start_pos(code);
       code[start_pos..].trim_end_matches(WHITESPACE)
     };
-    let is_in_range = context
-      .code_block_range
-      .as_ref()
-      .is_none_or(|range| range.start <= code_block.span.start && code_block.span.end <= range.end);
-    if !context.configuration.code_block_skip_format && is_in_range {
+    if !context.configuration.code_block_skip_format && context.is_in_code_block_range(code_block.span) {
       if let Some(tag) = code_block.tag() {
         // allow situations like ```rust,ignore
         let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
@@ -3233,10 +3229,9 @@ fn gen_metadata_block(node: &MetadataBlock, context: &mut Context) -> PrintItems
   items.push_signal(Signal::NewLine);
   match node.kind {
     MetadataBlockKind::YamlStyle => {
-      let text = context
-        .format_text("yaml", node.text)
-        .ok()
-        .flatten()
+      let text = Some(node.span)
+        .filter(|span| context.is_in_code_block_range(*span))
+        .and_then(|_| context.format_text("yaml", node.text).ok().flatten())
         .map(Cow::from)
         .unwrap_or_else(|| Cow::from(node.text));
       items.extend(ir_helpers::gen_from_string(&trim_line_ends(
