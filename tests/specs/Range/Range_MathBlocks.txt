@@ -1,0 +1,35 @@
+!! should keep a math block !!
+a    b
+
+$$
+x   [|+|]   y
+$$
+
+c    d
+
+[expect]
+a    b
+
+$$
+x   [|+|]   y
+$$
+
+c    d
+
+!! should format the paragraph after a math block !!
+$$
+x   +   y
+$$
+
+c  [|  d|]
+
+e    f
+
+[expect]
+$$
+x   +   y
+$$
+
+[|c d|]
+
+e    f

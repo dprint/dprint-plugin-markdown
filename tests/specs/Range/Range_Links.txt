@@ -1,0 +1,57 @@
+!! should format a link reference definition !!
+[a]   and   [b]
+
+[a]:    [|http://example.com/a|]    "Title"
+[b]:    http://example.com/b
+
+c    d
+
+[expect]
+[a]   and   [b]
+
+[|[a]: http://example.com/a "Title"|]
+[b]:    http://example.com/b
+
+c    d
+
+!! should format a paragraph with a reference link !!
+a    b
+
+some   [|[link   text][a]|]   and   [a]   text
+
+[a]:    http://example.com/a
+
+[expect]
+a    b
+
+[|some [link text][a] and [a] text|]
+
+[a]:    http://example.com/a
+
+!! should format a paragraph with a reference image !!
+a    b
+
+some   [|![alt   text][a]|]   text
+
+[a]:    image.png
+
+[expect]
+a    b
+
+[|some ![alt   text][a] text|]
+
+[a]:    image.png
+
+!! should keep text that is not a link without its definition !!
+a    b
+
+some   [|[not a link][missing]|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some [not a link][missing] text|]
+
+c    d

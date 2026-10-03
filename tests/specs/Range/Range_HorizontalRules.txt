@@ -1,0 +1,43 @@
+!! should format a horizontal rule !!
+a    b
+
+[|* * *|]
+
+c    d
+
+[expect]
+a    b
+
+[|---|]
+
+c    d
+
+!! should format a horizontal rule under the cursor !!
+a    b
+
+__[||]___
+
+c    d
+
+[expect]
+a    b
+
+[|---|]
+
+c    d
+
+!! should format a horizontal rule within a list item !!
+- a    b
+
+  [|***|]
+
+  c    d
+- e    f
+
+[expect]
+- a    b
+
+  [|---|]
+
+  c    d
+- e    f

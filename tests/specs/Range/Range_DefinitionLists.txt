@@ -1,0 +1,53 @@
+!! should format a definition list from its term !!
+a    b
+
+[|Apple|]
+:   A   fruit.
+:   A   company.
+
+c    d
+
+[expect]
+a    b
+
+Apple
+[|: A fruit.
+: A company.|]
+
+c    d
+
+!! should format a definition list from a definition !!
+a    b
+
+Apple
+:   A   [|fruit|].
+:   A   company.
+
+Orange
+:   Another   fruit.
+
+c    d
+
+[expect]
+a    b
+
+Apple
+[|: A fruit.
+: A company.
+
+Orange
+: Another fruit.|]
+
+c    d
+
+!! should not format a definition list when the range is elsewhere !!
+a  [|  b|]
+
+Apple
+:   A   fruit.
+
+[expect]
+[|a b|]
+
+Apple
+:   A   fruit.

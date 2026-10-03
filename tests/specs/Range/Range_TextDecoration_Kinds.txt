@@ -1,0 +1,14 @@
+~~ emphasisKind: asterisks, strongKind: underscores ~~
+!! should use the configured kinds in only the touched paragraph !!
+_a_ and **b**
+
+_a_ and [|**b**|]
+
+_a_ and **b**
+
+[expect]
+_a_ and **b**
+
+[|*a* and __b__|]
+
+_a_ and **b**

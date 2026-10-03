@@ -1,0 +1,59 @@
+~~ lineWidth: 20, textWrap: always ~~
+!! should wrap only the touched paragraph !!
+this is a long line that would wrap
+
+this is a [|long|] line that would wrap
+
+this is a long line that would wrap
+
+[expect]
+this is a long line that would wrap
+
+[|this is a long line
+that would wrap|]
+
+this is a long line that would wrap
+
+!! should join the lines of the touched paragraph !!
+a
+b
+
+c
+[|d|]
+e
+
+f
+g
+
+[expect]
+a
+b
+
+[|c d e|]
+
+f
+g
+
+!! should wrap a paragraph within a block quote at its width !!
+> this is a long line that would wrap
+>
+> this is a [|long|] line that would wrap
+
+[expect]
+> this is a long line that would wrap
+>
+[|> this is a long
+> line that would
+> wrap|]
+
+!! should wrap a paragraph within a list item at its width !!
+- this is a long line that would wrap
+- this is a [|long|] line that would wrap
+- this is a long line that would wrap
+
+[expect]
+- this is a long line that would wrap
+[|- this is a long
+  line that would
+  wrap|]
+- this is a long line that would wrap

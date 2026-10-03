@@ -1,0 +1,121 @@
+!! should format a table from one of its cells !!
+a    b
+
+| Name | Value |
+|---|---|
+| [|a|] | 1 |
+| long name | 2 |
+
+c    d
+
+[expect]
+a    b
+
+[|| Name      | Value |
+| --------- | ----- |
+| a         | 1     |
+| long name | 2     ||]
+
+c    d
+
+!! should format a table from its header !!
+a    b
+
+| [|Name|] | Value |
+|:--|--:|
+| a | 1 |
+
+c    d
+
+[expect]
+a    b
+
+| Name | Value |
+[|| :--- | ----: |
+| a    |     1 ||]
+
+c    d
+
+!! should format a table from its delimiter row !!
+a    b
+
+| Name | Value |
+|:-[|-|]:|---|
+| a | 1 |
+
+c    d
+
+[expect]
+a    b
+
+| Name | Value |
+[|| :--: | ----- |
+|  a   | 1     ||]
+
+c    d
+
+!! should not format a table when the range is elsewhere !!
+a  [|  b|]
+
+| Name | Value |
+|---|---|
+| a | 1 |
+
+[expect]
+[|a b|]
+
+| Name | Value |
+|---|---|
+| a | 1 |
+
+!! should format the paragraph after a table !!
+| Name | Value |
+|---|---|
+| a | 1 |
+
+c  [|  d|]
+
+e    f
+
+[expect]
+| Name | Value |
+|---|---|
+| a | 1 |
+
+[|c d|]
+
+e    f
+
+!! should format a table within a list item !!
+- a    b
+
+  | Name | Value |
+  |---|---|
+  | [|a|] | 1 |
+- c    d
+
+[expect]
+- a    b
+
+  | Name | Value |
+  [|| ---- | ----- |
+  | a    | 1     ||]
+- c    d
+
+!! should format a table within a block quote !!
+> a    b
+>
+> | Name | Value |
+> |---|---|
+> | [|a|] | 1 |
+>
+> c    d
+
+[expect]
+> a    b
+>
+> | Name | Value |
+[|> | ---- | ----- |
+> | a    | 1     ||]
+>
+> c    d

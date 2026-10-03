@@ -1,0 +1,45 @@
+~~ heading.kind: setext ~~
+!! should format an atx heading as setext !!
+a    b
+
+#   [|Title|]
+
+c    d
+
+[expect]
+a    b
+
+[|Title
+=====|]
+
+c    d
+
+!! should lengthen the underline of a setext heading !!
+a    b
+
+Title   [|here|]
+==
+
+c    d
+
+[expect]
+a    b
+
+[|Title here
+==========|]
+
+c    d
+
+!! should format a level three heading as atx !!
+a    b
+
+###   [|Title|]
+
+c    d
+
+[expect]
+a    b
+
+[|### Title|]
+
+c    d

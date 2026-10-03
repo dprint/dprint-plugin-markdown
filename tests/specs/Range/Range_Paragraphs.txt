@@ -1,0 +1,263 @@
+!! should format emphasis and strong !!
+a    b
+
+some   *emphasis*   and   [|__strong__|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some _emphasis_ and **strong** text|]
+
+c    d
+
+!! should format strikethrough !!
+a    b
+
+some   [|~~deleted~~|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some ~~deleted~~ text|]
+
+c    d
+
+!! should format inline code !!
+a    b
+
+some   [|`code   here`|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some `code   here` text|]
+
+c    d
+
+!! should format an inline link !!
+a    b
+
+some   [|[link   text](http://example.com   "title")|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some [link text](http://example.com "title") text|]
+
+c    d
+
+!! should format an autolink !!
+a    b
+
+some   [|<http://example.com>|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some <http://example.com> text|]
+
+c    d
+
+!! should format an image !!
+a    b
+
+some   [|![alt   text](image.png   "title")|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some ![alt   text](image.png "title") text|]
+
+c    d
+
+!! should format inline html !!
+a    b
+
+some   [|<span>inline</span>|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some <span>inline</span> text|]
+
+c    d
+
+!! should format inline math !!
+a    b
+
+some   [|$x + y$|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some $x + y$ text|]
+
+c    d
+
+!! should keep a hard break !!
+a    b
+
+some   text\
+[|more|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some text\
+more text|]
+
+c    d
+
+!! should keep a soft break !!
+a    b
+
+some   text
+[|more|]   text
+
+c    d
+
+[expect]
+a    b
+
+[|some text
+more text|]
+
+c    d
+
+!! should keep character escapes !!
+a    b
+
+\*   not   [|a|]   list   \# and not a heading
+
+c    d
+
+[expect]
+a    b
+
+[|\* not a list \# and not a heading|]
+
+c    d
+
+!! should format non-ascii text !!
+a    b
+
+日本語   [|😀|]   café
+
+c    d
+
+[expect]
+a    b
+
+[|日本語 😀 café|]
+
+c    d
+
+!! should format the paragraphs the range starts and ends within !!
+a    b
+
+c  [|  d
+
+e  |]  f
+
+g    h
+
+[expect]
+a    b
+
+[|c d
+
+e f|]
+
+g    h
+
+!! should format a paragraph the range ends at the start of the line after !!
+a    b
+
+[|c    d
+|]
+e    f
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+!! should not format the paragraph the range ends at the start of !!
+a    b
+
+[|c    d
+
+|]e    f
+
+g    h
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+g    h
+
+!! should format a paragraph when the cursor is at its end !!
+a    b
+
+c    d[||]
+
+e    f
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+!! should format a paragraph when the cursor is at its start !!
+a    b
+
+[||]c    d
+
+e    f
+
+[expect]
+a    b
+
+[|c d|]
+
+e    f
+
+!! should format nothing when the range is past the last block !!
+a    b
+
+c    d
+
+[||]
+
+[expect]
+a    b
+
+c    d
+
+[||]

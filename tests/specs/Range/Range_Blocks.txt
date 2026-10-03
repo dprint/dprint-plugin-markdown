@@ -9,8 +9,8 @@ other    text
 [expect]
 #  Title
 
-[|some text
-here|]
+[|some text|]
+here
 
 other    text
 
@@ -41,6 +41,40 @@ other    text
 
 
 other    text
+
+!! should format blocks of different kinds !!
+a    b
+
+[|#   Title
+
+-   c    d
+
+>   e    f
+
+~~~
+code
+~~~
+
+* * *|]
+
+g    h
+
+[expect]
+a    b
+
+[|# Title
+
+- c d
+
+> e f
+
+```
+code
+```
+
+---|]
+
+g    h
 
 !! should fix the indentation of the touched block !!
 a    b
@@ -80,7 +114,7 @@ e    f
 [expect]
 a    b
 
-
+[||]
 
 e    f
 
@@ -90,9 +124,61 @@ e    f
 e    f|]
 
 [expect]
-a b
+[|a b
 
-e f
+e f|]
+
+!! should format the whole file when the range touches the first and last blocks !!
+a  [|  b
+
+c    d
+
+e  |]  f
+
+[expect]
+[|a b
+
+c d
+
+e f|]
+
+!! should format the whole file when its only block is touched !!
+
+
+a  [|  b|]
+
+
+
+[expect]
+[|a b|]
+
+!! should not format the blank lines before the first block when it is touched !!
+
+
+a  [|  b|]
+
+c    d
+
+[expect]
+
+
+[|a b|]
+
+c    d
+
+!! should not format the blank lines after the last block when it is touched !!
+a    b
+
+c  [|  d|]
+
+
+
+[expect]
+a    b
+
+[|c d|]
+
+
 
 !! should format a setext heading in place !!
 a    b
@@ -106,5 +192,27 @@ e    f
 a    b
 
 [|# Title|]
+
+e    f
+
+!! should keep the blank lines around the touched block !!
+a    b
+
+
+
+c  [|  d|]
+
+
+
+e    f
+
+[expect]
+a    b
+
+
+
+[|c d|]
+
+
 
 e    f

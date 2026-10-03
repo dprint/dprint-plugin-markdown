@@ -1,0 +1,63 @@
+!! should format an html block !!
+a    b
+
+<div>
+[|<p>text</p>|]
+</div>
+
+c    d
+
+[expect]
+a    b
+
+<div>
+  [|<p>text</p>|]
+</div>
+
+c    d
+
+!! should keep an html comment !!
+a    b
+
+<!--   [|comment|]   -->
+
+c    d
+
+[expect]
+a    b
+
+<!--   [|comment|]   -->
+
+c    d
+
+!! should format the markdown between html blocks !!
+<details>
+
+a  [|  b|]
+
+</details>
+
+c    d
+
+[expect]
+<details>
+
+[|a b|]
+
+</details>
+
+c    d
+
+!! should not format an html block when the range is elsewhere !!
+a  [|  b|]
+
+<div>
+<p>text</p>
+</div>
+
+[expect]
+[|a b|]
+
+<div>
+<p>text</p>
+</div>
