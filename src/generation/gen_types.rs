@@ -233,6 +233,9 @@ pub struct Context<'a> {
   /// It's held outside the context so that it's still there to be read once
   /// the context has been dropped.
   code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
+  /// The range of the file the code blocks are formatted within, when only
+  /// part of the file is being formatted.
+  pub code_block_range: Option<std::ops::Range<usize>>,
   memoized_rc_paths: HashMap<MemoizedRcPathKind, Option<PrintItemPath>>,
   /// How much each of the paths above indents by, keyed by address, so that
   /// they can be told apart from the paths that hold generated content and
@@ -288,6 +291,7 @@ impl<'a> Context<'a> {
       next_position: NodePosition::default(),
       format_code_block_text: Box::new(format_code_block_text),
       code_block_error,
+      code_block_range: None,
       memoized_rc_paths: HashMap::new(),
       memoized_rc_path_indents: HashMap::new(),
     }
@@ -684,6 +688,18 @@ impl<'a> Context<'a> {
     if code_block_error.is_none() {
       *code_block_error = Some(CodeBlockError { pos, error });
     }
+  }
+
+  /// Whether the code within the span is formatted, which it isn't when only
+  /// part of the file is being formatted and the span starts outside of that
+  /// part. Only the start is checked since the span of a code block can reach
+  /// past the end of the lines that are formatted (ex. the blank lines an
+  /// unclosed fence holds at the end of the file).
+  pub fn is_in_code_block_range(&self, span: Span) -> bool {
+    self
+      .code_block_range
+      .as_ref()
+      .is_none_or(|range| range.start <= span.start && span.start < range.end)
   }
 
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {

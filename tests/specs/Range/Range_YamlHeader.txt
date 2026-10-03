@@ -1,0 +1,61 @@
+!! should not format the front matter when the range is elsewhere !!
+---
+title:    Title
+---
+
+a  [|  b|]
+
+c    d
+
+[expect]
+---
+title:    Title
+---
+
+[|a b|]
+
+c    d
+
+!! should keep the front matter when the range is within it !!
+---
+title:    [|Title|]
+---
+
+a    b
+
+[expect]
+---
+title:    [|Title|]
+---
+
+a    b
+
+!! should format the block after the front matter !!
+---
+title: Title
+---
+#   [|Heading|]
+
+a    b
+
+[expect]
+---
+title: Title
+---
+[|# Heading|]
+
+a    b
+
+!! should keep plus style front matter !!
++++
+title   =   [|"Title"|]
++++
+
+a    b
+
+[expect]
++++
+title   =   [|"Title"|]
++++
+
+a    b

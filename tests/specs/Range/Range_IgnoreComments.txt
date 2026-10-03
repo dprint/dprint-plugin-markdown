@@ -1,0 +1,109 @@
+!! should not format a block with an ignore comment !!
+a    b
+
+<!-- dprint-ignore -->
+c  [|  d|]
+
+e    f
+
+[expect]
+a    b
+
+<!-- dprint-ignore -->
+c  [|  d|]
+
+e    f
+
+!! should not format the block after an ignore comment when the range is on the comment !!
+a    b
+
+[|<!--   dprint-ignore   -->|]
+c    d
+
+e    f
+
+[expect]
+a    b
+
+[|<!--   dprint-ignore   -->|]
+c    d
+
+e    f
+
+!! should not format blocks between ignore start and end comments !!
+a    b
+
+<!-- dprint-ignore-start -->
+
+c  [|  d
+
+e  |]  f
+
+<!-- dprint-ignore-end -->
+
+g    h
+
+[expect]
+a    b
+
+<!-- dprint-ignore-start -->
+
+c  [|  d
+
+e  |]  f
+
+<!-- dprint-ignore-end -->
+
+g    h
+
+!! should format the blocks around ignored ones !!
+a  [|  b
+
+<!-- dprint-ignore-start -->
+
+c    d
+
+<!-- dprint-ignore-end -->
+
+e  |]  f
+
+g    h
+
+[expect]
+[|a b
+
+<!-- dprint-ignore-start -->
+
+c    d
+
+<!-- dprint-ignore-end -->
+
+e f|]
+
+g    h
+
+!! should format nothing in a file with an ignore file comment !!
+<!-- dprint-ignore-file -->
+
+a  [|  b|]
+
+c    d
+
+[expect]
+<!-- dprint-ignore-file -->
+
+a  [|  b|]
+
+c    d
+
+!! should not format an ignored list item !!
+- a    b
+<!-- dprint-ignore -->
+- c  [|  d|]
+- e    f
+
+[expect]
+- a    b
+<!-- dprint-ignore -->
+- c  [|  d|]
+- e    f

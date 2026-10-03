@@ -1,0 +1,45 @@
+!! should format a paragraph with a footnote reference !!
+a    b
+
+some   [|text[^1]|]   here
+
+[^1]:    The   footnote.
+
+[expect]
+a    b
+
+[|some text[^1] here|]
+
+[^1]:    The   footnote.
+
+!! should format a footnote definition !!
+some   text[^1]   here
+
+[^1]:    The   [|footnote|].
+
+[^2]:    Another   footnote.
+
+[expect]
+some   text[^1]   here
+
+[|[^1]: The footnote.|]
+
+[^2]:    Another   footnote.
+
+!! should format a footnote definition with several paragraphs !!
+some   text[^1]   here
+
+[^1]:    The   footnote.
+
+    Second   [|paragraph|].
+
+c    d
+
+[expect]
+some   text[^1]   here
+
+[|[^1]: The footnote.
+
+    Second paragraph.|]
+
+c    d

@@ -1,0 +1,110 @@
+!! should format an atx heading !!
+a    b
+
+#   [|Title|]   here
+
+c    d
+
+[expect]
+a    b
+
+[|# Title here|]
+
+c    d
+
+!! should format an atx heading with closing hashes !!
+a    b
+
+##   [|Title|]   ##
+
+c    d
+
+[expect]
+a    b
+
+[|## Title|]
+
+c    d
+
+!! should format a setext heading from its underline !!
+a    b
+
+Title   here
+[|---|]
+
+c    d
+
+[expect]
+a    b
+
+[|## Title here|]
+
+c    d
+
+!! should format only the heading when a paragraph follows it directly !!
+a    b
+
+#   [|Title|]
+c    d
+
+[expect]
+a    b
+
+[|# Title|]
+c    d
+
+!! should format only the paragraph that directly follows a heading !!
+#   Title
+[|c|]    d
+
+e    f
+
+[expect]
+#   Title
+[|c d|]
+
+e    f
+
+!! should format a heading with inline content !!
+a    b
+
+#   [|Some|]   *emphasized*   `code`   [link](http://example.com)
+
+c    d
+
+[expect]
+a    b
+
+[|# Some _emphasized_ `code` [link](http://example.com)|]
+
+c    d
+
+!! should format a heading within a block quote !!
+> a    b
+>
+> #   [|Title|]
+>
+> c    d
+
+[expect]
+> a    b
+>
+[|> # Title|]
+>
+> c    d
+
+!! should format a heading within a list item !!
+- a    b
+
+  #   [|Title|]
+
+  c    d
+- e    f
+
+[expect]
+- a    b
+
+  [|# Title|]
+
+  c    d
+- e    f

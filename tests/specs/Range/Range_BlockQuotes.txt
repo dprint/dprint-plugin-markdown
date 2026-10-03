@@ -1,0 +1,173 @@
+!! should format a block within a block quote !!
+> a    b
+>
+> [|c    d|]
+>
+> e    f
+
+[expect]
+> a    b
+>
+[|> c d|]
+>
+> e    f
+
+!! should format the block quote when its prefixes change !!
+>a    b
+>
+>[|c    d|]
+
+[expect]
+[|> a b
+>
+> c d|]
+
+!! should format only the touched block quote !!
+> a    b
+
+c    d
+
+> [|e    f|]
+
+g    h
+
+[expect]
+> a    b
+
+c    d
+
+[|> e f|]
+
+g    h
+
+!! should format a block within a nested block quote !!
+> a    b
+>
+>> c    d
+>>
+>> [|e    f|]
+>>
+>> g    h
+>
+> i    j
+
+[expect]
+> a    b
+>
+>> c    d
+>>
+[|>> e f|]
+>>
+>> g    h
+>
+> i    j
+
+!! should format the outer block quote when the prefixes of the nested one change !!
+> a    b
+>
+> > c    d
+> >
+> > [|e    f|]
+> >
+> > g    h
+>
+> i    j
+
+[expect]
+[|> a b
+>
+>> c d
+>>
+>> e f
+>>
+>> g h
+>
+> i j|]
+
+!! should format a paragraph with a lazy continuation line !!
+> a    b
+>
+> c    d
+[|e|]    f
+>
+> g    h
+
+[expect]
+> a    b
+>
+[|> c d
+> e f|]
+>
+> g    h
+
+!! should format a list item within a block quote !!
+> - a    b
+> - [|c    d|]
+> - e    f
+
+[expect]
+> - a    b
+[|> - c d|]
+> - e    f
+
+!! should format the block quote when the range is on a line between its blocks !!
+> a    b
+[|>|]
+> c    d
+
+e    f
+
+[expect]
+[|> a b
+>
+> c d|]
+
+e    f
+
+!! should format a block quote from its marker !!
+a    b
+
+[|>|]   c    d
+>   e    f
+
+g    h
+
+[expect]
+a    b
+
+[|> c d
+> e f|]
+
+g    h
+
+!! should format a callout from its content !!
+> [!NOTE]
+> a    b
+>
+> [|c    d|]
+
+e    f
+
+[expect]
+> [!NOTE]
+> a    b
+>
+[|> c d|]
+
+e    f
+
+!! should format a callout from its title !!
+a    b
+
+> [|[!NOTE]|]
+> c    d
+
+e    f
+
+[expect]
+a    b
+
+> [!NOTE]
+[|> c d|]
+
+e    f

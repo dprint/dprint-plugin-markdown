@@ -1,0 +1,223 @@
+!! should format a fenced code block !!
+a    b
+
+~~~ts
+[|code|]
+~~~
+
+c    d
+
+[expect]
+a    b
+
+[|```ts
+code
+```|]
+
+c    d
+
+!! should format a code block from its opening fence !!
+a    b
+
+[|~~~|]format
+code
+~~~
+
+c    d
+
+[expect]
+a    b
+
+[|```format
+code_formatted_80
+```|]
+
+c    d
+
+!! should format a code block from its closing fence !!
+a    b
+
+~~~format
+code
+[|~~~|]
+
+c    d
+
+[expect]
+a    b
+
+[|```format
+code_formatted_80
+```|]
+
+c    d
+
+!! should only format the code of the touched code block !!
+```format
+one
+```
+
+```format
+[|two|]
+```
+
+```format
+three
+```
+
+[expect]
+```format
+one
+```
+
+```format
+[|two_formatted_80|]
+```
+
+```format
+three
+```
+
+!! should not format a code block when the range is elsewhere !!
+a  [|  b|]
+
+```format
+code
+```
+
+c    d
+
+[expect]
+[|a b|]
+
+```format
+code
+```
+
+c    d
+
+!! should format the code blocks the range covers !!
+```format
+one
+```
+
+[|```format
+two
+```
+
+c    d
+
+```format
+three
+```|]
+
+e    f
+
+[expect]
+```format
+one
+```
+
+```format
+[|two_formatted_80
+```
+
+c d
+
+```format
+three_formatted_80|]
+```
+
+e    f
+
+!! should keep an indented code block !!
+a    b
+
+    [|code|]   here
+
+c    d
+
+[expect]
+a    b
+
+    [|code|]   here
+
+c    d
+
+!! should format a code block without a tag !!
+a    b
+
+~~~
+[|code|]   here
+~~~
+
+c    d
+
+[expect]
+a    b
+
+[|```
+code   here
+```|]
+
+c    d
+
+!! should format a code block within a list item !!
+- a    b
+
+  ~~~format
+  [|code|]
+  ~~~
+- c    d
+
+[expect]
+- a    b
+
+  [|```format
+  code_formatted_78
+  ```|]
+- c    d
+
+!! should format a code block within a block quote !!
+> a    b
+>
+> ~~~format
+> [|code|]
+> ~~~
+>
+> c    d
+
+[expect]
+> a    b
+>
+[|> ```format
+> code_formatted_80
+> ```|]
+>
+> c    d
+
+!! should format the markdown within a markdown code block !!
+a    b
+
+````md
+#   [|Title|]
+
+```format
+code
+```
+````
+
+c    d
+
+[expect]
+a    b
+
+````md
+[|# Title
+
+```format
+code_formatted_80|]
+```
+````
+
+c    d

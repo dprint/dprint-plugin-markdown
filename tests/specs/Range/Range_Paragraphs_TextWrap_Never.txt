@@ -1,0 +1,20 @@
+~~ textWrap: never ~~
+!! should join the lines of only the touched paragraph !!
+a
+b
+
+c
+[|d|]
+e
+
+f
+g
+
+[expect]
+a
+b
+
+[|c d e|]
+
+f
+g

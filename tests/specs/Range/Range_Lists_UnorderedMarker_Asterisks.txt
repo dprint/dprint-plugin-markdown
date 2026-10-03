@@ -1,0 +1,24 @@
+~~ list.unorderedMarker: asterisks ~~
+!! should format only the touched item of a list with the configured marker !!
+* a    b
+* [|c    d|]
+* e    f
+
+[expect]
+* a    b
+[|* c d|]
+* e    f
+
+!! should format the list when its marker changes !!
+- a    b
+- [|c    d|]
+- e    f
+
+g    h
+
+[expect]
+[|* a b
+* c d
+* e f|]
+
+g    h

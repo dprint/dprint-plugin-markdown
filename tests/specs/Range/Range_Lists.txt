@@ -1,0 +1,299 @@
+!! should format only the touched list item !!
+-   a    b
+-   [|c    d|]
+-   e    f
+
+[expect]
+-   a    b
+[|- c d|]
+-   e    f
+
+!! should format the list when its items would no longer be one list !!
+*   a    b
+*   [|c    d
+*   e|]    f
+*   g    h
+
+[expect]
+[|- a b
+- c d
+- e f
+- g h|]
+
+!! should format the touched list items !!
+-   a    b
+-   [|c    d
+-   e|]    f
+-   g    h
+
+[expect]
+-   a    b
+[|- c d
+- e f|]
+-   g    h
+
+!! should format the item within a nested list !!
+- a    b
+  - [|c    d|]
+  - e    f
+- g    h
+
+[expect]
+- a    b
+  [|- c d|]
+  - e    f
+- g    h
+
+!! should format the outer item when the nested list's indentation changes !!
+- a    b
+    - [|c    d|]
+    - e    f
+- g    h
+
+[expect]
+[|- a b
+  - c d
+  - e f|]
+- g    h
+
+!! should format an item within a deeply nested list !!
+- a    b
+  - c    d
+    - e    f
+      - [|g    h|]
+      - i    j
+    - k    l
+- m    n
+
+[expect]
+- a    b
+  - c    d
+    - e    f
+      [|- g h|]
+      - i    j
+    - k    l
+- m    n
+
+!! should renumber the touched item !!
+1. a    b
+2. c    d
+7. [|e    f|]
+
+[expect]
+1. a    b
+2. c    d
+[|3. e f|]
+
+!! should format an item of an ordered list !!
+1.  a    b
+2.  [|c    d|]
+3.  e    f
+
+[expect]
+1.  a    b
+[|2. c d|]
+3.  e    f
+
+!! should format the list when the delimiter of its numbers changes !!
+1) a    b
+2) [|c    d|]
+3) e    f
+
+[expect]
+[|1. a b
+2. c d
+3. e f|]
+
+!! should format an item of a list that starts at another number !!
+5. a    b
+6. [|c    d|]
+7. e    f
+
+[expect]
+5. a    b
+[|6. c d|]
+7. e    f
+
+!! should format an item of a list numbered with ones !!
+1. a    b
+1. [|c    d|]
+1. e    f
+
+[expect]
+1. a    b
+[|1. c d|]
+1. e    f
+
+!! should format an ordered list nested within an unordered list !!
+- a    b
+  1. [|c    d|]
+  2. e    f
+- g    h
+
+[expect]
+- a    b
+  [|1. c d|]
+  2. e    f
+- g    h
+
+!! should format a task list item !!
+- [ ] a    b
+- [x] [|c    d|]
+- [ ] e    f
+
+[expect]
+- [ ] a    b
+[|- [x] c d|]
+- [ ] e    f
+
+!! should format a task list item from its marker !!
+- [ ] a    b
+- [|[x]|]    c    d
+- [ ] e    f
+
+[expect]
+- [ ] a    b
+[|- [x] c d|]
+- [ ] e    f
+
+!! should format the whole list when the range covers it !!
+a    b
+
+[|- c    d
+- e    f|]
+
+g    h
+
+[expect]
+a    b
+
+[|- c d
+- e f|]
+
+g    h
+
+!! should format a paragraph within a list item !!
+- a    b
+
+  [|c    d|]
+
+  e    f
+
+[expect]
+- a    b
+
+  [|c d|]
+
+  e    f
+
+!! should format the first paragraph of a list item !!
+- [|a|]    b
+
+  c    d
+- e    f
+
+[expect]
+[|- a b|]
+
+  c    d
+- e    f
+
+!! should format an item of a loose list !!
+- a    b
+
+- [|c    d|]
+
+- e    f
+
+[expect]
+- a    b
+
+[|- c d|]
+
+- e    f
+
+!! should format an item with a lazy continuation line !!
+- a    b
+- c    d
+[|e|]    f
+- g    h
+
+[expect]
+- a    b
+[|- c d
+  e f|]
+- g    h
+
+!! should format the item when the range is between its blocks !!
+- a    b
+- c    d
+[||]
+  e    f
+- g    h
+
+[expect]
+- a    b
+[|- c d
+
+  e f|]
+- g    h
+
+!! should format a list from its marker !!
+a    b
+
+[|-|]   c    d
+-   e    f
+
+g    h
+
+[expect]
+a    b
+
+[|- c d|]
+-   e    f
+
+g    h
+
+!! should format only the touched list of two lists !!
+- a    b
+- c    d
+
+text
+
+- [|e    f|]
+- g    h
+
+[expect]
+- a    b
+- c    d
+
+text
+
+[|- e f|]
+- g    h
+
+!! should format a block quote within a list item !!
+- a    b
+
+  > [|c    d|]
+  >
+  > e    f
+- g    h
+
+[expect]
+- a    b
+
+  [|> c d|]
+  >
+  > e    f
+- g    h
+
+!! should keep an empty list item !!
+- a    b
+-[||]
+- c    d
+
+[expect]
+- a    b
+-[||]
+- c    d
