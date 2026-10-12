@@ -14,7 +14,7 @@ ${changelog}
 
 Then in your project's dprint configuration file:
 
-1. Specify the plugin url in the \`"plugins"\` array or run \`dprint config add markdown\`.
+1. Specify the plugin url in the \`"plugins"\` array or run \`dprint add markdown\`.
 2. Add a \`"markdown"\` configuration property if desired.
    \`\`\`jsonc
    {
