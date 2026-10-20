@@ -27,7 +27,7 @@
 [expect]
 | a | b | c |
 | - | - | - |
-| d |  |  |
+| d | | |
 
 !! should write a cell past the last column as it is !!
 |a|b|
@@ -58,3 +58,13 @@
 | a | b |
 | - | - |
 | c\ | d |
+
+!! should write a single space in a blank cell (#291) !!
+|        |       A | B         |C|
+| - | - | - | - |
+|x||  | |
+
+[expect]
+| | A | B | C |
+| - | - | - | - |
+| x | | | |
