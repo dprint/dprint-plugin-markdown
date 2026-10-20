@@ -160,6 +160,14 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "python" | "py" => Some("py"),
         "dockerfile" => Some("dockerfile"),
         "cue" => Some("cue"),
+        // code blocks rarely have a shebang, and a shell plugin can parse a .sh file without one as
+        // posix shell, which fails on the bash syntax that's common in blocks with a generic tag and
+        // would leave them unformatted
+        "sh" | "shell" | "shellscript" | "shell-script" | "bash" => Some("bash"),
+        "zsh" => Some("zsh"),
+        "nix" => Some("nix"),
+        "kdl" => Some("kdl"),
+        "typst" | "typ" => Some("typ"),
         _ => None,
       }
     }
