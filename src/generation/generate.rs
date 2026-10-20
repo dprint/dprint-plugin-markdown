@@ -3026,7 +3026,11 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         items.push_sc(sc!(":"));
       }
 
-      items.extend(get_cell_end(padding, false));
+      items.extend(get_cell_end(CellEndOptions {
+        padding,
+        is_blank: false,
+        ends_with_escape: false,
+      }));
     }
 
     ir_helpers::with_no_new_lines(items)
@@ -3044,6 +3048,9 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
       let difference = get_column_width(column_widths, i)
         .map(|width| width - cell.width)
         .unwrap_or(0);
+      // a cell with no text that isn't padded out to a width is left the one
+      // space between its pipes rather than a space for each side of it
+      let is_blank = cell.width == 0 && difference == 0;
       items.extend(get_cell_start(i == 0, padding));
 
       if difference > 0 {
@@ -3072,7 +3079,11 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
         }
       }
 
-      items.extend(get_cell_end(padding, cell.ends_with_escape));
+      items.extend(get_cell_end(CellEndOptions {
+        padding,
+        is_blank,
+        ends_with_escape: cell.ends_with_escape,
+      }));
     }
 
     ir_helpers::with_no_new_lines(items)
@@ -3099,14 +3110,29 @@ fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
     items
   }
 
+  struct CellEndOptions {
+    padding: TableCellPadding,
+    /// Whether the cell has no text and isn't padded out to a width.
+    is_blank: bool,
+    /// Whether the cell's text ends with a backslash that escapes what's
+    /// written after it.
+    ends_with_escape: bool,
+  }
+
   /// Writes the pipe a cell ends with.
   ///
-  /// Text that ends with a backslash keeps a space after it however the cells
-  /// are padded, since the backslash would otherwise escape that pipe and read
-  /// the cell into the one beside it.
-  fn get_cell_end(padding: TableCellPadding, ends_with_escape: bool) -> PrintItems {
+  /// A blank cell gets no space before the pipe, since the space it began with
+  /// already separates its pipes. Text that ends with a backslash keeps a space
+  /// after it however the cells are padded, since the backslash would otherwise
+  /// escape that pipe and read the cell into the one beside it.
+  fn get_cell_end(options: CellEndOptions) -> PrintItems {
+    let CellEndOptions {
+      padding,
+      is_blank,
+      ends_with_escape,
+    } = options;
     let mut items = PrintItems::new();
-    if padding != TableCellPadding::None || ends_with_escape {
+    if (padding != TableCellPadding::None && !is_blank) || ends_with_escape {
       items.push_space();
     }
     items.push_sc(sc!("|"));
