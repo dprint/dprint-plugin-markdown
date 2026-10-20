@@ -160,6 +160,11 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "python" | "py" => Some("py"),
         "dockerfile" => Some("dockerfile"),
         "cue" => Some("cue"),
+        "sh" | "shell" | "shellscript" | "shell-script" | "bash" => Some("bash"),
+        "zsh" => Some("zsh"),
+        "nix" => Some("nix"),
+        "kdl" => Some("kdl"),
+        "typst" | "typ" => Some("typ"),
         _ => None,
       }
     }
