@@ -14,5 +14,8 @@ import * as fs from "fs";
 const buffer = fs.readFileSync(getPath());
 const formatter = createFromBuffer(buffer);
 
-console.log(formatter.formatText("test.md", "#   Some Title    "));
+console.log(formatter.formatText({
+  filePath: "test.md",
+  fileText: "#   Some Title    ",
+}));
 ```
