@@ -10,6 +10,7 @@
 #![deny(clippy::print_stderr)]
 #![deny(clippy::print_stdout)]
 
+mod code_block_tags;
 pub mod configuration;
 mod format_range;
 mod format_text;
