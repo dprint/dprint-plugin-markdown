@@ -7,6 +7,7 @@
 // `LINGUIST_VERSION` to a newer release of Linguist.
 
 import { parse } from "jsr:@std/yaml@1.3.0";
+import $ from "npm:dax@0.50.1";
 
 const LINGUIST_VERSION = "v9.7.0";
 
@@ -15,12 +16,10 @@ interface Language {
   extensions?: string[];
 }
 
-const url = `https://raw.githubusercontent.com/github-linguist/linguist/${LINGUIST_VERSION}/lib/linguist/languages.yml`;
-const response = await fetch(url);
-if (!response.ok) {
-  throw new Error(`Failed to fetch ${url}: ${response.status}`);
-}
-const languages = parse(await response.text()) as Record<string, Language>;
+const languagesYaml = await $.request(
+  `https://raw.githubusercontent.com/github-linguist/linguist/${LINGUIST_VERSION}/lib/linguist/languages.yml`,
+).text();
+const languages = parse(languagesYaml) as Record<string, Language>;
 
 const extensionsByTag = new Map<string, string>();
 for (const [name, language] of Object.entries(languages)) {
@@ -73,5 +72,5 @@ ${rows}
 ];
 `;
 
-await Deno.writeTextFile(new URL("../src/code_block_tags/linguist_generated.rs", import.meta.url), text);
-console.log(`Wrote ${entries.length} tags from Linguist ${LINGUIST_VERSION}.`);
+$.path(import.meta.dirname!).join("../src/code_block_tags/linguist_generated.rs").writeTextSync(text);
+$.log(`Wrote ${entries.length} tags from Linguist ${LINGUIST_VERSION}.`);
