@@ -183,7 +183,8 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         "latex" | "tex" => Some("tex"),
         "bibtex" | "bib" => Some("bib"),
         "cmake" => Some("cmake"),
-        _ => None,
+        // otherwise, the tags GitHub knows the language of
+        _ => crate::code_block_tags::linguist_tag_extension(&tag_lower),
       }
     }
   }
