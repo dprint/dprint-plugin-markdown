@@ -135,57 +135,7 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
         return Some(ext);
       }
 
-      match tag_lower.as_str() {
-        "typescript" | "ts" => Some("ts"),
-        "tsx" => Some("tsx"),
-        "javascript" | "js" => Some("js"),
-        "jsx" => Some("jsx"),
-        "json" => Some("json"),
-        "jsonc" => Some("jsonc"),
-        "rust" | "rs" => Some("rs"),
-        "c" => Some("c"),
-        "cpp" | "c++" => Some("cpp"),
-        "objective-c" | "objc" => Some("m"),
-        "objective-c++" | "objc++" => Some("mm"),
-        "csharp" | "cs" | "c#" => Some("cs"),
-        "visualbasic" | "vb" => Some("vb"),
-        "html" => Some("html"),
-        "css" => Some("css"),
-        "less" => Some("less"),
-        "toml" => Some("toml"),
-        "scss" => Some("scss"),
-        "svelte" => Some("svelte"),
-        "vue" => Some("vue"),
-        "astro" => Some("astro"),
-        "xml" => Some("xml"),
-        "yml" | "yaml" => Some("yaml"),
-        "graphql" => Some("graphql"),
-        "python" | "py" => Some("py"),
-        "dockerfile" => Some("dockerfile"),
-        "cue" => Some("cue"),
-        "sh" | "shell" | "shellscript" | "shell-script" | "bash" => Some("bash"),
-        "zsh" => Some("zsh"),
-        "nix" => Some("nix"),
-        "kdl" => Some("kdl"),
-        "typst" | "typ" => Some("typ"),
-        "php" => Some("php"),
-        "sql" => Some("sql"),
-        "cedar" => Some("cedar"),
-        "lua" => Some("lua"),
-        "luau" => Some("luau"),
-        "zig" => Some("zig"),
-        "terraform" | "tf" => Some("tf"),
-        "hcl" => Some("hcl"),
-        "go" | "golang" => Some("go"),
-        "swift" => Some("swift"),
-        "r" => Some("r"),
-        "julia" | "jl" => Some("jl"),
-        "latex" | "tex" => Some("tex"),
-        "bibtex" | "bib" => Some("bib"),
-        "cmake" => Some("cmake"),
-        // otherwise, the tags GitHub knows the language of
-        _ => crate::code_block_tags::linguist_tag_extension(&tag_lower),
-      }
+      crate::code_block_tags::tag_to_extension(&tag_lower)
     }
   }
 }
