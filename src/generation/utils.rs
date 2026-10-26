@@ -103,7 +103,9 @@ pub fn forbids_line_break_after(c: char) -> bool {
 /// Takes the text from the word that would begin the line through to the end
 /// of it, since what starts a block is decided by the whole line: `1.` opens a
 /// list only when something follows it, and `|-|` turns the line above it into
-/// a table header only in its entirety.
+/// a table header only in its entirety. That text can stop short of the end of
+/// the line where another node is written after it, which is read through
+/// `following_text` where it decides anything.
 ///
 /// `word_can_be_left_alone` says whether the text after the first word can be
 /// wrapped onto the line below and leave that word by itself, which is what
@@ -111,6 +113,7 @@ pub fn forbids_line_break_after(c: char) -> bool {
 /// being wrapped it can't, and holding the word back would only join lines the
 /// document was written with.
 pub fn starts_block_at_line_start(line_text: &str, following_text: &str, word_can_be_left_alone: bool) -> bool {
+  let line_text = with_what_follows_a_marker(line_text, following_text);
   if crate::parser::starts_block_in_paragraph(line_text) {
     return true;
   }
@@ -118,6 +121,28 @@ pub fn starts_block_at_line_start(line_text: &str, following_text: &str, word_ca
     return false;
   }
   crate::parser::starts_block_in_paragraph(leading_word(line_text)) || leading_block_words_end(following_text).is_some()
+}
+
+/// The text read on past its end when it's nothing but a list marker, which
+/// opens a list only with something written after it on its line -- and that
+/// can be another node (ex. the link of `* [a](b)`).
+///
+/// Only the first character after the marker is read, since that's all it
+/// takes and the line can run on a long way past it.
+fn with_what_follows_a_marker<'a>(line_text: &'a str, following_text: &'a str) -> &'a str {
+  if leading_word(line_text).len() < line_text.len() || !is_list_word(line_text) {
+    return line_text;
+  }
+  let Some(after) = following_text.get(line_text.len()..) else {
+    return line_text;
+  };
+  let spaces = after.len() - after.trim_start_matches([' ', '\t']).len();
+  let content_len = after[spaces..]
+    .chars()
+    .next()
+    .filter(|c| !matches!(c, '\n' | '\r'))
+    .map_or(0, char::len_utf8);
+  &following_text[..line_text.len() + spaces + content_len]
 }
 
 /// The word the text begins with, which ends at the space after it -- a line

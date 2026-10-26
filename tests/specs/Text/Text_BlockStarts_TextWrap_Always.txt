@@ -41,3 +41,40 @@ aaaaaaaaaa
 [expect]
 aaaaaaaaaa --
 bbbbbbbbbb
+
+!! should not wrap a list marker that ends a line to the start of one, where what follows it would be drawn up beside it !!
+aaaaaaaaaaaaaa
+    *
+    [a link](x)
+
+aaaaaaaaaaaaaa
+    1.
+    `code`
+
+aaaaaaaaaaaaaa
+    *
+    text
+
+[expect]
+aaaaaaaaaaaaaa *
+[a link](x)
+
+aaaaaaaaaaaaaa 1.
+`code`
+
+aaaaaaaaaaaaaa *
+text
+
+!! should keep a list marker followed by a link on its line off the start of a line !!
+aaaaaaaaaaaaaa
+    * [a link](x)
+
+[x](y) aaaaaaa * [a](b)
+
+[expect]
+aaaaaaaaaaaaaa *
+[a link](x)
+
+[x](y)
+aaaaaaa *
+[a](b)
