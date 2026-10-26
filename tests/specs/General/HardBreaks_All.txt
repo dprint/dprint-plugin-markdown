@@ -35,3 +35,31 @@ out](/test)
 
 [expect]
 # [this out](/test)
+
+!! should write a hard break after a bare url as two spaces, which an autolink would read a backslash into !!
+See https://example.com/a  
+next line
+
+Or www.example.com  
+next line
+
+Or https://example.com/b \
+next line
+
+[expect]
+See https://example.com/a  
+next line
+
+Or www.example.com  
+next line
+
+Or https://example.com/b  
+next line
+
+!! should keep a backslash hard break written right after a bare url as it was !!
+See https://example.com/c\
+next line
+
+[expect]
+See https://example.com/c\
+next line

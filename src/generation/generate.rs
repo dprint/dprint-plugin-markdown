@@ -2929,7 +2929,14 @@ fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
       // against it are being written as they were and are read by it
       !context.file_text[hard_break.span.start..].starts_with('\\')
     } else {
-      context.configuration.hard_break_kind == HardBreakKind::DoubleSpace
+      // a backslash written right after a bare url is read into the url by
+      // GitHub's autolinks, so a break the url was kept apart from is written
+      // as two spaces there instead
+      let before = &context.file_text[..hard_break.span.start];
+      let after_bare_url = (before.ends_with([' ', '\t'])
+        || !context.file_text[hard_break.span.start..].starts_with('\\'))
+        && ends_with_bare_url(before.trim_end_matches([' ', '\t']));
+      (context.configuration.hard_break_kind == HardBreakKind::DoubleSpace || after_bare_url)
         && !context.is_line_start(hard_break.span.start)
     };
     if writes_double_space {
@@ -2952,6 +2959,15 @@ fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
     hard_break,
   ));
   items
+}
+
+/// Whether the text ends with a bare url, which GitHub's autolink extension
+/// would carry on through a backslash written after it (ex. `https://a.b\`
+/// links to `https://a.b%5C`).
+fn ends_with_bare_url(text: &str) -> bool {
+  let word = text.rsplit([' ', '\t', '\n', '\r']).next().unwrap_or(text);
+  let word = word.trim_start_matches(['*', '_', '~', '(']);
+  !word.starts_with('<') && !word.contains("](") && (word.contains("://") || word.starts_with("www."))
 }
 
 fn gen_table(table: &Table, context: &mut Context) -> PrintItems {
