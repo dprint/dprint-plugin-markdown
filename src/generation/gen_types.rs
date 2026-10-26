@@ -153,6 +153,9 @@ pub struct NodePosition {
   /// the paragraph the definition began rather than as the block it would
   /// start on its own.
   pub after_definition: bool,
+  /// Whether the node is written directly after a bare url, which GitHub's
+  /// autolink extension carries on through anything up to the next whitespace.
+  pub after_bare_url: bool,
 }
 
 /// The marker of a list item, which decides how what is written beside it may
@@ -455,6 +458,12 @@ impl<'a> Context<'a> {
   /// definition began.
   pub fn mark_after_definition(&mut self) {
     self.next_position.after_definition = true;
+  }
+
+  /// Marks that text ending with a bare url was just written out with nothing
+  /// between it and what comes next, which GitHub reads into the url.
+  pub fn mark_after_bare_url(&mut self) {
+    self.next_position.after_bare_url = true;
   }
 
   /// Where the node generated next sits, clearing it so that only that node
