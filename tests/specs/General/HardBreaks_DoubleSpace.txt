@@ -60,3 +60,11 @@ ing
 
 [expect]
 # head ing
+
+!! should use two trailing spaces for a hard break after a bare url !!
+See https://example.com/a \
+next line
+
+[expect]
+See https://example.com/a  
+next line

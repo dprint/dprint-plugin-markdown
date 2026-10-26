@@ -35,3 +35,109 @@ out](/test)
 
 [expect]
 # [this out](/test)
+
+!! should keep a hard break after a bare url apart from it, since an autolink reads a backslash against it into the url !!
+See https://example.com/a  
+next line
+
+Or www.example.com  
+next line
+
+Or https://example.com/b \
+next line
+
+Or ftp://example.com/c  
+next line
+
+[expect]
+See https://example.com/a \
+next line
+
+Or www.example.com \
+next line
+
+Or https://example.com/b \
+next line
+
+Or ftp://example.com/c \
+next line
+
+!! should keep a hard break apart from a bare url written against what comes before it !!
+Line<br>https://example.com/a  
+next line
+
+[docs](/a)https://example.com/b  
+next line
+
+*https://example.com/c*  
+next line
+
+[expect]
+Line<br>https://example.com/a \
+next line
+
+[docs](/a)https://example.com/b \
+next line
+
+_https://example.com/c_ \
+next line
+
+!! should keep a backslash hard break written right against a bare url as it was !!
+See https://example.com/c\
+next line
+
+[expect]
+See https://example.com/c\
+next line
+
+!! should write a backslash hard break against a url that isn't autolinked !!
+See <https://example.com/a>  
+next line
+
+[link](https://example.com/b)  
+next line
+
+`curl https://example.com/c`  
+next line
+
+<a href="https://example.com/d">d</a>  
+next line
+
+file://example.com/e  
+next line
+
+https://example.com/f<b>bold</b>  
+next line
+
+[expect]
+See <https://example.com/a>\
+next line
+
+[link](https://example.com/b)\
+next line
+
+`curl https://example.com/c`\
+next line
+
+<a href="https://example.com/d">d</a>\
+next line
+
+file://example.com/e\
+next line
+
+https://example.com/f<b>bold</b>\
+next line
+
+!! should keep a hard break apart from a bare url in block quotes and lists !!
+> See https://example.com/a  
+> next line
+
+- See https://example.com/b  
+  next line
+
+[expect]
+> See https://example.com/a \
+> next line
+
+- See https://example.com/b \
+  next line

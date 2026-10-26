@@ -44,7 +44,7 @@ pub fn generate(node: &Node, context: &mut Context) -> PrintItems {
     Node::TaskListMarker(_) => unreachable!("this should be handled by gen_paragraph"),
     Node::HorizontalRule(node) => gen_horizontal_rule(node, position),
     Node::SoftBreak(_) => PrintItems::new(),
-    Node::HardBreak(node) => gen_hard_break(node, context),
+    Node::HardBreak(node) => gen_hard_break(node, position, context),
     Node::Table(node) => gen_table(node, context),
     Node::TableHead(_) => unreachable!(),
     Node::TableRow(_) => unreachable!(),
@@ -576,6 +576,9 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
       && !context.has_leading_blankline(node.span().start)
     {
       context.mark_after_paragraph();
+    }
+    if matches!(node, Node::HardBreak(_)) && last_node.is_some_and(ends_with_bare_url) {
+      context.mark_after_bare_url();
     }
     items.extend(generate(node, context));
     last_node = Some(node);
@@ -2909,7 +2912,7 @@ fn gen_horizontal_rule(_: &HorizontalRule, position: NodePosition) -> PrintItems
 /// becomes a space where newlines are being forced off (ex. within an ATX
 /// heading). Otherwise the marker it leaves behind would either escape the
 /// character that followed it or be collapsed as extra whitespace.
-fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
+fn gen_hard_break(hard_break: &HardBreak, position: NodePosition, context: &mut Context) -> PrintItems {
   /// The two spaces a double space hard break leaves behind, measured as zero
   /// columns because trailing whitespace isn't visible.
   const DOUBLE_SPACE: StringContainer = StringContainer::proc_macro_new_with_char_count("  ", 0);
@@ -2937,6 +2940,12 @@ fn gen_hard_break(hard_break: &HardBreak, context: &mut Context) -> PrintItems {
       // width, so they're written as zero columns to keep them out of the
       // decision of where the text before them wraps
       items.push_sc(&DOUBLE_SPACE);
+    } else if position.after_bare_url && !is_backslash_against_text(hard_break, context.file_text) {
+      // GitHub's autolinks read everything up to the next whitespace into the
+      // url (ex. `https://a.b\` links to `https://a.b%5C`), so the url is kept
+      // apart from the backslash. One written right against it already reads
+      // that way and is kept as it was
+      items.push_sc(sc!(" \\"));
     } else {
       items.push_sc(sc!("\\"));
     }
@@ -3568,6 +3577,44 @@ fn is_all_ones_list(list: &List, context: &Context) -> bool {
       list.children.get(1),
       Some(Node::Item(item)) if item.marker_span.text(context.file_text).starts_with('1')
     )
+}
+
+/// Whether the node ends with a bare url, which GitHub's autolink extension
+/// carries on through whatever is written against it up to the next
+/// whitespace -- including the delimiters that close a decoration around it.
+fn ends_with_bare_url(node: &Node) -> bool {
+  match node {
+    Node::Text(text) => text_ends_with_bare_url(text.text),
+    Node::TextDecoration(decoration) => decoration.children.last().is_some_and(ends_with_bare_url),
+    _ => false,
+  }
+}
+
+/// Whether a url GitHub autolinks runs to the end of the text, which is one
+/// starting with `http://`, `https://` or `ftp://` after anything but a letter,
+/// or with `www.` after whitespace or one of `*_~(`.
+fn text_ends_with_bare_url(text: &str) -> bool {
+  // an autolink ends at whitespace or a `<`
+  let word = text
+    .rsplit_once(|c: char| c.is_whitespace() || c == '<')
+    .map_or(text, |(_, word)| word);
+  let has_scheme = word.match_indices("://").any(|(index, _)| {
+    let before = &word[..index];
+    let scheme = &before[before.trim_end_matches(|c: char| c.is_ascii_alphabetic()).len()..];
+    ["http", "https", "ftp"]
+      .iter()
+      .any(|name| scheme.eq_ignore_ascii_case(name))
+  });
+  let has_www = word
+    .match_indices("www.")
+    .any(|(index, _)| index == 0 || word[..index].ends_with(['*', '_', '~', '(']));
+  has_scheme || has_www
+}
+
+/// Whether the hard break is a backslash written right against the text
+/// before it.
+fn is_backslash_against_text(hard_break: &HardBreak, file_text: &str) -> bool {
+  file_text[hard_break.span.start..].starts_with('\\') && !file_text[..hard_break.span.start].ends_with([' ', '\t'])
 }
 
 #[cfg(test)]
