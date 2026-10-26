@@ -222,3 +222,57 @@ __init__
 
 [expect]
 ~~a~~
+
+!! should not write an underscore against the end of a bare url's domain, which GitHub's autolinks read into the domain !!
+See *https://example.com* for more, or *www.example.com*, or *see https://example.com* too.
+
+Already _https://example.com_ here, and _www.example.com_ there.
+
+Ending with *https://exa-mple.com-* or *https://example.com.* or *ftp://example.com* or *http://localhost*.
+
+A www url after a paren *a/(www.example.com* or *see:(www.example.com* x.
+
+The last url in the text *https://a.com/b https://c.com* x.
+
+[expect]
+See *https://example.com* for more, or *www.example.com*, or *see https://example.com* too.
+
+Already *https://example.com* here, and *www.example.com* there.
+
+Ending with *https://exa-mple.com-* or *https://example.com.* or *ftp://example.com* or *http://localhost*.
+
+A www url after a paren *a/(www.example.com* or *see:(www.example.com* x.
+
+The last url in the text *https://a.com/b https://c.com* x.
+
+!! should write an underscore against a bare url where it isn't read into the domain !!
+With a path *https://example.com/a* or *https://example.com/*, a query *https://example.com?a*, a fragment *https://example.com#a* or a port *https://example.com:80* it can change.
+
+After the domain *https://example.com&amp;* or *see https://example.com!* or *https://example.com~* too.
+
+A url in the query of the first one *https://a.com/?u=https://b.com* x.
+
+Not a url *www.example.com in the middle* or *awww.example.com* or *xhttps://example.com* x.
+
+An email *foo@example.com* or *mailto:foo@example.com* x.
+
+[expect]
+With a path _https://example.com/a_ or _https://example.com/_, a query _https://example.com?a_, a fragment _https://example.com#a_ or a port _https://example.com:80_ it can change.
+
+After the domain _https://example.com&amp;_ or _see https://example.com!_ or _https://example.com~_ too.
+
+A url in the query of the first one _https://a.com/?u=https://b.com_ x.
+
+Not a url _www.example.com in the middle_ or _awww.example.com_ or _xhttps://example.com_ x.
+
+An email _foo@example.com_ or _mailto:foo@example.com_ x.
+
+!! should only keep an underscore from being written directly against a bare url's domain !!
+***https://example.com*** and _**https://example.com**_ and **_https://example.com_** x.
+
+**https://example.com** and __https://example.com__ x.
+
+[expect]
+_**https://example.com**_ and _**https://example.com**_ and __*https://example.com*__ x.
+
+**https://example.com** and **https://example.com** x.
