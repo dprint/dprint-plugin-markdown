@@ -1,0 +1,13 @@
+~~ textWrap: sentence ~~
+!! should keep a list marker that ends a line off the start of one !!
+Some text.
+    *
+    [a link](x)
+
+Some text.
+    1. [a link](x)
+
+[expect]
+Some text. * [a link](x)
+
+Some text. 1. [a link](x)

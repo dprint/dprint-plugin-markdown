@@ -120,10 +120,16 @@ impl<'a> Node<'a> {
   /// Whether the node would begin a block of its own where a block begins,
   /// rather than being read as the paragraph it's written as (ex. the text a
   /// setext heading's underline is written below).
-  pub fn starts_block_at_block_start(&self) -> bool {
+  pub fn starts_block_at_block_start(&self, file_text: &str) -> bool {
     match self {
       Node::Text(text) => crate::parser::starts_block_at_block_start(text.text),
-      Node::Html(html) => !html.is_block && crate::parser::starts_block_at_block_start(&html.text),
+      // a tag opens a block of its own only where nothing else is written after
+      // it on its line, so the rest of the line is read with it
+      Node::Html(html) if !html.is_block => {
+        let after = &file_text[html.span.end..];
+        let rest_of_line = &after[..after.find(['\n', '\r']).unwrap_or(after.len())];
+        crate::parser::starts_block_at_block_start(&format!("{}{}", html.text, rest_of_line))
+      }
       _ => false,
     }
   }
@@ -133,7 +139,9 @@ impl<'a> Node<'a> {
   ///
   /// Unlike [`Self::starts_block_at_block_start`] this counts what the node's
   /// first word would start on its own, since the text after it can wrap onto
-  /// the line below and leave it there alone.
+  /// the line below and leave it there alone. A node that's only a list marker
+  /// is read together with what follows it on its line, which can be another
+  /// node (ex. the link of `* [a](b)`).
   pub fn starts_block_at_line_start(&self, following_text: &str, word_can_be_left_alone: bool) -> bool {
     match self {
       Node::Text(text) => {

@@ -11,3 +11,15 @@ Some text
 
 line one
 === not a heading because of this text
+
+!! should keep a list marker off the start of a line where something other than text follows it !!
+Some text
+    * [a link](https://example.com)
+
+- an item
+      1. [a link](https://example.com)
+
+[expect]
+Some text * [a link](https://example.com)
+
+- an item 1. [a link](https://example.com)

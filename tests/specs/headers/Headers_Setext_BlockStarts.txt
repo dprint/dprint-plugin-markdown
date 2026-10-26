@@ -40,3 +40,10 @@
 
 not: a definition
 =================
+
+!! should underline a tag with more written after it on its line, which doesn't begin a block !!
+# <span>x</span> title
+
+[expect]
+<span>x</span> title
+====================

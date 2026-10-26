@@ -395,7 +395,7 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
           | Node::Table(_)
           | Node::BlockQuote(_)
       ) {
-        if matches!(last_node, Node::LinkReference(_)) && continues_definition(node) {
+        if matches!(last_node, Node::LinkReference(_)) && continues_definition(node, context.file_text) {
           // the paragraph's first line only reads as text because it follows
           // the definition with nothing between: what it holds would start a
           // block where one begins, but can't interrupt one. Text is written
@@ -457,9 +457,13 @@ fn gen_nodes_within_breaks(nodes: &[Node], context: &mut Context) -> PrintItems 
               // > Some note.
               if is_callout_node(last_node, context) && !context.is_text_wrap_disabled() {
                 items.push_signal(Signal::NewLine); // force a newline
-              } else if starts_block_at_line_start(node, context) {
+              } else if starts_block_at_line_start(node, context)
+                || text_can_be_wrapped_away(context) && node.starts_with_list_word()
+              {
                 // text that would start a block can't be moved to the start of
-                // a line without changing what it means
+                // a line without changing what it means. Neither can a list
+                // marker where text is wrapped, since what follows it on the
+                // line below can be drawn up beside it
                 items.push_space();
               } else if matches!(node, Node::Html(_)) {
                 items.push_signal(Signal::NewLine);
@@ -668,8 +672,8 @@ fn block_start_escape_after_definition(text: &str) -> Option<usize> {
 /// Whether the node is a paragraph whose first line would start a block of its
 /// own where a block begins, which it only doesn't because of where it was
 /// written.
-fn continues_definition(node: &Node) -> bool {
-  paragraph_start(node).is_some_and(|first| first.starts_block_at_block_start())
+fn continues_definition(node: &Node, file_text: &str) -> bool {
+  paragraph_start(node).is_some_and(|first| first.starts_block_at_block_start(file_text))
 }
 
 /// The node a paragraph begins with.
@@ -697,7 +701,7 @@ fn gen_heading(heading: &Heading, context: &mut Context) -> PrintItems {
     && !heading
       .children
       .first()
-      .is_some_and(|child| child.starts_block_at_block_start())
+      .is_some_and(|child| child.starts_block_at_block_start(context.file_text))
   {
     let children = gen_nodes(&heading.children, context);
     let (children, cloned_children) = clone_items(children);
