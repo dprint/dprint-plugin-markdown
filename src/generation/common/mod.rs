@@ -136,14 +136,20 @@ impl<'a> Node<'a> {
   /// the line below and leave it there alone.
   pub fn starts_block_at_line_start(&self, following_text: &str, word_can_be_left_alone: bool) -> bool {
     match self {
-      Node::Text(text) => {
-        crate::generation::utils::starts_block_at_line_start(text.text, following_text, word_can_be_left_alone)
-      }
+      Node::Text(text) => crate::generation::utils::starts_block_at_line_start(
+        line_text(text.text, following_text),
+        following_text,
+        word_can_be_left_alone,
+      ),
       // a block of html already stands on its own, so nothing about where it
       // is written can turn it into one
       Node::Html(html) => {
         !html.is_block
-          && crate::generation::utils::starts_block_at_line_start(&html.text, following_text, word_can_be_left_alone)
+          && crate::generation::utils::starts_block_at_line_start(
+            line_text(&html.text, following_text),
+            following_text,
+            word_can_be_left_alone,
+          )
       }
       _ => false,
     }
@@ -154,5 +160,15 @@ impl<'a> Node<'a> {
       return None;
     };
     text.text.split(char::is_whitespace).next()
+  }
+}
+
+/// The text of the line a node begins, which runs on past the node where more
+/// is written after it on that line (ex. the link after the `*` of
+/// `* [a](b)`). What a line starts is decided by all of it.
+fn line_text<'b>(node_text: &'b str, following_text: &'b str) -> &'b str {
+  match following_text.split(['\n', '\r']).next() {
+    Some(line) if line.len() > node_text.len() => line,
+    _ => node_text,
   }
 }
