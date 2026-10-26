@@ -26,3 +26,13 @@ _**a**_
 ***a***
 
 __*a*__
+
+!! should write asterisks around a bare url's domain written with underscores !!
+_https://example.com_ and _www.example.com_ x.
+
+_https://example.com/a_ x.
+
+[expect]
+*https://example.com* and *www.example.com* x.
+
+*https://example.com/a* x.

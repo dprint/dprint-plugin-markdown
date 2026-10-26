@@ -1599,7 +1599,8 @@ fn gen_text_decoration(text: &TextDecoration, context: &mut Context) -> PrintIte
 /// The configured character is used unless the content it wraps begins or ends
 /// with that character, where the two would run together into a longer
 /// delimiter that means something else (ex. `_` around `_foo_` reads as
-/// strong).
+/// strong), or unless it's an underscore and the content ends with the domain
+/// of a bare url, which GitHub's autolinks would read the underscore into.
 fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span>, context: &Context) -> &'static str {
   // the text of a reference link is the name it's matched by, so the
   // decorations within it are written with the characters they were written
@@ -1633,12 +1634,6 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     };
 
     let written = written_delimiter(decoration, context);
-    // GitHub's autolinks read the closing delimiter written against a bare url
-    // into the url, and an underscore at the end of its domain leaves a domain
-    // that isn't one, so the url would stop being a link
-    if decoration.children.last().is_some_and(ends_with_bare_domain) {
-      return written;
-    }
     let beside = Beside::of(decoration, outside, context);
 
     // the delimiter of a decoration written directly against this one is read by
@@ -1828,6 +1823,11 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     written_first_char(children.first(), content, context) == Some(character)
       || written_last_char(children.last(), content, context) == Some(character)
       || text_can_pair(children, character)
+      // GitHub's autolinks read an underscore written against the end of a bare
+      // url's domain into the domain, which then isn't one, so the url would stop
+      // being a link
+      || character == '_'
+        && matches!(children.last(), Some(Node::Text(text)) if text_ends_with_bare_domain(text.text))
   }
 
   /// The nodes the delimiter is written directly against.
@@ -3594,48 +3594,47 @@ fn is_all_ones_list(list: &List, context: &Context) -> bool {
 /// whitespace -- including the delimiters that close a decoration around it.
 fn ends_with_bare_url(node: &Node) -> bool {
   match node {
-    Node::Text(text) => text_ends_with_bare_url(text.text),
+    Node::Text(text) => trailing_bare_url_domain(text.text).is_some(),
     Node::TextDecoration(decoration) => decoration.children.last().is_some_and(ends_with_bare_url),
     _ => false,
   }
 }
 
-/// Whether the node ends with a bare url that ends at its domain, with no
-/// path, query, fragment or port after it.
-fn ends_with_bare_domain(node: &Node) -> bool {
-  match node {
-    Node::Text(text) if text_ends_with_bare_url(text.text) => {
-      let word = text
-        .text
-        .rsplit_once(|c: char| c.is_whitespace() || c == '<')
-        .map_or(text.text, |(_, word)| word);
-      let host = word.rsplit_once("://").map_or(word, |(_, host)| host);
-      !host.contains(['/', '?', '#', ':'])
-    }
-    Node::TextDecoration(decoration) => decoration.children.last().is_some_and(ends_with_bare_domain),
-    _ => false,
-  }
+/// Whether the text ends with a bare url GitHub autolinks whose domain runs to
+/// the end of it, with no path, query, fragment or port after it -- an
+/// underscore written there would be read into the domain.
+fn text_ends_with_bare_domain(text: &str) -> bool {
+  trailing_bare_url_domain(text).is_some_and(|domain| {
+    domain
+      .chars()
+      .all(|c| c.is_alphanumeric() || matches!(c, '-' | '.' | '_'))
+  })
 }
 
-/// Whether a url GitHub autolinks runs to the end of the text, which is one
+/// The bare url GitHub autolinks that runs to the end of the text, from its
+/// domain on. That's the first url in the last word of the text, which is one
 /// starting with `http://`, `https://` or `ftp://` after anything but a letter,
 /// or with `www.` after whitespace or one of `*_~(`.
-fn text_ends_with_bare_url(text: &str) -> bool {
+fn trailing_bare_url_domain(text: &str) -> Option<&str> {
   // an autolink ends at whitespace or a `<`
   let word = text
     .rsplit_once(|c: char| c.is_whitespace() || c == '<')
     .map_or(text, |(_, word)| word);
-  let has_scheme = word.match_indices("://").any(|(index, _)| {
+  // the start of each url along with the start of its domain
+  let scheme = word.match_indices("://").find_map(|(index, separator)| {
     let before = &word[..index];
     let scheme = &before[before.trim_end_matches(|c: char| c.is_ascii_alphabetic()).len()..];
     ["http", "https", "ftp"]
       .iter()
       .any(|name| scheme.eq_ignore_ascii_case(name))
+      .then_some((index - scheme.len(), index + separator.len()))
   });
-  let has_www = word
+  let www = word
     .match_indices("www.")
-    .any(|(index, _)| index == 0 || word[..index].ends_with(['*', '_', '~', '(']));
-  has_scheme || has_www
+    .find(|(index, _)| *index == 0 || word[..*index].ends_with(['*', '_', '~', '(']))
+    .map(|(index, _)| (index, index));
+  let (_, domain) = scheme.into_iter().chain(www).min()?;
+  Some(&word[domain..])
 }
 
 /// Whether the hard break is a backslash written right against the text

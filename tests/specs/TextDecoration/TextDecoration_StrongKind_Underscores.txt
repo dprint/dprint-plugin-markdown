@@ -31,3 +31,13 @@ ___a___
 ___a___
 
 **_a_**
+
+!! should not write underscores against the end of a bare url's domain !!
+**https://example.com** and __https://example.com__ and **see www.example.com** x.
+
+**https://example.com/a** and **https://example.com&amp;** x.
+
+[expect]
+**https://example.com** and **https://example.com** and **see www.example.com** x.
+
+__https://example.com/a__ and __https://example.com&amp;__ x.
