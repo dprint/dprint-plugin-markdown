@@ -1633,6 +1633,12 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
     };
 
     let written = written_delimiter(decoration, context);
+    // GitHub's autolinks read the closing delimiter written against a bare url
+    // into the url, and an underscore at the end of its domain leaves a domain
+    // that isn't one, so the url would stop being a link
+    if decoration.children.last().is_some_and(ends_with_bare_domain) {
+      return written;
+    }
     let beside = Beside::of(decoration, outside, context);
 
     // the delimiter of a decoration written directly against this one is read by
@@ -3590,6 +3596,23 @@ fn ends_with_bare_url(node: &Node) -> bool {
   match node {
     Node::Text(text) => text_ends_with_bare_url(text.text),
     Node::TextDecoration(decoration) => decoration.children.last().is_some_and(ends_with_bare_url),
+    _ => false,
+  }
+}
+
+/// Whether the node ends with a bare url that ends at its domain, with no
+/// path, query, fragment or port after it.
+fn ends_with_bare_domain(node: &Node) -> bool {
+  match node {
+    Node::Text(text) if text_ends_with_bare_url(text.text) => {
+      let word = text
+        .text
+        .rsplit_once(|c: char| c.is_whitespace() || c == '<')
+        .map_or(text.text, |(_, word)| word);
+      let host = word.rsplit_once("://").map_or(word, |(_, host)| host);
+      !host.contains(['/', '?', '#', ':'])
+    }
+    Node::TextDecoration(decoration) => decoration.children.last().is_some_and(ends_with_bare_domain),
     _ => false,
   }
 }

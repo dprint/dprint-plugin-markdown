@@ -222,3 +222,17 @@ __init__
 
 [expect]
 ~~a~~
+
+!! should keep the delimiter of a decoration that ends with the domain of a bare url !!
+See *https://example.com* for more, or *www.example.com*, or *see https://example.com* too.
+
+Already _https://example.com_ here.
+
+With a path *https://example.com/a* it can change.
+
+[expect]
+See *https://example.com* for more, or *www.example.com*, or *see https://example.com* too.
+
+Already _https://example.com_ here.
+
+With a path _https://example.com/a_ it can change.
