@@ -4,10 +4,11 @@ use std::ops::RangeInclusive;
 
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::configuration::NewLineKind;
+use dprint_core::formatting::ArenaPool;
 
 use super::configuration::Configuration;
-use super::format_text::format_text;
 use super::format_text::format_text_inner;
+use super::format_text::format_text_with_arena_pool;
 use super::format_text::strip_bom;
 use super::format_text::FormatError;
 use super::generation::is_ignore_comment;
@@ -35,6 +36,19 @@ pub fn format_text_range(
   file_text: &str,
   range: Range<usize>,
   config: &Configuration,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
+) -> Result<Option<String>, FormatError> {
+  format_text_range_with_arena_pool(file_text, range, config, None, format_code_block_text)
+}
+
+/// Formats only the part of the text within the provided byte range, creating
+/// the arenas the print items are allocated in from `arena_pool` when there is
+/// one so that their memory is reused between formats.
+pub(crate) fn format_text_range_with_arena_pool(
+  file_text: &str,
+  range: Range<usize>,
+  config: &Configuration,
+  arena_pool: Option<&ArenaPool>,
   mut format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
   let body = strip_bom(file_text);
@@ -47,13 +61,13 @@ pub fn format_text_range(
   // a lone carriage return breaks a line as much as a line feed does, which
   // is rare enough to leave to formatting the whole file
   if has_lone_carriage_return(body) {
-    return format_text(file_text, config, format_code_block_text);
+    return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text);
   }
   let Ok(source_file) = crate::parser::parse(body) else {
-    return format_text(file_text, config, format_code_block_text);
+    return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text);
   };
   let levels = match find_levels(&source_file, &range) {
-    Target::File => return format_text(file_text, config, format_code_block_text),
+    Target::File => return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text),
     Target::Nothing => return Ok(None),
     Target::Levels(levels) => levels,
   };
@@ -67,13 +81,14 @@ pub fn format_text_range(
       body,
       config,
       Some(levels[depth].replaced_range(body)),
+      arena_pool,
       &mut format_code_block_text,
     )?
     .expect("an ignored file should have been handled");
     match find_replacement(&levels[..=depth], body, &formatted) {
       Some((replaced_depth, replacement)) if replaced_depth == depth => break replacement,
       Some((replaced_depth, _)) => depth = replaced_depth,
-      None => return format_text(file_text, config, format_code_block_text),
+      None => return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text),
     }
   };
 
