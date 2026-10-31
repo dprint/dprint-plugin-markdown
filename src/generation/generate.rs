@@ -57,7 +57,7 @@ pub fn generate<'a>(node: &Node<'a>, context: &mut Context<'a>) -> PrintItems<'a
 fn gen_source_file<'a>(source_file: &SourceFile<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
-  items.extend(gen_nodes(&source_file.children, context));
+  items.extend(gen_nodes(source_file.children, context));
 
   items.push_condition(if_true(
     "endOfFileNewLine",
@@ -156,8 +156,13 @@ fn reads_back_decorations<'a>(nodes: &[Node], items: PrintItems<'a>, context: &C
       new_line_text: "\n",
     },
   );
-  let read = crate::parser::parse_inline_content(&text, context.link_labels(), context.footnote_labels());
-  written_decorations(&read) == written_decorations(nodes)
+  let read = crate::parser::parse_inline_content(
+    &text,
+    context.arena.bump(),
+    context.link_labels(),
+    context.footnote_labels(),
+  );
+  written_decorations(read) == written_decorations(nodes)
 }
 
 /// The decorations within the nodes in the order they are written, each as its
@@ -171,7 +176,7 @@ fn written_decorations(nodes: &[Node]) -> Vec<(TextDecorationKind, String)> {
 fn push_written_decorations(nodes: &[Node], decorations: &mut Vec<(TextDecorationKind, String)>) {
   for node in nodes {
     if let Node::TextDecoration(decoration) = node {
-      decorations.push((decoration.kind, written_content(&decoration.children)));
+      decorations.push((decoration.kind, written_content(decoration.children)));
     }
     push_written_decorations(node.children(), decorations);
   }
@@ -333,8 +338,8 @@ fn is_inline_node(node: &Node) -> bool {
 /// The nodes written within this one, which hold breaks of their own.
 fn written_children<'a>(node: &'a Node<'a>) -> Option<&'a [Node<'a>]> {
   match node {
-    Node::TextDecoration(node) => Some(&node.children),
-    Node::InlineLink(node) => Some(&node.children),
+    Node::TextDecoration(node) => Some(node.children),
+    Node::InlineLink(node) => Some(node.children),
     // a reference link is matched by the text of its label, so a break written
     // within one is part of what it's matched by and has to stay
     _ => None,
@@ -690,7 +695,7 @@ fn paragraph_start<'a>(node: &'a Node<'a>) -> Option<&'a Node<'a>> {
 /// Whether the node is a tag that would start an html block at the start of a
 /// line within a paragraph, which no backslash can keep it from doing.
 fn starts_html_block(node: Option<&Node>) -> bool {
-  matches!(node, Some(Node::Html(html)) if !html.is_block && starts_block_in_paragraph(&html.text))
+  matches!(node, Some(Node::Html(html)) if !html.is_block && starts_block_in_paragraph(html.text))
 }
 
 fn gen_heading<'a>(heading: &Heading<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
@@ -706,7 +711,7 @@ fn gen_heading<'a>(heading: &Heading<'a>, context: &mut Context<'a>) -> PrintIte
       .first()
       .is_some_and(|child| child.starts_block_at_block_start(context.file_text))
   {
-    let children = gen_nodes(&heading.children, context);
+    let children = gen_nodes(heading.children, context);
     let (children, cloned_children) = clone_items(children);
 
     // render the heading text with the actual line width so wrapping is
@@ -729,7 +734,7 @@ fn gen_heading<'a>(heading: &Heading<'a>, context: &mut Context<'a>) -> PrintIte
 
   // atx headings apply to all levels.
   let escaped = closing_hashes_start(heading);
-  let children = context.with_escaped_closing_hashes(escaped, |context| gen_nodes(&heading.children, context));
+  let children = context.with_escaped_closing_hashes(escaped, |context| gen_nodes(heading.children, context));
   return gen_atx_heading(heading.level, children);
 
   /// Where the text an atx heading ends with starts, when it ends with hashes
@@ -784,7 +789,7 @@ fn gen_paragraph<'a>(paragraph: &Paragraph<'a>, position: NodePosition, context:
   // of a block of its own
   items.extend(
     context.with_paragraph_escapes(paragraph_escapes(paragraph, position, context.file_text), |context| {
-      gen_task_list_marker_children(&paragraph.children, paragraph.marker.as_ref(), context)
+      gen_task_list_marker_children(paragraph.children, paragraph.marker.as_ref(), context)
     }),
   );
   return items;
@@ -804,7 +809,7 @@ fn gen_paragraph<'a>(paragraph: &Paragraph<'a>, position: NodePosition, context:
       block_start_escape
     };
     let mut at_line_start = true;
-    for child in &paragraph.children {
+    for child in paragraph.children {
       if at_line_start {
         line_starts.push(child.span().start);
         if let Node::Text(text) = child {
@@ -854,7 +859,7 @@ fn gen_block_quote<'a>(block_quote: &BlockQuote<'a>, context: &mut Context<'a>) 
     // the opening `>` cannot rely on being at the start of a line, because a block
     // quote may begin mid-line -- for example directly after a list item marker.
     let mut needs_opening_marker = true;
-    let children = gen_nodes(&block_quote.children, context);
+    let children = gen_nodes(block_quote.children, context);
     for print_item in get_content_print_items(children, context) {
       // a tab begins a line just as text does, so the markers belong before
       // either of them
@@ -1072,7 +1077,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock<'a>, position: NodePosition, contex
   return with_indent_times(items, indent_level);
 
   fn get_code_text<'a>(code_block: &CodeBlock<'a>, context: &mut Context<'a>) -> &'a str {
-    let code = context.node_str(&code_block.code);
+    let code = code_block.code;
     let code = if code_block.is_fenced() && context.configuration.code_block_preserve_blank_lines {
       let code = code.strip_suffix('\n').unwrap_or(code);
       code.strip_suffix('\r').unwrap_or(code)
@@ -1139,7 +1144,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock<'a>, position: NodePosition, contex
 fn gen_code<'a>(code: &Code<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   // a code span holds its text as it is, so the only choice here is how to
   // write the delimiters so that the text is read back out of them
-  let text = context.node_str(&code.code);
+  let text = code.code;
   let text_runs = context
     .delimiter_runs()
     .map(|runs| runs.backticks.as_slice())
@@ -1593,8 +1598,8 @@ fn gen_text_decoration<'a>(text: &TextDecoration<'a>, context: &mut Context<'a>)
   };
 
   items.push_sc(decoration_text);
-  let content = content_span(&text.children);
-  items.extend(context.with_enclosing_decoration(content, |context| gen_nodes(&text.children, context)));
+  let content = content_span(text.children);
+  items.extend(context.with_enclosing_decoration(content, |context| gen_nodes(text.children, context)));
   items.push_sc(decoration_text);
 
   items
@@ -1844,16 +1849,16 @@ fn decoration_delimiter(decoration: &TextDecoration, parent_content: Option<Span
   /// all the same, so it's the strong's content the run is written against.
   fn wrapped_content<'a>(decoration: &'a TextDecoration<'a>, delimiter: &str, context: &Context) -> &'a [Node<'a>] {
     if decoration.kind == TextDecorationKind::Emphasis {
-      if let [Node::TextDecoration(strong)] = decoration.children.as_slice() {
-        let content = content_span(&decoration.children);
+      if let [Node::TextDecoration(strong)] = decoration.children {
+        let content = content_span(decoration.children);
         if strong.kind == TextDecorationKind::Strong
           && decoration_delimiter(strong, content, context).starts_with(delimiter)
         {
-          return &strong.children;
+          return strong.children;
         }
       }
     }
-    &decoration.children
+    decoration.children
   }
 }
 
@@ -2062,7 +2067,7 @@ fn gen_html<'a>(node: &Html<'a>, ctx: &mut Context<'a>) -> PrintItems<'a> {
   // indentation says where the author put the block within what holds it and
   // laying the block out again would take it somewhere else.
   let is_indented = node.text.starts_with(SPACES);
-  let is_ignored = ctx.has_ignore_comment(&node.text);
+  let is_ignored = ctx.has_ignore_comment(node.text);
   if node.is_block && !is_indented && !is_ignored && !ctx.configuration.html_skip_format {
     let line_width = std::cmp::max(10, ctx.configuration.line_width as i32 - ctx.indent_level as i32) as u32;
     let options = crate::html::HtmlFormatOptions {
@@ -2075,11 +2080,11 @@ fn gen_html<'a>(node: &Html<'a>, ctx: &mut Context<'a>) -> PrintItems<'a> {
     // an html block is very often a fragment, because a blank line closes the
     // block and leaves its closing tag to a block of its own -- whatever the
     // formatter can't take apart and put back together is left as it was
-    if let Ok(text) = crate::html::format_html(&node.text, &options) {
+    if let Ok(text) = crate::html::format_html(node.text, &options, ctx.arena.bump()) {
       // the block has to still be the one block it was written as: a first
       // line that starts another kind of block, or text moved past what closes
       // this one, would leave the rest of it to be read as markdown
-      if is_whole_html_block(&node.text, &text) {
+      if is_whole_html_block(node.text, &text) {
         let mut items = PrintItems::new(ctx.arena);
         items.push_sc(sc!("")); // force first line indentation
         items.extend(ir_helpers::gen_from_string(
@@ -2235,7 +2240,7 @@ fn gen_footnote_definition<'a>(
     bumpalo::format!(in context.arena.bump(), "[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE))
       .into_bump_str(),
   );
-  items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
+  items.extend(with_indent_times(gen_nodes(footnote_definition.children, context), 4));
   items
 }
 
@@ -2243,15 +2248,15 @@ fn gen_inline_link<'a>(link: &InlineLink<'a>, context: &mut Context<'a>) -> Prin
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("["));
-    items.extend(gen_nodes(&link.children, context));
+    items.extend(gen_nodes(link.children, context));
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
     items.extend(gen_link_destination_text(
-      format_raw_link_destination(context.node_str(&link.url).trim_matches(WHITESPACE)),
+      format_raw_link_destination(link.url.trim_matches(WHITESPACE)),
       context,
     ));
-    if let Some(title) = &link.title {
-      items.extend(gen_title(context.node_str(title), context));
+    if let Some(title) = link.title {
+      items.extend(gen_title(title, context));
     }
     items.push_sc(sc!(")"));
 
@@ -2507,14 +2512,10 @@ fn gen_reference_link<'a>(link: &ReferenceLink<'a>, context: &mut Context<'a>) -
     items.push_sc(sc!("["));
     // a collapsed reference is named by its own text, so that text is kept as
     // it was written rather than being normalized out of matching
-    items.extend(gen_link_text(&link.children, link.is_collapsed, context));
+    items.extend(gen_link_text(link.children, link.is_collapsed, context));
     items.push_sc(sc!("]"));
     items.extend(gen_reference_label(
-      if link.is_collapsed {
-        ""
-      } else {
-        context.node_str(&link.reference)
-      },
+      if link.is_collapsed { "" } else { link.reference },
       context,
     ));
     ir_helpers::new_line_group(items)
@@ -2535,7 +2536,7 @@ fn gen_shortcut_link<'a>(link: &ShortcutLink<'a>, context: &mut Context<'a>) -> 
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("["));
-    items.extend(gen_link_text(&link.children, true, context));
+    items.extend(gen_link_text(link.children, true, context));
     items.push_sc(sc!("]"));
     ir_helpers::new_line_group(items)
   })
@@ -2546,7 +2547,7 @@ fn gen_auto_link<'a>(link: &AutoLink<'a>, context: &mut Context<'a>) -> PrintIte
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("<"));
-    items.extend(gen_nodes(&link.children, context));
+    items.extend(gen_nodes(link.children, context));
     items.push_sc(sc!(">"));
     ir_helpers::new_line_group(items)
   })
@@ -2554,10 +2555,10 @@ fn gen_auto_link<'a>(link: &AutoLink<'a>, context: &mut Context<'a>) -> PrintIte
 
 fn gen_link_reference<'a>(link_ref: &LinkReference<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
-  items.extend(gen_reference_label(context.node_str(&link_ref.name), context));
+  items.extend(gen_reference_label(link_ref.name, context));
   items.push_sc(sc!(": "));
 
-  let url = format_raw_link_destination(context.node_str(&link_ref.link).trim_matches(WHITESPACE));
+  let url = format_raw_link_destination(link_ref.link.trim_matches(WHITESPACE));
   if url.is_empty() {
     // unlike an inline link, a link reference definition can't have an
     // empty destination without these
@@ -2566,8 +2567,8 @@ fn gen_link_reference<'a>(link_ref: &LinkReference<'a>, context: &mut Context<'a
     items.extend(gen_link_destination_text(url, context));
   }
 
-  if let Some(title) = &link_ref.title {
-    items.extend(gen_title(context.node_str(title), context));
+  if let Some(title) = link_ref.title {
+    items.extend(gen_title(title, context));
   }
   ir_helpers::new_line_group(items)
 }
@@ -2623,15 +2624,15 @@ fn format_raw_link_destination(destination: &str) -> Cow<'_, str> {
 fn gen_inline_image<'a>(image: &InlineImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
+    items.extend(gen_image_alt_text(image.text, context));
     items.push_sc(sc!("("));
     // like a link reference definition, this is the raw text from the file
     items.extend(gen_link_destination_text(
-      format_raw_link_destination(context.node_str(&image.url).trim_matches(WHITESPACE)),
+      format_raw_link_destination(image.url.trim_matches(WHITESPACE)),
       context,
     ));
-    if let Some(title) = &image.title {
-      items.extend(gen_title(context.node_str(title), context));
+    if let Some(title) = image.title {
+      items.extend(gen_title(title, context));
     }
     items.push_sc(sc!(")"));
     ir_helpers::new_line_group(items)
@@ -2641,8 +2642,8 @@ fn gen_inline_image<'a>(image: &InlineImage<'a>, context: &mut Context<'a>) -> P
 fn gen_reference_image<'a>(image: &ReferenceImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
-    items.extend(gen_reference_label(context.node_str(&image.reference), context));
+    items.extend(gen_image_alt_text(image.text, context));
+    items.extend(gen_reference_label(image.reference, context));
     ir_helpers::new_line_group(items)
   })
 }
@@ -2650,7 +2651,7 @@ fn gen_reference_image<'a>(image: &ReferenceImage<'a>, context: &mut Context<'a>
 fn gen_shortcut_image<'a>(image: &ShortcutImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
+    items.extend(gen_image_alt_text(image.text, context));
     ir_helpers::new_line_group(items)
   })
 }
@@ -2802,7 +2803,7 @@ fn gen_item<'a>(item: &Item<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   }
 
   items.extend(gen_task_list_marker_children(
-    &item.children,
+    item.children,
     item.marker.as_ref(),
     context,
   ));
@@ -2818,7 +2819,7 @@ fn gen_item<'a>(item: &Item<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
         context.get_leading_blank_lines(first_sub_list.span().start),
       ));
     }
-    items.extend(gen_nodes(&item.sub_lists, context));
+    items.extend(gen_nodes(item.sub_lists, context));
   }
 
   items
@@ -2877,7 +2878,7 @@ fn gen_definition<'a>(definition: &DefinitionListDefinition<'a>, context: &mut C
   items.push_sc(sc!(":"));
   items.push_signal(Signal::SpaceIfNotTrailing);
   items.extend(with_indent_times(
-    gen_nodes(&definition.children, context),
+    gen_nodes(definition.children, context),
     indent_increment,
   ));
   context.indent_level -= indent_increment;
@@ -3038,7 +3039,7 @@ fn gen_table<'a>(table: &Table<'a>, context: &mut Context<'a>) -> PrintItems<'a>
     TableCellPadding::Align => Some(get_column_widths(
       &header,
       &rows,
-      &table.column_alignment,
+      table.column_alignment,
       context.configuration.table_min_column_width as usize,
     )),
     TableCellPadding::Space | TableCellPadding::None => None,
@@ -3050,14 +3051,14 @@ fn gen_table<'a>(table: &Table<'a>, context: &mut Context<'a>) -> PrintItems<'a>
     context.arena,
     header,
     column_widths,
-    &table.column_alignment,
+    table.column_alignment,
     padding,
   ));
   items.push_signal(Signal::NewLine);
   items.extend(get_divider_row(
     context.arena,
     column_widths,
-    &table.column_alignment,
+    table.column_alignment,
     padding,
   ));
 
@@ -3067,7 +3068,7 @@ fn gen_table<'a>(table: &Table<'a>, context: &mut Context<'a>) -> PrintItems<'a>
       context.arena,
       row,
       column_widths,
-      &table.column_alignment,
+      table.column_alignment,
       padding,
     ));
   }
@@ -3328,7 +3329,7 @@ fn gen_table_rows_as_written<'a>(table: &Table<'a>, context: &Context<'a>) -> Pr
 }
 
 fn gen_table_cell<'a>(table_cell: &TableCell<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
-  gen_nodes(&table_cell.children, context)
+  gen_nodes(table_cell.children, context)
 }
 
 fn gen_metadata_block<'a>(node: &MetadataBlock<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
@@ -3566,7 +3567,7 @@ fn decoration_keeps_its_delimiters(decoration: &TextDecoration, file_text: &str)
     && holds_a_word(decoration.children.last(), last_unescaped_char)
     && !is_delimiter(file_text[..decoration.span.start].chars().next_back())
     && !is_delimiter(file_text[decoration.span.end..].chars().next())
-    && !holds_the_same_kind(&decoration.children, decoration.kind)
+    && !holds_the_same_kind(decoration.children, decoration.kind)
 }
 
 /// Whether a decoration of the same kind is written within these nodes, whose
@@ -3574,7 +3575,7 @@ fn decoration_keeps_its_delimiters(decoration: &TextDecoration, file_text: &str)
 /// be paired up with it rather than read on its own.
 fn holds_the_same_kind(nodes: &[Node], kind: TextDecorationKind) -> bool {
   nodes.iter().any(|node| match node {
-    Node::TextDecoration(decoration) => decoration.kind == kind || holds_the_same_kind(&decoration.children, kind),
+    Node::TextDecoration(decoration) => decoration.kind == kind || holds_the_same_kind(decoration.children, kind),
     _ => false,
   })
 }

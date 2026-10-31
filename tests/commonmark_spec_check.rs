@@ -30,6 +30,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use parser::*;
 
 #[derive(serde::Deserialize)]
@@ -261,7 +263,8 @@ fn show(text: &str) -> String {
 // ==== the renderer ====
 
 fn render_document(source: &str, entities: &HashMap<String, String>) -> String {
-  let file = match parser::parse(source) {
+  let bump = Bump::new();
+  let file = match parser::parse(source, &bump) {
     Ok(file) => file,
     Err(err) => return format!("<!--parse error: {err}-->\n"),
   };
@@ -271,8 +274,8 @@ fn render_document(source: &str, entities: &HashMap<String, String>) -> String {
     definitions: HashMap::new(),
     out: String::new(),
   };
-  renderer.collect_definitions(&file.children);
-  renderer.render_blocks(&file.children, false);
+  renderer.collect_definitions(file.children);
+  renderer.render_blocks(file.children, false);
   renderer.out
 }
 
@@ -289,7 +292,7 @@ impl<'a> Renderer<'a> {
   fn collect_definitions(&mut self, nodes: &[Node<'_>]) {
     for node in nodes {
       if let Node::LinkReference(reference) = node {
-        let label = normalize_label(&reference.name);
+        let label = normalize_label(reference.name);
         self.definitions.entry(label).or_insert_with(|| {
           (
             reference.link.to_string(),
@@ -299,7 +302,7 @@ impl<'a> Renderer<'a> {
       }
       self.collect_definitions(node.children());
       if let Node::Item(item) = node {
-        self.collect_definitions(&item.sub_lists);
+        self.collect_definitions(item.sub_lists);
       }
     }
   }
@@ -320,24 +323,24 @@ impl<'a> Renderer<'a> {
     match node {
       Node::Paragraph(paragraph) => {
         if tight {
-          self.render_inlines(&paragraph.children);
+          self.render_inlines(paragraph.children);
         } else {
           self.cr();
           self.out.push_str("<p>");
-          self.render_inlines(&paragraph.children);
+          self.render_inlines(paragraph.children);
           self.out.push_str("</p>\n");
         }
       }
       Node::Heading(heading) => {
         self.cr();
         self.out.push_str(&format!("<h{}>", heading.level));
-        self.render_inlines(&heading.children);
+        self.render_inlines(heading.children);
         self.out.push_str(&format!("</h{}>\n", heading.level));
       }
       Node::BlockQuote(quote) => {
         self.cr();
         self.out.push_str("<blockquote>\n");
-        self.render_blocks(&quote.children, false);
+        self.render_blocks(quote.children, false);
         self.cr();
         self.out.push_str("</blockquote>\n");
       }
@@ -358,7 +361,7 @@ impl<'a> Renderer<'a> {
             "</ul>\n"
           }
         };
-        for item in &list.children {
+        for item in list.children {
           self.render_block(item, tight);
         }
         self.out.push_str(close);
@@ -366,8 +369,8 @@ impl<'a> Renderer<'a> {
       Node::Item(item) => {
         self.cr();
         self.out.push_str("<li>");
-        self.render_blocks(&item.children, tight);
-        self.render_blocks(&item.sub_lists, tight);
+        self.render_blocks(item.children, tight);
+        self.render_blocks(item.sub_lists, tight);
         self.out.push_str("</li>\n");
       }
       Node::CodeBlock(block) => {
@@ -381,12 +384,12 @@ impl<'a> Renderer<'a> {
             .push_str(&format!(" class=\"language-{}\"", escape_html(&language)));
         }
         self.out.push('>');
-        self.out.push_str(&escape_html(&block.code));
+        self.out.push_str(&escape_html(block.code));
         self.out.push_str("</code></pre>\n");
       }
       Node::Html(html) => {
         self.cr();
-        self.out.push_str(&html.text);
+        self.out.push_str(html.text);
         self.out.push('\n');
       }
       Node::HorizontalRule(_) => {
@@ -489,26 +492,26 @@ impl<'a> Renderer<'a> {
           TextDecorationKind::Strikethrough => "del",
         };
         self.out.push_str(&format!("<{tag}>"));
-        self.render_inlines(&decoration.children);
+        self.render_inlines(decoration.children);
         self.out.push_str(&format!("</{tag}>"));
       }
-      Node::Html(html) => self.out.push_str(&html.text),
+      Node::Html(html) => self.out.push_str(html.text),
       Node::SoftBreak(_) => self.out.push('\n'),
       Node::HardBreak(_) => self.out.push_str("<br />\n"),
       Node::InlineLink(link) => {
         let (url, title) = (link.url.to_string(), link.title.as_ref().map(|t| t.to_string()));
         self.render_link_open(&url, title.as_deref());
-        self.render_inlines(&link.children);
+        self.render_inlines(link.children);
         self.out.push_str("</a>");
       }
       Node::ReferenceLink(link) => {
-        let label = normalize_label(&link.reference);
+        let label = normalize_label(link.reference);
         let Some((url, title)) = self.definitions.get(&label).cloned() else {
           self.out.push_str("<!--unresolved reference-->");
           return;
         };
         self.render_link_open(&url, title.as_deref());
-        self.render_inlines(&link.children);
+        self.render_inlines(link.children);
         self.out.push_str("</a>");
       }
       Node::ShortcutLink(link) => {
@@ -518,7 +521,7 @@ impl<'a> Renderer<'a> {
           return;
         };
         self.render_link_open(&url, title.as_deref());
-        self.render_inlines(&link.children);
+        self.render_inlines(link.children);
         self.out.push_str("</a>");
       }
       Node::AutoLink(link) => {
@@ -540,9 +543,9 @@ impl<'a> Renderer<'a> {
       }
       Node::ReferenceImage(image) => {
         let label = if image.reference.is_empty() {
-          normalize_label(&image.text)
+          normalize_label(image.text)
         } else {
-          normalize_label(&image.reference)
+          normalize_label(image.reference)
         };
         let Some((url, title)) = self.definitions.get(&label).cloned() else {
           self.out.push_str("<!--unresolved image reference-->");
@@ -552,7 +555,7 @@ impl<'a> Renderer<'a> {
         self.render_image(&url, &alt, title.as_deref());
       }
       Node::ShortcutImage(image) => {
-        let label = normalize_label(&image.text);
+        let label = normalize_label(image.text);
         let Some((url, title)) = self.definitions.get(&label).cloned() else {
           self.out.push_str("<!--unresolved image shortcut-->");
           return;
@@ -617,7 +620,8 @@ impl<'a> Renderer<'a> {
         text.push_str(&format!(" \"{title}\""));
       }
     }
-    let Ok(file) = parser::parse(&text) else {
+    let bump = Bump::new();
+    let Ok(file) = parser::parse(&text, &bump) else {
       return String::new();
     };
     let mut out = String::new();
@@ -628,7 +632,7 @@ impl<'a> Renderer<'a> {
       out: String::new(),
     };
     if let Some(Node::Paragraph(paragraph)) = file.children.first() {
-      renderer.plain_inlines(&paragraph.children, &mut out);
+      renderer.plain_inlines(paragraph.children, &mut out);
     }
     out
   }
@@ -645,11 +649,11 @@ impl<'a> Renderer<'a> {
       }
       match node {
         Node::Text(text) => out.push_str(&self.decode(text.text)),
-        Node::Code(code) => out.push_str(&code.code),
+        Node::Code(code) => out.push_str(code.code),
         Node::SoftBreak(_) | Node::HardBreak(_) => out.push(' '),
-        Node::InlineImage(image) => out.push_str(&self.plain_text(&image.text)),
-        Node::ReferenceImage(image) => out.push_str(&self.plain_text(&image.text)),
-        Node::ShortcutImage(image) => out.push_str(&self.plain_text(&image.text)),
+        Node::InlineImage(image) => out.push_str(&self.plain_text(image.text)),
+        Node::ReferenceImage(image) => out.push_str(&self.plain_text(image.text)),
+        Node::ShortcutImage(image) => out.push_str(&self.plain_text(image.text)),
         Node::Html(_) => {}
         other => self.plain_inlines(other.children(), out),
       }

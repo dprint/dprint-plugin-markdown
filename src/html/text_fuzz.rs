@@ -26,6 +26,8 @@
 //! `FUZZ_CASES=n` runs a longer sweep than the test itself does, and
 //! `FUZZ_FROM=n` starts it at a given case.
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use super::ast::Document;
 use super::ast::Node;
 use super::printer::format_html;
@@ -165,7 +167,8 @@ fn html_is_read_and_written_back_out_whole() {
     let source = generate(case);
     // html the parser refuses is left as it was written, so there is nothing
     // to check of it
-    let Ok(document) = super::parser::parse(&source) else {
+    let bump = Bump::new();
+    let Ok(document) = super::parser::parse(&source, &bump) else {
       continue;
     };
     if let Err(message) = validate_coverage(&document, &source) {
@@ -219,7 +222,8 @@ fn check_printing(source: &str, document: &Document<'_>, prefer_single_line: boo
   };
   // html the printer won't lay out is left as it was written, the same as html
   // the parser refuses
-  let Ok(printed) = format_html(source, &options) else {
+  let bump = Bump::new();
+  let Ok(printed) = format_html(source, &options, &bump) else {
     return Ok(false);
   };
 
@@ -243,22 +247,22 @@ fn check_printing(source: &str, document: &Document<'_>, prefer_single_line: boo
     ));
   }
 
-  let reparsed = super::parser::parse(&printed).map_err(|err| {
+  let reparsed = super::parser::parse(&printed, &bump).map_err(|err| {
     format!(
       "was written out as html the parser won't read: {}\n  {:?}",
       err, printed
     )
   })?;
-  if tags(&reparsed.children) != tags(&document.children) {
+  if tags(reparsed.children) != tags(document.children) {
     return Err(format!(
       "came out with tags that aren't what went in: {:?}\n  in:  {:?}\n  out: {:?}",
       printed,
-      tags(&document.children),
-      tags(&reparsed.children),
+      tags(document.children),
+      tags(reparsed.children),
     ));
   }
 
-  let again = format_html(&printed, &options)
+  let again = format_html(&printed, &options, &bump)
     .map_err(|err| format!("was written out as html that can't be written again: {}", err))?;
   if again != printed {
     return Err(format!(
@@ -291,7 +295,7 @@ fn collect_tags(nodes: &[Node<'_>], found: &mut Vec<String>) {
       })
       .collect();
     found.push(format!("{}{}", element.name.to_lowercase(), attributes));
-    collect_tags(&element.children, found);
+    collect_tags(element.children, found);
   }
 }
 

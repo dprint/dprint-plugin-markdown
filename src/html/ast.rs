@@ -1,7 +1,8 @@
 //! AST types for the html parser.
 //!
-//! Every node borrows from the html text it was parsed out of, so a document
-//! only allocates for the vectors that hold its children and attributes. The
+//! Every node borrows from the html text it was parsed out of, and the slices
+//! that hold the children and attributes are allocated in an arena. The arena
+//! never runs destructors, so nothing in a node may own memory of its own. The
 //! text of a node is kept exactly as it was written -- nothing is unescaped or
 //! normalized -- because the formatter has to be able to write back out what it
 //! couldn't improve on.
@@ -9,7 +10,7 @@
 /// A parsed html fragment.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Document<'a> {
-  pub children: Vec<Node<'a>>,
+  pub children: &'a [Node<'a>],
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -31,8 +32,8 @@ pub enum Node<'a> {
 pub struct Element<'a> {
   /// The tag name as it was written, which may be in any case.
   pub name: &'a str,
-  pub attributes: Vec<Attribute<'a>>,
-  pub children: Vec<Node<'a>>,
+  pub attributes: &'a [Attribute<'a>],
+  pub children: &'a [Node<'a>],
   /// The text between the element's tags, exactly as it was written, which is
   /// what a preformatted or raw text element is written back out as. It is
   /// empty for an element that holds nothing, but still borrowed from where
@@ -95,6 +96,9 @@ pub struct AttributeValue<'a> {
   /// The quote character the value was written with, if any.
   pub quote: Option<char>,
 }
+
+// the arena never runs destructors, so a node that owned memory would leak it
+const _: () = assert!(!std::mem::needs_drop::<Node<'static>>());
 
 /// What the spec tests read to say where a node was parsed from. The
 /// formatter itself works from the nodes rather than their positions, so this

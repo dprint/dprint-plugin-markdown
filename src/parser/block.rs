@@ -6,7 +6,8 @@
 //! prefix the block contributes and recurses on what's left. Leaf blocks hand
 //! the lines they gathered to [`super::inline`] to be turned into inline nodes.
 
-use std::borrow::Cow;
+use dprint_core::formatting::bumpalo::collections::Vec as BumpVec;
+use dprint_core::formatting::bumpalo::Bump;
 
 use super::ast::*;
 use super::inline::parse_inlines;
@@ -39,11 +40,11 @@ pub struct BlockParser<'a, 'c> {
 }
 
 impl<'a, 'c> BlockParser<'a, 'c> {
-  pub fn parse_blocks(&self, lines: &[ContentLine<'a>]) -> Vec<Node<'a>> {
+  pub fn parse_blocks(&self, lines: &[ContentLine<'a>]) -> BumpVec<'a, Node<'a>> {
     let depth = self.depth.get() + 1;
     if depth > MAX_NESTING {
       self.too_deep.set(true);
-      return Vec::new();
+      return BumpVec::new_in(self.context.bump);
     }
     self.depth.set(depth);
     let nodes = self.parse_blocks_within(lines);
@@ -51,8 +52,8 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     nodes
   }
 
-  fn parse_blocks_within(&self, lines: &[ContentLine<'a>]) -> Vec<Node<'a>> {
-    let mut nodes = Vec::new();
+  fn parse_blocks_within(&self, lines: &[ContentLine<'a>]) -> BumpVec<'a, Node<'a>> {
+    let mut nodes = BumpVec::new_in(self.context.bump);
     let mut index = 0;
     while index < lines.len() {
       if lines[index].is_blank() {
@@ -69,7 +70,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
   }
 
   /// Parses the block starting at `index`, returning the line to continue at.
-  fn parse_block(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_block(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let line = lines[index];
 
     // a line the container above took as the lazy continuation of a paragraph
@@ -104,7 +105,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
   // ==== leaf blocks ====
 
-  fn parse_atx_heading(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_atx_heading(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let line = lines[index].trimmed();
     let level = atx_heading_level(line.text).unwrap();
     let content = line.strip_bytes(level as usize).strip_columns(usize::MAX).trim_end();
@@ -131,7 +132,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     index + 1
   }
 
-  fn parse_fenced_code(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_fenced_code(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let open_line = lines[index];
     let indent = open_line.indent_columns();
     let fence = code_fence(open_line.rest()).unwrap();
@@ -149,18 +150,20 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       content_end = end;
     }
 
-    let stripped: Vec<ContentLine<'a>>;
+    let stripped: BumpVec<'a, ContentLine<'a>>;
     let content: &[ContentLine<'a>] = if indent == 0 {
       // the fence sits at the margin, so its lines carry nothing to strip
       &lines[index + 1..content_end]
     } else {
-      stripped = lines[index + 1..content_end]
-        .iter()
-        .map(|line| line.strip_columns(indent))
-        .collect();
+      stripped = BumpVec::from_iter_in(
+        lines[index + 1..content_end]
+          .iter()
+          .map(|line| line.strip_columns(indent)),
+        self.context.bump,
+      );
       &stripped
     };
-    let code = join_lines(content, self.source, !content.is_empty());
+    let code = join_lines(content, self.source, !content.is_empty(), self.context.bump);
 
     nodes.push(
       CodeBlock {
@@ -177,7 +180,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     end
   }
 
-  fn parse_indented_code(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_indented_code(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let mut end = index;
     let mut content_end = index;
     while end < lines.len() {
@@ -193,22 +196,24 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       content_end = end;
     }
 
-    let content: Vec<ContentLine<'a>> = lines[index..content_end]
-      .iter()
-      .map(|line| line.strip_columns(CODE_INDENT))
-      .collect();
+    let content = BumpVec::from_iter_in(
+      lines[index..content_end]
+        .iter()
+        .map(|line| line.strip_columns(CODE_INDENT)),
+      self.context.bump,
+    );
     nodes.push(
       CodeBlock {
         span: Span::new(lines[index].rest_start(), lines[content_end - 1].trim_end().end()),
         fence: None,
-        code: join_lines(&content, self.source, true),
+        code: join_lines(&content, self.source, true, self.context.bump),
       }
       .into(),
     );
     content_end
   }
 
-  fn parse_html_block(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_html_block(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let kind = html_block_kind(lines[index].rest(), false).unwrap();
     let mut end = index;
     while end < lines.len() {
@@ -230,11 +235,11 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       }
     }
 
-    let content: Vec<ContentLine<'a>> = lines[index..end].iter().map(|line| line.trim_end()).collect();
+    let content = BumpVec::from_iter_in(lines[index..end].iter().map(|line| line.trim_end()), self.context.bump);
     nodes.push(
       Html {
         span: Span::new(lines[index].start, content.last().unwrap().end()),
-        text: join_lines(&content, self.source, false),
+        text: join_lines(&content, self.source, false, self.context.bump),
         is_block: true,
       }
       .into(),
@@ -244,10 +249,10 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
   // ==== container blocks ====
 
-  fn parse_block_quote(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
-    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+  fn parse_block_quote(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
+    let mut content = BumpVec::with_capacity_in(gathered_line_capacity(lines, index), self.context.bump);
     let mut end = index;
-    let mut paragraph = OpenParagraph::default();
+    let mut paragraph = OpenParagraph::new(self.context.bump);
 
     while end < lines.len() {
       let line = lines[end];
@@ -274,16 +279,16 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     nodes.push(
       BlockQuote {
         span,
-        children: self.parse_blocks(&content),
+        children: self.parse_blocks(&content).into_bump_slice(),
       }
       .into(),
     );
     end
   }
 
-  fn parse_list(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_list(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     let first = list_marker(lines[index].rest()).unwrap();
-    let mut items: Vec<Node<'a>> = Vec::new();
+    let mut items: BumpVec<'a, Node<'a>> = BumpVec::new_in(self.context.bump);
     let mut end = index;
 
     while end < lines.len() {
@@ -317,7 +322,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         span: Span::new(lines[index].rest_start(), last_line),
         start_index: first.is_ordered.then_some(first.start_index),
         marker_char: first.char,
-        children: items,
+        children: items.into_bump_slice(),
       }
       .into(),
     );
@@ -341,12 +346,12 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     // its lines have already had stripped off them
     let content_indent = lines[index].indent_columns() + marker.len + spaces;
 
-    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    let mut content = BumpVec::with_capacity_in(gathered_line_capacity(lines, index), self.context.bump);
     content.push(after_marker.strip_columns(spaces));
     // an item may begin with at most one blank line, so a second one before
     // any content ends it
     let begins_blank = content[0].is_blank();
-    let mut paragraph = OpenParagraph::default();
+    let mut paragraph = OpenParagraph::new(self.context.bump);
     paragraph.push(content[0]);
     let mut end = index + 1;
     let mut last_content = end;
@@ -396,7 +401,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     let (task_marker, content) = split_task_list_marker(content);
     let mut children = self.parse_blocks(&content);
     remove_indent_beside_marker(&mut children, self.source);
-    let sub_lists = split_trailing_lists(&mut children);
+    let (children, sub_lists) = split_trailing_lists(children.into_bump_slice());
 
     let item = Item {
       span: Span::new(start_line.start, lines[end - 1].trim_end().end()),
@@ -408,14 +413,19 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     (item, end)
   }
 
-  fn parse_footnote_definition(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_footnote_definition(
+    &self,
+    lines: &[ContentLine<'a>],
+    index: usize,
+    nodes: &mut BumpVec<'a, Node<'a>>,
+  ) -> usize {
     let start_line = lines[index].trimmed();
     let name = footnote_definition_name(start_line.text).unwrap();
     let marker_len = name.len() + 4; // `[^` + name + `]:`
 
-    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    let mut content = BumpVec::with_capacity_in(gathered_line_capacity(lines, index), self.context.bump);
     content.push(start_line.strip_bytes(marker_len).strip_columns(usize::MAX));
-    let mut paragraph = OpenParagraph::default();
+    let mut paragraph = OpenParagraph::new(self.context.bump);
     paragraph.push(content[0]);
     let mut end = index + 1;
     let mut last_content = end;
@@ -456,7 +466,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       FootnoteDefinition {
         span: Span::new(start_line.start, lines[end - 1].trim_end().end()),
         name,
-        children,
+        children: children.into_bump_slice(),
       }
       .into(),
     );
@@ -467,7 +477,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
   /// Gathers the lines of a paragraph, which may end up being a setext
   /// heading, a table or a definition list instead.
-  fn parse_paragraph(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut Vec<Node<'a>>) -> usize {
+  fn parse_paragraph(&self, lines: &[ContentLine<'a>], index: usize, nodes: &mut BumpVec<'a, Node<'a>>) -> usize {
     // the definitions a paragraph begins with are blocks of their own, and the
     // rest of it carries on as the paragraph they were taken from -- so what
     // follows them only starts a block of its own if it could have interrupted
@@ -519,7 +529,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         }
         // a delimiter row turns the line above it into a table's header,
         // leaving the rest of the paragraph above the table
-        if let Some(alignment) = table_delimiter_row(rest, lines[end - 1].rest()) {
+        if let Some(alignment) = table_delimiter_row(rest, lines[end - 1].rest(), self.context.bump) {
           self.push_paragraph(&lines[content_start..end - 1], nodes);
           return self.parse_table(lines, end, alignment, nodes);
         }
@@ -549,7 +559,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     end
   }
 
-  fn push_paragraph(&self, content: &[ContentLine<'a>], nodes: &mut Vec<Node<'a>>) {
+  fn push_paragraph(&self, content: &[ContentLine<'a>], nodes: &mut BumpVec<'a, Node<'a>>) {
     if content.is_empty() {
       return;
     }
@@ -573,7 +583,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     &self,
     lines: &[ContentLine<'a>],
     index: usize,
-    nodes: &mut Vec<Node<'a>>,
+    nodes: &mut BumpVec<'a, Node<'a>>,
   ) -> usize {
     // a definition opens with its label, so a block that starts with anything
     // else holds none and doesn't have to be gathered up to be looked through
@@ -600,7 +610,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       return index;
     }
 
-    let text = InlineText::new(content, self.source);
+    let text = InlineText::new(content, self.source, self.context.bump);
     let mut pos = 0;
     let mut found = 0;
     while let Some((end, definition)) = links::match_link_reference_definition(&text, pos) {
@@ -620,16 +630,16 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     &self,
     lines: &[ContentLine<'a>],
     delimiter_index: usize,
-    column_alignment: Vec<ColumnAlignment>,
-    nodes: &mut Vec<Node<'a>>,
+    column_alignment: &'a [ColumnAlignment],
+    nodes: &mut BumpVec<'a, Node<'a>>,
   ) -> usize {
     let header_line = lines[delimiter_index - 1];
     let header = TableHead {
       span: header_line.trim_end().span(),
-      cells: self.parse_table_cells(header_line),
+      cells: self.parse_table_cells(header_line).into_bump_slice(),
     };
 
-    let mut rows = Vec::with_capacity(lines.len() - delimiter_index - 1);
+    let mut rows = BumpVec::with_capacity_in(lines.len() - delimiter_index - 1, self.context.bump);
     let mut end = delimiter_index + 1;
     while end < lines.len() {
       let line = lines[end];
@@ -647,12 +657,12 @@ impl<'a, 'c> BlockParser<'a, 'c> {
       while cells.len() < column_alignment.len() {
         cells.push(TableCell {
           span: Span::new(row_end, row_end),
-          children: Vec::new(),
+          children: &[],
         });
       }
       rows.push(TableRow {
         span: line.trim_end().span(),
-        cells,
+        cells: cells.into_bump_slice(),
       });
       end += 1;
     }
@@ -662,16 +672,16 @@ impl<'a, 'c> BlockParser<'a, 'c> {
         span: Span::new(header_line.rest_start(), lines[end - 1].trim_end().end()),
         header,
         column_alignment,
-        rows,
+        rows: rows.into_bump_slice(),
       }
       .into(),
     );
     end
   }
 
-  fn parse_table_cells(&self, line: ContentLine<'a>) -> Vec<TableCell<'a>> {
-    let mut cells = Vec::new();
-    for (start, end) in table_cell_ranges(line.rest()) {
+  fn parse_table_cells(&self, line: ContentLine<'a>) -> BumpVec<'a, TableCell<'a>> {
+    let mut cells = BumpVec::new_in(self.context.bump);
+    for (start, end) in table_cell_ranges(line.rest(), self.context.bump) {
       let mut cell = line.trimmed();
       cell = cell.strip_bytes(start);
       cell.text = &cell.text[..end - start];
@@ -691,12 +701,12 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     lines: &[ContentLine<'a>],
     marker_index: usize,
     titles: &[ContentLine<'a>],
-    nodes: &mut Vec<Node<'a>>,
+    nodes: &mut BumpVec<'a, Node<'a>>,
   ) -> usize {
     // the list begins where its first term does, which has to be read before
     // the loop below replaces `titles` with the next group of them
     let list_start = titles.first().unwrap_or(&lines[marker_index]).rest_start();
-    let mut children: Vec<Node<'a>> = Vec::new();
+    let mut children = BumpVec::new_in(self.context.bump);
     let mut end = marker_index;
     let mut titles = titles;
 
@@ -733,14 +743,14 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     nodes.push(
       DefinitionList {
         span: Span::new(list_start, children.last().unwrap().span().end),
-        children,
+        children: children.into_bump_slice(),
       }
       .into(),
     );
     end
   }
 
-  fn parse_definition(&self, lines: &[ContentLine<'a>], index: usize, children: &mut Vec<Node<'a>>) -> usize {
+  fn parse_definition(&self, lines: &[ContentLine<'a>], index: usize, children: &mut BumpVec<'a, Node<'a>>) -> usize {
     let start_line = lines[index].trimmed();
     let after_marker = start_line.strip_bytes(1);
     let spaces = after_marker.indent_columns();
@@ -751,9 +761,9 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     };
     let content_indent = lines[index].indent_columns() + 1 + spaces;
 
-    let mut content = Vec::with_capacity(gathered_line_capacity(lines, index));
+    let mut content = BumpVec::with_capacity_in(gathered_line_capacity(lines, index), self.context.bump);
     content.push(after_marker.strip_columns(spaces));
-    let mut paragraph = OpenParagraph::default();
+    let mut paragraph = OpenParagraph::new(self.context.bump);
     paragraph.push(content[0]);
     let mut end = index + 1;
     let mut last_content = end;
@@ -795,7 +805,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
     children.push(
       DefinitionListDefinition {
         span: Span::new(start_line.start, lines[end - 1].trim_end().end()),
-        children: definition_children,
+        children: definition_children.into_bump_slice(),
       }
       .into(),
     );
@@ -824,7 +834,7 @@ impl<'a, 'c> BlockParser<'a, 'c> {
 
   // ==== helpers ====
 
-  fn parse_inlines(&self, content: &[ContentLine<'a>]) -> Vec<Node<'a>> {
+  fn parse_inlines(&self, content: &[ContentLine<'a>]) -> &'a [Node<'a>] {
     parse_inlines(content, self.context)
   }
 
@@ -1034,8 +1044,9 @@ fn is_thematic_break(text: &str) -> bool {
 /// Tracks whether the content gathered for a container ends in the middle of a
 /// paragraph, which is the only thing a line that's missing the container's
 /// prefix can continue.
-#[derive(Default)]
 struct OpenParagraph<'a> {
+  /// The arena the paragraphs of the containers within are tracked in.
+  bump: &'a Bump,
   fence: Option<CodeFenceInfo>,
   /// The html block the content ends within, which runs until what closes
   /// that kind of block and holds no paragraph.
@@ -1046,13 +1057,25 @@ struct OpenParagraph<'a> {
   header: Option<ContentLine<'a>>,
   /// The container the content ends within, whose own paragraph is the one a
   /// lazy line would reach.
-  inner: Option<(Container, Box<OpenParagraph<'a>>)>,
+  inner: Option<(Container, &'a mut OpenParagraph<'a>)>,
   /// How many containers this is tracked within, which is held to the same
   /// limit the parser is.
   depth: usize,
 }
 
 impl<'a> OpenParagraph<'a> {
+  fn new(bump: &'a Bump) -> OpenParagraph<'a> {
+    OpenParagraph {
+      bump,
+      fence: None,
+      html: None,
+      is_open: false,
+      header: None,
+      inner: None,
+      depth: 0,
+    }
+  }
+
   fn push(&mut self, line: ContentLine<'a>) {
     // a code block runs until its fence closes, whatever is in between
     if let Some(fence) = &self.fence {
@@ -1104,7 +1127,7 @@ impl<'a> OpenParagraph<'a> {
     if self.is_open {
       // a paragraph that turns out to be a table's header stops being one
       if let Some(header) = self.header.take() {
-        if line.indent_columns() < CODE_INDENT && table_delimiter_row(line.rest(), header.rest()).is_some() {
+        if line.indent_columns() < CODE_INDENT && table_delimiter_row(line.rest(), header.rest(), self.bump).is_some() {
           self.is_open = false;
           return;
         }
@@ -1154,11 +1177,11 @@ impl<'a> OpenParagraph<'a> {
       }
       let mut inner = OpenParagraph {
         depth: self.depth + 1,
-        ..Default::default()
+        ..OpenParagraph::new(self.bump)
       };
       inner.push(content);
       self.is_open = inner.is_open();
-      self.inner = Some((container, Box::new(inner)));
+      self.inner = Some((container, self.bump.alloc(inner)));
       return;
     }
     self.is_open = true;
@@ -1169,6 +1192,10 @@ impl<'a> OpenParagraph<'a> {
     self.is_open
   }
 }
+
+// the paragraphs of the containers within are tracked in the arena, which never
+// runs destructors
+const _: () = assert!(!std::mem::needs_drop::<OpenParagraph<'static>>());
 
 /// A container a tracked line opened, which says how to reach the content of
 /// the lines that follow it.
@@ -1385,16 +1412,7 @@ fn html_block_kind(text: &str, interrupting: bool) -> Option<HtmlBlockKind> {
   if interrupting {
     return None;
   }
-  let line = InlineText::new(
-    &[ContentLine {
-      start: 0,
-      text,
-      virtual_spaces: 0,
-      column: 0,
-      is_lazy: false,
-    }],
-    text,
-  );
+  let line = InlineText::from_line(text);
   let end = links::match_html_tag(&line, 0)?;
   line
     .str_between(end, line.len())
@@ -1526,9 +1544,9 @@ const HTML_BLOCK_TAGS: [&str; 62] = [
 ///
 /// Only a backslash keeps a `|` from separating cells, so one within a code
 /// span separates them just the same.
-fn table_cell_ranges(text: &str) -> Vec<(usize, usize)> {
+fn table_cell_ranges<'b>(text: &str, bump: &'b Bump) -> BumpVec<'b, (usize, usize)> {
   let bytes = text.as_bytes();
-  let mut ranges = Vec::new();
+  let mut ranges = BumpVec::new_in(bump);
   let mut start = if bytes.first() == Some(&b'|') { 1 } else { 0 };
   let mut index = start;
 
@@ -1569,19 +1587,19 @@ fn has_unescaped_pipe(text: &str) -> bool {
 
 /// The column alignments of a table's delimiter row, when the text is one and
 /// it has as many columns as the header line above it.
-fn table_delimiter_row(text: &str, header: &str) -> Option<Vec<ColumnAlignment>> {
+fn table_delimiter_row<'b>(text: &str, header: &str, bump: &'b Bump) -> Option<&'b [ColumnAlignment]> {
   // the cheap checks come first because this runs on the second line of every
   // paragraph, while a table's delimiter row is rare. A row with no `|` at all
   // would make a table out of any two lines of prose.
   if !text.contains('-') || !has_unescaped_pipe(text) || !has_unescaped_pipe(header) {
     return None;
   }
-  let cells = table_cell_ranges(text);
-  if cells.is_empty() || cells.len() != table_cell_ranges(header).len() {
+  let cells = table_cell_ranges(text, bump);
+  if cells.is_empty() || cells.len() != table_cell_ranges(header, bump).len() {
     return None;
   }
 
-  let mut alignments = Vec::with_capacity(cells.len());
+  let mut alignments = BumpVec::with_capacity_in(cells.len(), bump);
   for (start, end) in cells {
     let cell = text[start..end].trim_matches(SPACES);
     let left = cell.starts_with(':');
@@ -1597,7 +1615,7 @@ fn table_delimiter_row(text: &str, header: &str) -> Option<Vec<ColumnAlignment>>
       (false, false) => ColumnAlignment::None,
     });
   }
-  Some(alignments)
+  Some(alignments.into_bump_slice())
 }
 
 // ==== small helpers ====
@@ -1619,7 +1637,9 @@ fn skip_blank_lines(lines: &[ContentLine<'_>], index: usize) -> usize {
 }
 
 /// Splits a `[ ]` or `[x]` task list marker off the start of an item's content.
-fn split_task_list_marker<'a>(content: Vec<ContentLine<'a>>) -> (Option<TaskListMarker>, Vec<ContentLine<'a>>) {
+fn split_task_list_marker<'a>(
+  content: BumpVec<'a, ContentLine<'a>>,
+) -> (Option<TaskListMarker>, BumpVec<'a, ContentLine<'a>>) {
   let Some(first) = content.first() else {
     return (None, content);
   };
@@ -1657,19 +1677,17 @@ fn remove_indent_beside_marker(children: &mut [Node<'_>], source: &str) {
     return;
   }
   html.span.start += indent;
-  html.text = match std::mem::take(&mut html.text) {
-    Cow::Borrowed(text) => Cow::Borrowed(text.trim_start_matches(' ')),
-    Cow::Owned(text) => Cow::Owned(text.trim_start_matches(' ').to_string()),
-  };
+  html.text = html.text.trim_start_matches(' ');
 }
 
-/// Takes the lists at the end of a list item's children, which the formatter
-/// keeps beside them rather than indenting further.
-fn split_trailing_lists<'a>(children: &mut Vec<Node<'a>>) -> Vec<Node<'a>> {
+/// Splits the lists at the end of a list item's children off the rest of them,
+/// since the formatter keeps those beside the rest rather than indenting them
+/// further.
+fn split_trailing_lists<'a>(children: &'a [Node<'a>]) -> (&'a [Node<'a>], &'a [Node<'a>]) {
   let first_trailing = children
     .iter()
     .rposition(|node| !matches!(node, Node::List(_)))
     .map(|index| index + 1)
     .unwrap_or(0);
-  children.split_off(first_trailing)
+  children.split_at(first_trailing)
 }

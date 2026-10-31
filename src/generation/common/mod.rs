@@ -88,7 +88,7 @@ impl<'a> Node<'a> {
   fn first_read_text(&self) -> Option<&str> {
     match self {
       Node::Text(node) => Some(node.text),
-      Node::Code(node) => Some(&node.code),
+      Node::Code(node) => Some(node.code),
       Node::TextDecoration(node) => node.children.first().and_then(|child| child.first_read_text()),
       Node::InlineLink(node) => node.children.first().and_then(|child| child.first_read_text()),
       Node::ReferenceLink(node) => node.children.first().and_then(|child| child.first_read_text()),
@@ -102,7 +102,7 @@ impl<'a> Node<'a> {
   fn last_read_text(&self) -> Option<&str> {
     match self {
       Node::Text(node) => Some(node.text),
-      Node::Code(node) => Some(&node.code),
+      Node::Code(node) => Some(node.code),
       Node::TextDecoration(node) => node.children.last().and_then(|child| child.last_read_text()),
       Node::InlineLink(node) => node.children.last().and_then(|child| child.last_read_text()),
       Node::ReferenceLink(node) => node.children.last().and_then(|child| child.last_read_text()),
@@ -151,7 +151,7 @@ impl<'a> Node<'a> {
       // is written can turn it into one
       Node::Html(html) => {
         !html.is_block
-          && crate::generation::utils::starts_block_at_line_start(&html.text, following_text, word_can_be_left_alone)
+          && crate::generation::utils::starts_block_at_line_start(html.text, following_text, word_can_be_left_alone)
       }
       _ => false,
     }

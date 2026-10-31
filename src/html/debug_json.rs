@@ -17,7 +17,7 @@ pub fn to_json(document: &Document<'_>, source: &str) -> String {
   writer.text.push_str("{\n");
   writer.indent += 1;
   writer.property("kind", "Document");
-  writer.write_children(&document.children);
+  writer.write_children(document.children);
   writer.close_node();
   writer.text.push('\n');
   writer.text
@@ -43,11 +43,11 @@ impl JsonWriter<'_> {
       if element.self_closing_syntax {
         self.raw_property("selfClosingSyntax", "true");
       }
-      self.write_attributes(&element.attributes);
+      self.write_attributes(element.attributes);
       if !element.content.is_empty() {
         self.property("content", element.content);
       }
-      self.write_children(&element.children);
+      self.write_children(element.children);
     }
     self.close_node();
   }

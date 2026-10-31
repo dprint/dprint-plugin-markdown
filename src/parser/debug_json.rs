@@ -9,7 +9,7 @@ pub fn to_json(file: &SourceFile<'_>, source: &str) -> String {
     indent: 0,
   };
   writer.open_node("SourceFile", file.span);
-  writer.write_children(&file.children);
+  writer.write_children(file.children);
   writer.close_node();
   writer.text.push('\n');
   writer.text
@@ -42,11 +42,11 @@ impl<'a> JsonWriter<'a> {
       Node::TextDecoration(node) => self.property("decoration", &format!("{:?}", node.kind)),
       Node::Html(node) => {
         self.raw_property("isBlock", &node.is_block.to_string());
-        self.content_property(node.span, &node.text);
+        self.content_property(node.span, node.text);
       }
-      Node::DisplayMath(node) => self.property("content", &node.text),
-      Node::InlineMath(node) => self.property("content", &node.text),
-      Node::Code(node) => self.property("content", &node.code),
+      Node::DisplayMath(node) => self.property("content", node.text),
+      Node::InlineMath(node) => self.property("content", node.text),
+      Node::Code(node) => self.property("content", node.code),
       Node::CodeBlock(node) => {
         self.raw_property("isFenced", &node.is_fenced().to_string());
         if let Some(fence) = &node.fence {
@@ -55,33 +55,33 @@ impl<'a> JsonWriter<'a> {
         if let Some(tag) = node.tag() {
           self.property("tag", tag);
         }
-        self.property("content", &node.code);
+        self.property("content", node.code);
       }
       Node::FootnoteReference(node) => self.property("name", node.name),
       Node::FootnoteDefinition(node) => self.property("name", node.name),
       Node::InlineLink(node) => {
-        self.property("url", &node.url);
-        self.optional_property("title", node.title.as_deref());
+        self.property("url", node.url);
+        self.optional_property("title", node.title);
       }
       Node::ReferenceLink(node) => {
-        self.property("reference", &node.reference);
+        self.property("reference", node.reference);
         self.raw_property("isCollapsed", &node.is_collapsed.to_string());
       }
       Node::LinkReference(node) => {
-        self.property("name", &node.name);
-        self.property("link", &node.link);
-        self.optional_property("title", node.title.as_deref());
+        self.property("name", node.name);
+        self.property("link", node.link);
+        self.optional_property("title", node.title);
       }
       Node::InlineImage(node) => {
-        self.property("alt", &node.text);
-        self.property("url", &node.url);
-        self.optional_property("title", node.title.as_deref());
+        self.property("alt", node.text);
+        self.property("url", node.url);
+        self.optional_property("title", node.title);
       }
       Node::ReferenceImage(node) => {
-        self.property("alt", &node.text);
-        self.property("reference", &node.reference);
+        self.property("alt", node.text);
+        self.property("reference", node.reference);
       }
-      Node::ShortcutImage(node) => self.property("alt", &node.text),
+      Node::ShortcutImage(node) => self.property("alt", node.text),
       Node::List(node) => {
         self.property("markerChar", &node.marker_char.to_string());
         match node.start_index {
@@ -112,17 +112,17 @@ impl<'a> JsonWriter<'a> {
       Node::Table(node) => {
         self.begin_property("header");
         self.open_node("TableHead", node.header.span);
-        self.write_cells(&node.header.cells);
+        self.write_cells(node.header.cells);
         self.close_node();
         self.text.push_str(",\n");
 
         if !node.rows.is_empty() {
           self.begin_property("rows");
           self.begin_array();
-          for row in &node.rows {
+          for row in node.rows {
             self.write_indent();
             self.open_node("TableRow", row.span);
-            self.write_cells(&row.cells);
+            self.write_cells(row.cells);
             self.close_node();
             self.text.push_str(",\n");
           }
@@ -130,10 +130,10 @@ impl<'a> JsonWriter<'a> {
         }
       }
       Node::Item(item) => {
-        self.write_children(&item.children);
+        self.write_children(item.children);
         if !item.sub_lists.is_empty() {
           self.begin_property("subLists");
-          self.write_node_array(&item.sub_lists);
+          self.write_node_array(item.sub_lists);
         }
       }
       _ => self.write_children(node.children()),
@@ -149,7 +149,7 @@ impl<'a> JsonWriter<'a> {
     for cell in cells {
       self.write_indent();
       self.open_node("TableCell", cell.span);
-      self.write_children(&cell.children);
+      self.write_children(cell.children);
       self.close_node();
       self.text.push_str(",\n");
     }

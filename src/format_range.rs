@@ -4,6 +4,7 @@ use std::ops::RangeInclusive;
 
 use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::configuration::NewLineKind;
+use dprint_core::formatting::bumpalo::Bump;
 use dprint_core::formatting::ArenaPool;
 
 use super::configuration::Configuration;
@@ -63,7 +64,10 @@ pub(crate) fn format_text_range_with_arena_pool(
   if has_lone_carriage_return(body) {
     return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text);
   }
-  let Ok(source_file) = crate::parser::parse(body) else {
+  // the blocks are read in an arena of their own, since they're held while
+  // the levels are formatted in arenas of theirs
+  let bump = Bump::new();
+  let Ok(source_file) = crate::parser::parse(body, &bump) else {
     return format_text_with_arena_pool(file_text, config, arena_pool, format_code_block_text);
   };
   let levels = match find_levels(&source_file, &range) {
@@ -183,7 +187,8 @@ fn find_levels<'a, 'b>(source_file: &'b SourceFile<'a>, range: &Range<usize>) ->
 /// replace it with, starting with the innermost level and moving out towards
 /// the file, along with the depth of the level it's made at.
 fn find_replacement(levels: &[Level], text: &str, formatted_text: &str) -> Option<(usize, Replacement)> {
-  let formatted_file = crate::parser::parse(formatted_text).ok()?;
+  let bump = Bump::new();
+  let formatted_file = crate::parser::parse(formatted_text, &bump).ok()?;
   let mut formatted_levels = Vec::with_capacity(levels.len());
   let mut formatted_members = formatted_file.children.iter().collect::<Vec<_>>();
   for level in levels {
@@ -240,7 +245,8 @@ fn reads_back(levels: &[Level], depth: usize, text: &str, replacement: &Replacem
     replacement.text,
     &text[replacement.original.end..]
   );
-  let Ok(source_file) = crate::parser::parse(&result) else {
+  let bump = Bump::new();
+  let Ok(source_file) = crate::parser::parse(&result, &bump) else {
     return false;
   };
   let mut members = source_file.children.iter().collect::<Vec<_>>();
@@ -270,7 +276,7 @@ fn inner_members<'a, 'b>(node: &'b Node<'a>) -> Option<Vec<&'b Node<'a>>> {
   match node {
     Node::List(list) => Some(list.children.iter().collect()),
     Node::BlockQuote(quote) => Some(quote.children.iter().collect()),
-    Node::Item(item) => Some(item.children.iter().chain(&item.sub_lists).collect()),
+    Node::Item(item) => Some(item.children.iter().chain(item.sub_lists).collect()),
     _ => None,
   }
 }

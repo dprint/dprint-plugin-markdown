@@ -27,6 +27,8 @@
 
 use std::path::Path;
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use super::ast::Document;
 use super::ast::Node;
 use super::debug_json::offset_in;
@@ -36,7 +38,8 @@ use super::debug_json::to_json;
 /// along with whatever it fails of the invariants every ast holds.
 pub fn run_case(case: &SpecCase) -> CaseOutcome {
   let source = case.source();
-  let document = match super::parser::parse(&source) {
+  let bump = Bump::new();
+  let document = match super::parser::parse(&source, &bump) {
     Ok(document) => document,
     // html the parser refuses isn't a failure: an html block in markdown is
     // very often a fragment, and refusing it is what leaves it as it was
@@ -94,7 +97,7 @@ impl SpecCase {
 /// to have been read and then dropped. That is what makes the ast something
 /// the printer can write back out without losing anything.
 pub fn validate_coverage(document: &Document<'_>, source: &str) -> Result<(), String> {
-  tile("the document", &document.children, source, 0, source.len(), source)
+  tile("the document", document.children, source, 0, source.len(), source)
 }
 
 fn tile(
@@ -144,7 +147,7 @@ fn tile(
       let name = format!("`<{}>` at {}", element.name, child_start);
       tile(
         &name,
-        &element.children,
+        element.children,
         element.content,
         content_start,
         content_start + element.content.len(),

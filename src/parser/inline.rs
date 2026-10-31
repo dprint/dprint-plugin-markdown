@@ -6,9 +6,11 @@
 //! separated by `> ` prefixes), so it's presented to the parser as a flat view
 //! by [`InlineText`], which maps back to the absolute positions the nodes need.
 
-use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+
+use dprint_core::formatting::bumpalo::collections::String as BumpString;
+use dprint_core::formatting::bumpalo::collections::Vec as BumpVec;
+use dprint_core::formatting::bumpalo::Bump;
 
 use super::ast::*;
 use super::links;
@@ -20,11 +22,13 @@ use super::unicode::PUNCTUATION_RANGES;
 /// The document wide information inline parsing needs.
 pub struct InlineContext<'a> {
   pub source: &'a str,
+  /// The arena the nodes are allocated in.
+  pub bump: &'a Bump,
   /// The normalized labels of the document's link reference definitions,
   /// which say whether a `[label]` is a link or plain text.
-  pub link_labels: HashSet<String>,
+  pub link_labels: Labels<'a>,
   /// The labels of the document's footnote definitions.
-  pub footnote_labels: HashSet<String>,
+  pub footnote_labels: Labels<'a>,
   /// Whether this is the pass that only looks for definitions, in which case
   /// there's no point in doing the work of parsing inlines.
   pub collect_only: bool,
@@ -36,12 +40,14 @@ pub struct InlineContext<'a> {
 impl<'a> InlineContext<'a> {
   pub fn new(
     source: &'a str,
-    link_labels: HashSet<String>,
-    footnote_labels: HashSet<String>,
+    bump: &'a Bump,
+    link_labels: Labels<'a>,
+    footnote_labels: Labels<'a>,
     collect_only: bool,
   ) -> InlineContext<'a> {
     InlineContext {
       source,
+      bump,
       link_labels,
       footnote_labels,
       collect_only,
@@ -58,11 +64,11 @@ struct InlineScratch<'a> {
   delimiters: Vec<Delimiter>,
 }
 
-pub fn parse_inlines<'a>(lines: &[ContentLine<'a>], context: &InlineContext<'a>) -> Vec<Node<'a>> {
+pub fn parse_inlines<'a>(lines: &[ContentLine<'a>], context: &InlineContext<'a>) -> &'a [Node<'a>] {
   if context.collect_only || lines.is_empty() {
-    return Vec::new();
+    return &[];
   }
-  let text = InlineText::new(lines, context.source);
+  let text = InlineText::new(lines, context.source, context.bump);
   // inline parsing never begins again while it's underway, so the buffers on
   // the context are always free; taking fresh ones rather than unwrapping
   // keeps that an implementation detail rather than something to uphold
@@ -90,23 +96,23 @@ pub fn parse_inlines<'a>(lines: &[ContentLine<'a>], context: &InlineContext<'a>)
 /// the source each of them came from.
 pub struct InlineText<'a> {
   source: &'a str,
-  text: Cow<'a, str>,
+  /// The content, which is built in the arena when it can't be borrowed.
+  text: &'a str,
   /// The absolute position `text` starts at, when it's borrowed from the
   /// source and so maps to it one to one.
   base: usize,
   /// The absolute position of every byte of `text` plus its end, when the
   /// content had to be built up rather than borrowed.
-  offsets: Option<Vec<u32>>,
+  offsets: Option<&'a [u32]>,
 }
 
 impl<'a> InlineText<'a> {
-  pub fn new(lines: &[ContentLine<'a>], source: &'a str) -> InlineText<'a> {
-    let lines = strip_continuation_indent(lines);
-    let lines = lines.as_ref();
+  pub fn new(lines: &[ContentLine<'a>], source: &'a str, bump: &'a Bump) -> InlineText<'a> {
+    let lines = strip_continuation_indent(lines, bump);
     if let Some(text) = try_borrow_content(lines, source) {
       return InlineText {
         source,
-        text: Cow::Borrowed(text),
+        text,
         base: lines[0].start,
         offsets: None,
       };
@@ -119,8 +125,8 @@ impl<'a> InlineText<'a> {
       .map(|line| line.virtual_spaces + line.text.len())
       .sum::<usize>()
       + lines.len().saturating_sub(1);
-    let mut text = String::with_capacity(len);
-    let mut offsets: Vec<u32> = Vec::with_capacity(len + 1);
+    let mut text = BumpString::with_capacity_in(len, bump);
+    let mut offsets: BumpVec<'a, u32> = BumpVec::with_capacity_in(len + 1, bump);
     for (index, line) in lines.iter().enumerate() {
       if index > 0 {
         text.push('\n');
@@ -139,9 +145,20 @@ impl<'a> InlineText<'a> {
 
     InlineText {
       source,
-      text: Cow::Owned(text),
+      text: text.into_bump_str(),
       base: lines[0].start,
-      offsets: Some(offsets),
+      offsets: Some(offsets.into_bump_slice()),
+    }
+  }
+
+  /// The text of a line that's the whole of the source, which is borrowed as
+  /// it is.
+  pub fn from_line(text: &'a str) -> InlineText<'a> {
+    InlineText {
+      source: text,
+      text,
+      base: 0,
+      offsets: None,
     }
   }
 
@@ -163,7 +180,7 @@ impl<'a> InlineText<'a> {
 
   /// The absolute position in the source of the byte at `index`.
   pub fn abs(&self, index: usize) -> usize {
-    match &self.offsets {
+    match self.offsets {
       Some(offsets) => offsets[index.min(offsets.len() - 1)] as usize,
       None => self.base + index,
     }
@@ -174,17 +191,15 @@ impl<'a> InlineText<'a> {
   }
 
   /// The text between the two indexes, borrowed from the source whenever it's
-  /// contiguous within it.
-  pub fn slice(&self, start: usize, end: usize) -> Cow<'a, str> {
-    match self.source_slice(start, end) {
-      Some(text) => Cow::Borrowed(text),
-      None => Cow::Owned(self.text[start..end].to_string()),
-    }
+  /// contiguous within it, and otherwise from the content built in the arena.
+  pub fn slice(&self, start: usize, end: usize) -> &'a str {
+    let text = self.text;
+    self.source_slice(start, end).unwrap_or(&text[start..end])
   }
 
   /// The text between the two indexes when it's contiguous in the source.
   pub fn source_slice(&self, start: usize, end: usize) -> Option<&'a str> {
-    let Some(offsets) = &self.offsets else {
+    let Some(offsets) = self.offsets else {
       return Some(&self.source[self.base + start..self.base + end]);
     };
     // the range came from one run of the source only if each of its bytes
@@ -228,18 +243,19 @@ impl<'a> InlineText<'a> {
 /// the containers it sits in are. A code span is where dropping it shows, since
 /// a span holds its whitespace verbatim, and there keeping it would change what
 /// the document says.
-fn strip_continuation_indent<'a, 'b>(lines: &'b [ContentLine<'a>]) -> Cow<'b, [ContentLine<'a>]> {
+fn strip_continuation_indent<'a, 'b>(lines: &'b [ContentLine<'a>], bump: &'a Bump) -> &'b [ContentLine<'a>] {
   let is_indented = |line: &ContentLine| line.virtual_spaces > 0 || line.text.starts_with(SPACES);
   if !lines.iter().skip(1).any(is_indented) {
-    return Cow::Borrowed(lines);
+    return lines;
   }
-  Cow::Owned(
+  BumpVec::from_iter_in(
     lines
       .iter()
       .enumerate()
-      .map(|(index, line)| if index == 0 { *line } else { line.trimmed() })
-      .collect(),
+      .map(|(index, line)| if index == 0 { *line } else { line.trimmed() }),
+    bump,
   )
+  .into_bump_slice()
 }
 
 /// The content of the lines when it's one contiguous slice of the source.
@@ -324,12 +340,12 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     }
   }
 
-  fn finish(mut self) -> Vec<Node<'a>> {
+  fn finish(mut self) -> &'a [Node<'a>] {
     self.flush_text(self.text.len());
     self.process_emphasis(0);
     let source = self.text.source();
-    let nodes = compact(self.nodes);
-    merge_adjacent_text(nodes, source)
+    let nodes = compact(self.nodes, self.context.bump);
+    merge_adjacent_text(nodes, source).into_bump_slice()
   }
 
   // ---- text ----
@@ -454,11 +470,11 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     if let Some(end) = links::match_autolink(self.text, start) {
       let span = self.text.span(start, end);
       let inner = self.text.span(start + 1, end - 1);
-      let children = match inner.text(self.text.source()) {
-        text if inner.len() == end - start - 2 => vec![Text { span: inner, text }.into()],
+      let children: &'a [Node<'a>] = match inner.text(self.text.source()) {
+        text if inner.len() == end - start - 2 => self.context.bump.alloc([Text { span: inner, text }.into()]),
         // the url wrapped onto another line, which can't be borrowed as one
         // slice, so leave the autolink without children
-        _ => Vec::new(),
+        _ => &[],
       };
       self.push_node(start, end, AutoLink { span, children }.into());
       return;
@@ -546,7 +562,7 @@ impl<'a, 'b> InlineParser<'a, 'b> {
 
     if !is_image {
       if let Some((footnote_end, name)) =
-        links::match_footnote_reference(self.text, start, &self.context.footnote_labels)
+        links::match_footnote_reference(self.text, start, self.context.footnote_labels, self.context.bump)
       {
         self.push_node(
           start,
@@ -599,8 +615,13 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     let (kind, node_index, open_start, content_start) = (opener.kind, opener.node_index, opener.start, opener.end);
     let is_image = kind == DelimiterKind::Image;
 
-    let Some(reference) = links::match_reference(self.text, close_start, content_start, &self.context.link_labels)
-    else {
+    let Some(reference) = links::match_reference(
+      self.text,
+      close_start,
+      content_start,
+      self.context.link_labels,
+      self.context.bump,
+    ) else {
       // not a link after all, so the `[` stays as text
       self.delimiters.remove(opener_index);
       self.pos += 1;
@@ -631,7 +652,7 @@ impl<'a, 'b> InlineParser<'a, 'b> {
         ReferenceKind::Collapsed => ReferenceImage {
           span,
           text: alt,
-          reference: Cow::Borrowed(""),
+          reference: "",
         }
         .into(),
         ReferenceKind::Shortcut => ShortcutImage { span, text: alt }.into(),
@@ -639,9 +660,9 @@ impl<'a, 'b> InlineParser<'a, 'b> {
     } else {
       // the text within the brackets is the link's content
       self.process_emphasis(opener_index + 1);
-      let mut children: Vec<Node<'a>> = Vec::with_capacity(self.nodes.len() - node_index - 1);
+      let mut children = BumpVec::with_capacity_in(self.nodes.len() - node_index - 1, self.context.bump);
       children.extend(self.nodes.drain(node_index + 1..).flatten());
-      let children = merge_adjacent_text(children, self.text.source());
+      let children = merge_adjacent_text(children, self.text.source()).into_bump_slice();
       self.nodes[node_index] = None;
       match reference.kind {
         ReferenceKind::Inline { url, title } => InlineLink {
@@ -870,9 +891,9 @@ impl<'a, 'b> InlineParser<'a, 'b> {
       self.text.abs(content_end + use_len),
     );
     let slots = &mut self.nodes[open_node + 1..close_node];
-    let mut children: Vec<Node<'a>> = Vec::with_capacity(slots.len());
+    let mut children = BumpVec::with_capacity_in(slots.len(), self.context.bump);
     children.extend(slots.iter_mut().filter_map(|slot| slot.take()));
-    let children = merge_adjacent_text(children, self.text.source());
+    let children = merge_adjacent_text(children, self.text.source()).into_bump_slice();
     let decoration: Node<'a> = TextDecoration { span, kind, children }.into();
 
     // shrink the delimiters by what was used, dropping the ones left empty
@@ -933,20 +954,20 @@ impl<'a, 'b> InlineParser<'a, 'b> {
 
 /// Drops the holes emphasis left behind, keeping the nodes in order and
 /// leaving the buffer they were read into empty for the next block.
-fn compact<'a>(nodes: &mut Vec<Option<Node<'a>>>) -> Vec<Node<'a>> {
-  let mut result = Vec::with_capacity(nodes.len());
+fn compact<'a>(nodes: &mut Vec<Option<Node<'a>>>, bump: &'a Bump) -> BumpVec<'a, Node<'a>> {
+  let mut result = BumpVec::with_capacity_in(nodes.len(), bump);
   result.extend(nodes.drain(..).flatten());
   result
 }
 
 /// Joins the text nodes that ended up beside each other, which happens when a
 /// delimiter turns out not to be one after all.
-fn merge_adjacent_text<'a>(nodes: Vec<Node<'a>>, source: &'a str) -> Vec<Node<'a>> {
+fn merge_adjacent_text<'a>(nodes: BumpVec<'a, Node<'a>>, source: &'a str) -> BumpVec<'a, Node<'a>> {
   if !nodes.windows(2).any(|pair| is_mergeable(&pair[0], &pair[1], source)) {
     return nodes;
   }
 
-  let mut result: Vec<Node<'a>> = Vec::with_capacity(nodes.len());
+  let mut result = BumpVec::with_capacity_in(nodes.len(), nodes.bump());
   for node in nodes {
     match result.last_mut() {
       Some(Node::Text(previous)) if is_mergeable_text(previous, &node, source) => {
@@ -985,18 +1006,15 @@ fn is_mergeable_text(previous: &Text<'_>, node: &Node<'_>, source: &str) -> bool
 /// is how a span holds a backtick against its delimiter. A line ending counts
 /// as the space it is read as, since a span is written across lines only for
 /// the sake of the width of the file.
-fn strip_code_span_padding(code: Cow<'_, str>) -> Cow<'_, str> {
-  let (Some(open), Some(close)) = (leading_space_len(&code), trailing_space_len(&code)) else {
+fn strip_code_span_padding(code: &str) -> &str {
+  let (Some(open), Some(close)) = (leading_space_len(code), trailing_space_len(code)) else {
     return code;
   };
   // a span of nothing but spaces is read as it is written
   if code.trim_matches([' ', '\n', '\r']).is_empty() {
     return code;
   }
-  match code {
-    Cow::Borrowed(text) => Cow::Borrowed(&text[open..text.len() - close]),
-    Cow::Owned(text) => Cow::Owned(text[open..text.len() - close].to_string()),
-  }
+  &code[open..code.len() - close]
 }
 
 /// The length of the one space a code span opens with, if it opens with one.

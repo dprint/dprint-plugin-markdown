@@ -24,6 +24,8 @@
 
 use std::path::Path;
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use super::ast::Node;
 use super::ast::Ranged;
 use super::ast::SourceFile;
@@ -36,7 +38,8 @@ use super::debug_json::to_json;
 /// along with whatever it fails of the invariants every ast holds.
 pub fn run_case(case: &SpecCase) -> CaseOutcome {
   let source = case.source();
-  let file = match super::parse(&source) {
+  let bump = Bump::new();
+  let file = match super::parse(&source, &bump) {
     Ok(file) => file,
     Err(err) => {
       return CaseOutcome {
@@ -144,9 +147,9 @@ pub fn validate_text_coverage(file: &SourceFile<'_>, source: &str) -> Result<(),
       file.span, outside, source,
     ));
   }
-  let held = children_content(&file.children, source);
+  let held = children_content(file.children, source);
   compare("SourceFile", file.span, &held, source)?;
-  for child in &file.children {
+  for child in file.children {
     visit(child, source)?;
   }
   return Ok(());
@@ -184,56 +187,56 @@ pub fn validate_text_coverage(file: &SourceFile<'_>, source: &str) -> Result<(),
   fn content(node: &Node<'_>, source: &str) -> String {
     match node {
       Node::Text(text) => written_letters(text.text),
-      Node::Code(code) => written_letters(&code.code),
-      Node::Html(html) => written_letters(&html.text),
-      Node::DisplayMath(math) => written_letters(&math.text),
-      Node::InlineMath(math) => written_letters(&math.text),
+      Node::Code(code) => written_letters(code.code),
+      Node::Html(html) => written_letters(html.text),
+      Node::DisplayMath(math) => written_letters(math.text),
+      Node::InlineMath(math) => written_letters(math.text),
       Node::MetadataBlock(block) => written_letters(block.text),
       // a fenced code block names the language it is written in
       Node::CodeBlock(block) => {
         let info = block.fence.as_ref().and_then(|fence| fence.info).unwrap_or("");
-        written_letters(info) + &written_letters(&block.code)
+        written_letters(info) + &written_letters(block.code)
       }
       // a footnote is written under the name it is referred to by
       Node::FootnoteReference(reference) => written_letters(reference.name),
       Node::FootnoteDefinition(definition) => {
-        written_letters(definition.name) + &children_content(&definition.children, source)
+        written_letters(definition.name) + &children_content(definition.children, source)
       }
       // a link is written as the text it is under, then as where it points
       Node::InlineLink(link) => {
-        children_content(&link.children, source) + &written_letters(&link.url) + &title_content(&link.title)
+        children_content(link.children, source) + &written_letters(link.url) + &title_content(&link.title)
       }
       Node::ReferenceLink(link) => {
-        children_content(&link.children, source) + &reference_content(&link.reference, link.span, source)
+        children_content(link.children, source) + &reference_content(link.reference, link.span, source)
       }
       Node::LinkReference(reference) => {
-        written_letters(&reference.name) + &written_letters(&reference.link) + &title_content(&reference.title)
+        written_letters(reference.name) + &written_letters(reference.link) + &title_content(&reference.title)
       }
       Node::InlineImage(image) => {
-        written_letters(&image.text) + &written_letters(&image.url) + &title_content(&image.title)
+        written_letters(image.text) + &written_letters(image.url) + &title_content(&image.title)
       }
       Node::ReferenceImage(image) => {
-        written_letters(&image.text) + &reference_content(&image.reference, image.span, source)
+        written_letters(image.text) + &reference_content(image.reference, image.span, source)
       }
-      Node::ShortcutImage(image) => written_letters(&image.text),
+      Node::ShortcutImage(image) => written_letters(image.text),
       // an item is written after a marker that may hold a number, and may open
       // with the marker of a task list
       Node::Item(item) => {
         written_letters(&source[item.marker_span.start..item.marker_span.end])
           + &marker_content(&item.marker)
-          + &children_content(&item.children, source)
-          + &children_content(&item.sub_lists, source)
+          + &children_content(item.children, source)
+          + &children_content(item.sub_lists, source)
       }
-      Node::Paragraph(paragraph) => marker_content(&paragraph.marker) + &children_content(&paragraph.children, source),
+      Node::Paragraph(paragraph) => marker_content(&paragraph.marker) + &children_content(paragraph.children, source),
       Node::TaskListMarker(marker) => checked_content(marker.is_checked),
       Node::Table(table) => {
         let cells = |cells: &[TableCell<'_>]| {
           cells
             .iter()
-            .map(|cell| children_content(&cell.children, source))
+            .map(|cell| children_content(cell.children, source))
             .collect::<String>()
         };
-        cells(&table.header.cells) + &table.rows.iter().map(|row| cells(&row.cells)).collect::<String>()
+        cells(table.header.cells) + &table.rows.iter().map(|row| cells(row.cells)).collect::<String>()
       }
       node => children_content(node.children(), source),
     }
@@ -243,8 +246,8 @@ pub fn validate_text_coverage(file: &SourceFile<'_>, source: &str) -> Result<(),
     nodes.iter().map(|node| content(node, source)).collect()
   }
 
-  fn title_content(title: &Option<std::borrow::Cow<'_, str>>) -> String {
-    written_letters(title.as_deref().unwrap_or(""))
+  fn title_content(title: &Option<&str>) -> String {
+    written_letters(title.unwrap_or(""))
   }
 
   /// The label a reference link or image points at, which is only written out
@@ -306,11 +309,11 @@ fn child_nodes<'a, 'b>(node: &'b Node<'a>) -> Vec<&'b Node<'a>> {
     Node::Table(table) => {
       // the head and the rows aren't nodes of their own to the ast, so their
       // cells stand in for them here
-      for cell in &table.header.cells {
+      for cell in table.header.cells {
         nodes.extend(cell.children.iter());
       }
-      for row in &table.rows {
-        for cell in &row.cells {
+      for row in table.rows {
+        for cell in row.cells {
           nodes.extend(cell.children.iter());
         }
       }

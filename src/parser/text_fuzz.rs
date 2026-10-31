@@ -13,6 +13,8 @@
 //! `FUZZ_CASES=n` runs a longer sweep than the test itself does, and
 //! `FUZZ_FROM=n` starts it at a given case.
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use super::spec_test::validate_text_coverage;
 
 /// What can begin a line.
@@ -171,7 +173,8 @@ fn no_text_is_dropped() {
   for case in first..first + count {
     let source = generate(case);
     // a document the parser won't follow holds no ast to check
-    let Ok(file) = super::parse(&source) else {
+    let bump = Bump::new();
+    let Ok(file) = super::parse(&source, &bump) else {
       continue;
     };
     if let Err(message) = validate_text_coverage(&file, &source) {
