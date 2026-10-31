@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -15,6 +16,9 @@ use crate::format_text::FormatError;
 use crate::parser::Span;
 
 type FormatResult = Result<Option<String>, FormatError>;
+
+/// A vector allocated in the arena.
+pub type BumpVec<'a, T> = dprint_core::formatting::bumpalo::collections::Vec<'a, T>;
 
 /// The error the plugin that formats the code within a code block ran into,
 /// along with where the code block was written.
@@ -305,6 +309,30 @@ impl<'a> Context<'a> {
     }
   }
 
+  /// Allocates the text in the arena so it lives as long as the print items.
+  pub fn alloc_str(&self, text: &str) -> &'a str {
+    self.arena.bump().alloc_str(text)
+  }
+
+  /// Gets text that lives as long as the print items, which is only
+  /// allocated in the arena when it's owned.
+  pub fn alloc_cow_str(&self, text: Cow<'a, str>) -> &'a str {
+    match text {
+      Cow::Borrowed(text) => text,
+      Cow::Owned(text) => self.alloc_str(&text),
+    }
+  }
+
+  /// Gets the text a node holds so that it lives as long as the print items,
+  /// which only copies it when the node owns it rather than borrowing it from
+  /// the file.
+  pub fn node_str(&self, text: &Cow<'a, str>) -> &'a str {
+    match text {
+      Cow::Borrowed(text) => text,
+      Cow::Owned(text) => self.alloc_str(text),
+    }
+  }
+
   pub fn get_memoized_rc_path(&mut self, kind: MemoizedRcPathKind) -> Option<PrintItemPath<'a>> {
     if let Some(path) = self.memoized_rc_paths.get(&kind) {
       *path
@@ -357,13 +385,13 @@ impl<'a> Context<'a> {
   pub fn mark_in_block_quotes<T>(
     &mut self,
     content_start: Option<usize>,
-    func: impl FnOnce(&mut Context<'a>, Vec<u32>) -> T,
+    func: impl FnOnce(&mut Context<'a>, &'a [u32]) -> T,
   ) -> T {
     let original_is_in_list_count = self.is_in_list_count;
     self.is_in_list_count = 0;
     self.block_quote_base_indents.push(self.indent_level);
     self.block_quote_content_starts.push(content_start);
-    let base_indents = self.block_quote_base_indents.clone();
+    let base_indents = self.arena.bump().alloc_slice_copy(&self.block_quote_base_indents);
     let items = func(self, base_indents);
     self.block_quote_content_starts.pop();
     self.block_quote_base_indents.pop();
@@ -727,11 +755,12 @@ impl<'a> Context<'a> {
   pub fn format_text<'b>(&mut self, tag: &str, text: &'b str) -> FormatResult {
     let line_width = std::cmp::max(10, self.configuration.line_width as i32 - self.indent_level as i32) as u32;
 
-    match tag.to_lowercase().as_str() {
-      "markdown" | "md" => format_text(text, self.configuration, |tag, file_text, line_width| {
+    if is_markdown_tag(tag) {
+      format_text(text, self.configuration, |tag, file_text, line_width| {
         (self.format_code_block_text)(tag, file_text, line_width)
-      }),
-      _ => (self.format_code_block_text)(tag, text, line_width),
+      })
+    } else {
+      (self.format_code_block_text)(tag, text, line_width)
     }
   }
 
@@ -751,5 +780,16 @@ impl<'a> Context<'a> {
     } // ignore
 
     count_new_lines(&self.file_text[start..end])
+  }
+}
+
+/// Whether the code block tag says the code is markdown, ignoring case.
+fn is_markdown_tag(tag: &str) -> bool {
+  // a character outside of ascii can still lower case to one within it (ex. the
+  // kelvin sign), so only an ascii tag is compared without lower casing it
+  if tag.is_ascii() {
+    tag.eq_ignore_ascii_case("markdown") || tag.eq_ignore_ascii_case("md")
+  } else {
+    matches!(tag.to_lowercase().as_str(), "markdown" | "md")
   }
 }

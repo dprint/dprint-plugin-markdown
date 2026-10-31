@@ -1,3 +1,5 @@
+use dprint_core::formatting::bumpalo;
+use dprint_core::formatting::bumpalo::collections::CollectIn;
 use dprint_core::formatting::condition_resolvers;
 use dprint_core::formatting::conditions::*;
 use dprint_core::formatting::ir_helpers::*;
@@ -11,7 +13,7 @@ use super::gen_types::*;
 use super::utils;
 use crate::configuration::*;
 
-pub fn generate<'a>(node: &Node, context: &mut Context<'a>) -> PrintItems<'a> {
+pub fn generate<'a>(node: &Node<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let position = context.take_position();
   match node {
     Node::SourceFile(node) => gen_source_file(node, context),
@@ -52,7 +54,7 @@ pub fn generate<'a>(node: &Node, context: &mut Context<'a>) -> PrintItems<'a> {
   }
 }
 
-fn gen_source_file<'a>(source_file: &SourceFile, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_source_file<'a>(source_file: &SourceFile<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
   items.extend(gen_nodes(&source_file.children, context));
@@ -68,7 +70,7 @@ fn gen_source_file<'a>(source_file: &SourceFile, context: &mut Context<'a>) -> P
   items
 }
 
-fn gen_nodes<'a>(nodes: &[Node], context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_nodes<'a>(nodes: &[Node<'a>], context: &mut Context<'a>) -> PrintItems<'a> {
   let Some(first) = nodes.first() else {
     return PrintItems::new(context.arena);
   };
@@ -121,7 +123,7 @@ fn holds_hard_break(nodes: &[Node]) -> bool {
 /// as `items` where they already do, otherwise with the decorations and hard
 /// breaks written as they were in the file, and failing that as the text of
 /// the file itself.
-fn gen_checked_decorations<'a>(nodes: &[Node], items: PrintItems<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_checked_decorations<'a>(nodes: &[Node<'a>], items: PrintItems<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let (items, rendered) = clone_items(items);
   if reads_back_decorations(nodes, rendered, context) {
     return items;
@@ -359,7 +361,7 @@ fn keeps_break_between(last_node: &Node, node: &Node, context: &Context) -> bool
     && node.starts_with_unspaced_script()
 }
 
-fn gen_nodes_within_breaks<'a>(nodes: &[Node], context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_nodes_within_breaks<'a>(nodes: &[Node<'a>], context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
   let mut last_node: Option<&Node> = None;
@@ -648,7 +650,7 @@ fn gen_nodes_within_breaks<'a>(nodes: &[Node], context: &mut Context<'a>) -> Pri
 
   return items;
 
-  fn get_conditional_blank_line<'a>(node: &Node, context: &mut Context<'a>) -> PrintItems<'a> {
+  fn get_conditional_blank_line<'a>(node: &Node<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
     // within a list two blocks may sit on consecutive lines, which is what
     // keeps the list tight. Everywhere else a blank line is what separates them
     let minimum = if context.is_in_list() { 0 } else { 1 };
@@ -691,7 +693,7 @@ fn starts_html_block(node: Option<&Node>) -> bool {
   matches!(node, Some(Node::Html(html)) if !html.is_block && starts_block_in_paragraph(&html.text))
 }
 
-fn gen_heading<'a>(heading: &Heading, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_heading<'a>(heading: &Heading<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   // setext headings only apply to level 1 and level 2, and only where the text
   // they underline reads as the paragraph a heading is made of -- an html
   // comment at the start of a line is a block of its own, which nothing can
@@ -717,8 +719,8 @@ fn gen_heading<'a>(heading: &Heading, context: &mut Context<'a>) -> PrintItems<'
       let mut items = PrintItems::new(context.arena);
       items.extend(children);
       items.push_signal(Signal::NewLine);
-      let underline_char = if heading.level == 1 { "=" } else { "-" };
-      items.push_string(underline_char.repeat(underline_width));
+      let underline_char = if heading.level == 1 { '=' } else { '-' };
+      items.push_str_runtime_width_computed(alloc_repeated(context.arena, underline_char, underline_width));
       return items;
     }
 
@@ -767,7 +769,7 @@ fn gen_atx_heading<'a>(level: u8, children: PrintItems<'a>) -> PrintItems<'a> {
   items
 }
 
-fn gen_paragraph<'a>(paragraph: &Paragraph, position: NodePosition, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_paragraph<'a>(paragraph: &Paragraph<'a>, position: NodePosition, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
   if let Some(marker) = &paragraph.marker {
@@ -841,7 +843,7 @@ fn gen_paragraph<'a>(paragraph: &Paragraph, position: NodePosition, context: &mu
   }
 }
 
-fn gen_block_quote<'a>(block_quote: &BlockQuote, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_block_quote<'a>(block_quote: &BlockQuote<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let content_start = block_quote.children.first().map(|child| child.span().start);
   context.mark_in_block_quotes(content_start, |context, base_indents| {
     let mut items = PrintItems::new(context.arena);
@@ -876,7 +878,7 @@ fn gen_block_quote<'a>(block_quote: &BlockQuote, context: &mut Context<'a>) -> P
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
             gen_block_quote_markers(
-              &base_indents,
+              base_indents,
               indent_level,
               MarkersTrailing::Text { space: needs_space },
               context,
@@ -893,7 +895,7 @@ fn gen_block_quote<'a>(block_quote: &BlockQuote, context: &mut Context<'a>) -> P
           items.push_condition(if_true(
             "angleBracketIfStartOfLine",
             condition_resolvers::is_start_of_line(),
-            gen_block_quote_markers(&base_indents, indent_level, MarkersTrailing::BlankLine, context),
+            gen_block_quote_markers(base_indents, indent_level, MarkersTrailing::BlankLine, context),
           ));
           items.push_signal(Signal::NewLine);
         }
@@ -932,9 +934,10 @@ fn gen_block_quote<'a>(block_quote: &BlockQuote, context: &mut Context<'a>) -> P
 /// them (ex. the text of a link, which is shared in a path in order to measure
 /// it). The paths holding the markers of a nested block quote are left alone,
 /// since the indentation they contain isn't the content's.
-fn get_content_print_items<'a>(items: PrintItems<'a>, context: &Context<'a>) -> Vec<PrintItem<'a>> {
-  let mut result = Vec::new();
-  let mut iterators = vec![items.iter()];
+fn get_content_print_items<'a>(items: PrintItems<'a>, context: &Context<'a>) -> BumpVec<'a, PrintItem<'a>> {
+  let mut result = BumpVec::new_in(context.arena.bump());
+  let mut iterators = BumpVec::new_in(context.arena.bump());
+  iterators.push(items.iter());
 
   while let Some(mut iterator) = iterators.pop() {
     while let Some(print_item) = iterator.next() {
@@ -1006,18 +1009,18 @@ fn gen_block_quote_markers<'a>(
   items
 }
 
-fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_code_block<'a>(code_block: &CodeBlock<'a>, position: NodePosition, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   let code_text = get_code_text(code_block, context);
   let code_text = if code_block.is_fenced() && context.configuration.code_block_preserve_blank_lines {
-    code_text.as_ref()
+    code_text
   } else {
     code_text.trim_end_matches(WHITESPACE)
   };
   let code_text = if context.configuration.code_block_preserve_indentation {
-    Cow::Borrowed(code_text)
+    code_text
   } else {
-    utils::unindent(code_text)
+    context.alloc_cow_str(utils::unindent(code_text))
   };
   // a backtick fence's info string can't hold a backtick, so a tag with one in
   // it has to be fenced with tildes
@@ -1025,7 +1028,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
     Some(tag) if tag.contains('`') => '~',
     _ => '`',
   };
-  let fence_text = fence_char.to_string().repeat(get_fence_count(&code_text, fence_char));
+  let fence_text = alloc_repeated(context.arena, fence_char, get_fence_count(code_text, fence_char));
   // an indented code block can only be written with indentation where nothing
   // above it would take that indentation for its own content, and where the
   // indentation of the lines after the first can match the first line's
@@ -1035,7 +1038,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
 
   // header
   if is_fenced {
-    items.push_str(&fence_text);
+    items.push_str_runtime_width_computed(fence_text);
     if let Some(tag) = code_block.tag() {
       // an info string that starts with the fence character would otherwise
       // read as more of the fence
@@ -1043,11 +1046,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
         items.push_space();
       }
       // the info string may hold a tab, which the printer measures itself
-      if tag.contains('\t') {
-        items.extend(gen_text_with_tabs(context.arena, tag));
-      } else {
-        items.push_str(tag);
-      }
+      items.extend(gen_text_with_tabs(context.arena, tag));
     }
     items.push_signal(Signal::NewLine);
   }
@@ -1059,10 +1058,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
     items.push_sc(sc!("    "));
   }
   if !code_text.is_empty() {
-    items.extend(ir_helpers::gen_from_string(
-      context.arena,
-      context.arena.bump().alloc_str(&code_text),
-    ));
+    items.extend(ir_helpers::gen_from_string(context.arena, code_text));
   }
 
   // footer
@@ -1070,19 +1066,19 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
     if !code_text.is_empty() {
       items.push_signal(Signal::NewLine);
     }
-    items.push_string(fence_text);
+    items.push_str_runtime_width_computed(fence_text);
   }
 
   return with_indent_times(items, indent_level);
 
-  fn get_code_text<'a>(code_block: &'a CodeBlock, context: &mut Context) -> Cow<'a, str> {
-    let code = &code_block.code;
+  fn get_code_text<'a>(code_block: &CodeBlock<'a>, context: &mut Context<'a>) -> &'a str {
+    let code = context.node_str(&code_block.code);
     let code = if code_block.is_fenced() && context.configuration.code_block_preserve_blank_lines {
       let code = code.strip_suffix('\n').unwrap_or(code);
       code.strip_suffix('\r').unwrap_or(code)
     } else {
       if code.trim_matches(WHITESPACE).is_empty() {
-        return Cow::Borrowed("");
+        return "";
       }
       let start_pos = get_code_block_start_pos(code);
       code[start_pos..].trim_end_matches(WHITESPACE)
@@ -1090,12 +1086,12 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
     if !context.configuration.code_block_skip_format && context.is_in_code_block_range(code_block.span) {
       if let Some(tag) = code_block.tag() {
         // allow situations like ```rust,ignore
-        let tag = tag.chars().take_while(|&c| c != ' ' && c != ',').collect::<String>();
-        match context.format_text(&tag, code) {
+        let tag = &tag[..tag.find([' ', ',']).unwrap_or(tag.len())];
+        match context.format_text(tag, code) {
           Ok(Some(text)) => {
             // Formatters produce a string with a trailing newline, which must be removed.
             let text = text.strip_suffix("\n").unwrap_or(&text);
-            return Cow::Owned(text.strip_suffix("\r").unwrap_or(text).to_owned());
+            return context.alloc_str(text.strip_suffix("\r").unwrap_or(text));
           }
           Ok(None) => {}
           // code the plugin can't format is left as it was written, unless the
@@ -1108,7 +1104,7 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
         }
       }
     }
-    Cow::Borrowed(code)
+    code
   }
 
   fn get_code_block_start_pos(text: &str) -> usize {
@@ -1140,10 +1136,10 @@ fn gen_code_block<'a>(code_block: &CodeBlock, position: NodePosition, context: &
   }
 }
 
-fn gen_code<'a>(code: &Code, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_code<'a>(code: &Code<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   // a code span holds its text as it is, so the only choice here is how to
   // write the delimiters so that the text is read back out of them
-  let text = code.code.as_ref();
+  let text = context.node_str(&code.code);
   let text_runs = context
     .delimiter_runs()
     .map(|runs| runs.backticks.as_slice())
@@ -1211,7 +1207,7 @@ fn gen_code<'a>(code: &Code, context: &mut Context<'a>) -> PrintItems<'a> {
 /// apart from line endings, which render as a single space. So a run of a
 /// single space or line ending is a place the text may be wrapped, but any
 /// longer run of whitespace has to be kept at its original width.
-fn gen_code_str<'a>(text: &str, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_code_str<'a>(text: &'a str, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut builder = CodeTextBuilder::new(text, context);
   let mut chars = text.char_indices().peekable();
 
@@ -1242,7 +1238,7 @@ fn gen_code_str<'a>(text: &str, context: &mut Context<'a>) -> PrintItems<'a> {
     items: PrintItems<'a>,
     /// The span's text, which the word being written is read together with the
     /// rest of in order to work out what a line would begin with.
-    text: &'t str,
+    text: &'a str,
     /// Where the word being gathered runs from and to. It is a slice of
     /// `text`, apart from the line endings within it that are written as the
     /// spaces they render as.
@@ -1254,7 +1250,7 @@ fn gen_code_str<'a>(text: &str, context: &mut Context<'a>) -> PrintItems<'a> {
   }
 
   impl<'t, 'a> CodeTextBuilder<'t, 'a> {
-    pub fn new(text: &'t str, context: &'t Context<'a>) -> CodeTextBuilder<'t, 'a> {
+    pub fn new(text: &'a str, context: &'t Context<'a>) -> CodeTextBuilder<'t, 'a> {
       CodeTextBuilder {
         items: PrintItems::new(context.arena),
         text,
@@ -1305,11 +1301,11 @@ fn gen_code_str<'a>(text: &str, context: &mut Context<'a>) -> PrintItems<'a> {
       let Some((start, end)) = self.word.take() else {
         return;
       };
-      let word = word_text(self.text, start, end);
+      let word = self.context.alloc_cow_str(word_text(self.text, start, end));
       if !self.items.is_empty() {
-        self.items.extend(self.space_items(start, &word));
+        self.items.extend(self.space_items(start, word));
       }
-      self.items.push_str(&word);
+      self.items.push_str_runtime_width_computed(word);
     }
 
     /// What to write in place of the whitespace that ran up to the word.
@@ -1340,7 +1336,7 @@ fn word_text<'a>(text: &'a str, start: usize, end: usize) -> Cow<'a, str> {
 
 /// Writes the backticks a code span is delimited by, along with the space that
 /// holds them off its text where one is needed.
-fn push_code_delimiter(items: &mut PrintItems, backticks: usize, separator: &str, leading: bool) {
+fn push_code_delimiter<'a>(items: &mut PrintItems<'a>, backticks: usize, separator: &str, leading: bool) {
   // almost every span is written with a single backtick and nothing between it
   // and the text, which is worth not building a string for
   let known = match (backticks, separator, leading) {
@@ -1354,40 +1350,46 @@ fn push_code_delimiter(items: &mut PrintItems, backticks: usize, separator: &str
   match known {
     Some(text) => items.push_sc(text),
     None => {
-      let backticks = "`".repeat(backticks);
-      items.push_string(match leading {
-        true => format!("{}{}", backticks, separator),
-        false => format!("{}{}", separator, backticks),
-      });
+      let mut text = bumpalo::collections::String::with_capacity_in(backticks + separator.len(), items.arena().bump());
+      if !leading {
+        text.push_str(separator);
+      }
+      for _ in 0..backticks {
+        text.push('`');
+      }
+      if leading {
+        text.push_str(separator);
+      }
+      items.push_str_runtime_width_computed(text.into_bump_str());
     }
   }
 }
 
-fn gen_text<'a>(text: &Text, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_text<'a>(text: &Text<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   // a backslash at the end of a line is a hard break, and one before the
   // whitespace that ends a line is the text it is -- so the latter is escaped,
   // since that whitespace isn't written back out
-  let escaped_end;
   let (text_str, text_start) = if ends_line_with_literal_backslash(text, context) {
-    escaped_end = format!("{}\\", text.text);
-    (escaped_end.as_str(), None)
+    let escaped_end = bumpalo::format!(in context.arena.bump(), "{}\\", text.text);
+    (escaped_end.into_bump_str(), None)
   } else {
     (text.text, Some(text.span.start))
   };
   if let Some(position) = context.block_start_escape_at(text.span.start) {
-    let escaped = format!("{}\\{}", &text_str[..position], &text_str[position..]);
-    return gen_str(&escaped, None, context);
+    let escaped = bumpalo::format!(in context.arena.bump(), "{}\\{}", &text_str[..position], &text_str[position..]);
+    return gen_str(escaped.into_bump_str(), None, context);
   }
   if context.is_escaping_closing_hashes(text.span.start) {
     // the hashes are escaped where they start, which is enough to keep the
     // rest of the run from being read as a closing sequence of its own
     let hashes = text.text.len() - text.text.trim_end_matches('#').len();
-    let escaped = format!(
+    let escaped = bumpalo::format!(
+      in context.arena.bump(),
       "{}\\{}",
       &text.text[..text.text.len() - hashes],
       &text.text[text.text.len() - hashes..]
     );
-    return gen_str(&escaped, None, context);
+    return gen_str(escaped.into_bump_str(), None, context);
   }
   gen_str(text_str, text_start, context)
 }
@@ -1435,7 +1437,7 @@ fn is_callout_text(text: &str) -> bool {
 /// together with what follows it in the file rather than only what follows it
 /// in this node. It's left out where the text isn't what the file holds (ex.
 /// where a character has been escaped).
-fn gen_str<'a>(text: &str, text_start: Option<usize>, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_str<'a>(text: &'a str, text_start: Option<usize>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut text_builder = TextBuilder::new(text, text_start, context);
 
   for (index, c) in text.char_indices() {
@@ -1448,7 +1450,7 @@ fn gen_str<'a>(text: &str, text_start: Option<usize>, context: &mut Context<'a>)
     items: PrintItems<'a>,
     /// The text being written, which the words are read back out of in order
     /// to work out what a line would begin with.
-    text: &'t str,
+    text: &'a str,
     /// Where the text was read from, which a word is looked at from so that
     /// what follows it in the file counts as well as what follows it here.
     text_start: Option<usize>,
@@ -1472,7 +1474,7 @@ fn gen_str<'a>(text: &str, text_start: Option<usize>, context: &mut Context<'a>)
   }
 
   impl<'t, 'a> TextBuilder<'t, 'a> {
-    pub fn new(text: &'t str, text_start: Option<usize>, context: &'t Context<'a>) -> TextBuilder<'t, 'a> {
+    pub fn new(text: &'a str, text_start: Option<usize>, context: &'t Context<'a>) -> TextBuilder<'t, 'a> {
       TextBuilder {
         items: PrintItems::new(context.arena),
         text,
@@ -1579,7 +1581,7 @@ fn gen_str<'a>(text: &str, text_start: Option<usize>, context: &mut Context<'a>)
   }
 }
 
-fn gen_text_decoration<'a>(text: &TextDecoration, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_text_decoration<'a>(text: &TextDecoration<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   let decoration_text = match decoration_delimiter(text, context.enclosing_decoration(), context) {
     "*" => sc!("*"),
@@ -2053,7 +2055,7 @@ fn written_last_char(node: Option<&Node>, parent_content: Option<Span>, context:
   }
 }
 
-fn gen_html<'a>(node: &Html, ctx: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_html<'a>(node: &Html<'a>, ctx: &mut Context<'a>) -> PrintItems<'a> {
   // only a block of html is laid out: an inline tag is one node of the text
   // around it, where the printer is already deciding where the lines go.
   // A block written with indentation of its own is left alone, because that
@@ -2091,11 +2093,11 @@ fn gen_html<'a>(node: &Html, ctx: &mut Context<'a>) -> PrintItems<'a> {
   gen_range(node.span, ctx)
 }
 
-fn gen_display_math<'a>(node: &DisplayMath, ctx: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_display_math<'a>(node: &DisplayMath<'a>, ctx: &mut Context<'a>) -> PrintItems<'a> {
   gen_range(node.span, ctx)
 }
 
-fn gen_inline_math<'a>(node: &InlineMath, ctx: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_inline_math<'a>(node: &InlineMath<'a>, ctx: &mut Context<'a>) -> PrintItems<'a> {
   gen_range(node.span, ctx)
 }
 
@@ -2108,7 +2110,7 @@ fn gen_inline_math<'a>(node: &InlineMath, ctx: &mut Context<'a>) -> PrintItems<'
 /// The first line is stripped of its prefix only where it starts a line of
 /// the file, as text that follows a comment on its line is written on from
 /// where the comment ends.
-fn gen_ignored_text<'a>(text: &str, starts_line: bool, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_ignored_text<'a>(text: &'a str, starts_line: bool, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   for (index, line) in text.split('\n').enumerate() {
     if index > 0 {
@@ -2121,10 +2123,7 @@ fn gen_ignored_text<'a>(text: &str, starts_line: bool, context: &Context<'a>) ->
       line
     };
     if !line.is_empty() {
-      items.extend(ir_helpers::gen_from_raw_string(
-        context.arena,
-        context.arena.bump().alloc_str(line),
-      ));
+      items.extend(ir_helpers::gen_from_raw_string(context.arena, line));
     }
   }
   items
@@ -2156,13 +2155,11 @@ fn gen_range<'a>(span: Span, ctx: &mut Context<'a>) -> PrintItems<'a> {
   }
   let mut items = PrintItems::new(ctx.arena);
   items.push_sc(sc!("")); // force first line indentation
-  items.extend(ir_helpers::gen_from_raw_string(
-    ctx.arena,
-    ctx
-      .arena
-      .bump()
-      .alloc_str(&trim_line_ends(&strip_raw_block_quote_markers(text, ctx))),
-  ));
+  let text = match strip_raw_block_quote_markers(text, ctx) {
+    Cow::Borrowed(text) => ctx.alloc_cow_str(trim_line_ends(text)),
+    Cow::Owned(text) => ctx.alloc_str(&trim_line_ends(&text)),
+  };
+  items.extend(ir_helpers::gen_from_raw_string(ctx.arena, text));
   items
 }
 
@@ -2220,20 +2217,29 @@ fn strip_markers_of_depth(line: &str, depth: usize) -> &str {
   line
 }
 
-fn gen_footnote_reference<'a>(footnote_reference: &FootnoteReference, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_footnote_reference<'a>(footnote_reference: &FootnoteReference<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
-  items.push_string(format!("[^{}]", footnote_reference.name.trim_matches(WHITESPACE)));
+  items.push_str_runtime_width_computed(
+    bumpalo::format!(in context.arena.bump(), "[^{}]", footnote_reference.name.trim_matches(WHITESPACE))
+      .into_bump_str(),
+  );
   ir_helpers::new_line_group(items)
 }
 
-fn gen_footnote_definition<'a>(footnote_definition: &FootnoteDefinition, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_footnote_definition<'a>(
+  footnote_definition: &FootnoteDefinition<'a>,
+  context: &mut Context<'a>,
+) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
-  items.push_string(format!("[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE)));
+  items.push_str_runtime_width_computed(
+    bumpalo::format!(in context.arena.bump(), "[^{}]: ", footnote_definition.name.trim_matches(WHITESPACE))
+      .into_bump_str(),
+  );
   items.extend(with_indent_times(gen_nodes(&footnote_definition.children, context), 4));
   items
 }
 
-fn gen_inline_link<'a>(link: &InlineLink, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_inline_link<'a>(link: &InlineLink<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("["));
@@ -2241,11 +2247,11 @@ fn gen_inline_link<'a>(link: &InlineLink, context: &mut Context<'a>) -> PrintIte
     items.push_sc(sc!("]"));
     items.push_sc(sc!("("));
     items.extend(gen_link_destination_text(
-      context.arena,
-      format_raw_link_destination(link.url.trim_matches(WHITESPACE)),
+      format_raw_link_destination(context.node_str(&link.url).trim_matches(WHITESPACE)),
+      context,
     ));
     if let Some(title) = &link.title {
-      items.extend(gen_title(title, context));
+      items.extend(gen_title(context.node_str(title), context));
     }
     items.push_sc(sc!(")"));
 
@@ -2255,19 +2261,19 @@ fn gen_inline_link<'a>(link: &InlineLink, context: &mut Context<'a>) -> PrintIte
 
 /// Writes out a rendered link destination, handling the characters the printer
 /// can't be handed as part of a string.
-fn gen_link_destination_text<'a>(arena: &'a Arena, text: Cow<'_, str>) -> PrintItems<'a> {
+fn gen_link_destination_text<'a>(text: Cow<'a, str>, context: &Context<'a>) -> PrintItems<'a> {
   // a destination can't contain a line ending in either of its forms, so keep
   // one as the character reference it could only have come from
   let text = if text.contains(['\n', '\r']) {
-    Cow::Owned(text.replace('\r', "&#13;").replace('\n', "&#10;"))
+    context.alloc_str(&text.replace('\r', "&#13;").replace('\n', "&#10;"))
   } else {
-    text
+    context.alloc_cow_str(text)
   };
-  gen_text_with_tabs(arena, &text)
+  gen_text_with_tabs(context.arena, text)
 }
 
 /// Generates an image's alt text, which is the raw text from the file.
-fn gen_image_alt_text<'a>(text: &str, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_image_alt_text<'a>(text: &'a str, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   items.push_sc(sc!("!["));
   items.extend(gen_raw_text(text.trim_matches(WHITESPACE), context));
@@ -2276,7 +2282,7 @@ fn gen_image_alt_text<'a>(text: &str, context: &Context<'a>) -> PrintItems<'a> {
 }
 
 /// Generates the label of a reference image or link.
-fn gen_reference_label<'a>(reference: &str, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_reference_label<'a>(reference: &'a str, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   items.push_sc(sc!("["));
   items.extend(gen_raw_text(reference.trim_matches(WHITESPACE), context));
@@ -2289,10 +2295,13 @@ fn gen_reference_label<'a>(reference: &str, context: &Context<'a>) -> PrintItems
 /// A title continued onto another line loses that line's indentation, since
 /// there's no telling apart the indentation that's part of the title from the
 /// indentation the enclosing list item or block quote gave it.
-fn gen_title<'a>(title: &str, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_title<'a>(title: &'a str, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   items.push_sc(sc!(" \""));
-  items.extend(gen_raw_text(&escape_title(title.trim_matches(WHITESPACE)), context));
+  items.extend(gen_raw_text(
+    context.alloc_cow_str(escape_title(title.trim_matches(WHITESPACE))),
+    context,
+  ));
   items.push_sc(sc!("\""));
   items
 }
@@ -2324,7 +2333,7 @@ fn escape_title(title: &str) -> Cow<'_, str> {
 ///
 /// The printer requires the strings it's given to be a single line, so the
 /// line breaks the text contains need to be sent as print items instead.
-fn gen_raw_text<'a>(text: &str, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_raw_text<'a>(text: &'a str, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   // a line ending may be in either of its forms, so split on both characters
   // and skip the empty text a carriage return and line feed pair leaves behind
@@ -2366,7 +2375,7 @@ fn strip_block_quote_markers<'a>(line: &'a str, context: &Context) -> &'a str {
 /// written, the same as in [`gen_word_with_unspaced_script_breaks`]: anywhere
 /// else the break would be read back as a space that wasn't written, and the
 /// text after it could begin a block of its own at the start of the line.
-fn gen_word_with_sentence_breaks<'a>(arena: &'a Arena, word: &str) -> PrintItems<'a> {
+fn gen_word_with_sentence_breaks<'a>(arena: &'a Arena, word: &'a str) -> PrintItems<'a> {
   let mut items = PrintItems::new(arena);
   let mut segment_start = 0;
   let mut last_char: Option<char> = None;
@@ -2406,7 +2415,7 @@ fn gen_word_with_sentence_breaks<'a>(arena: &'a Arena, word: &str) -> PrintItems
 /// such characters reads as nothing per the CSS Text spec, but Chromium and
 /// WebKit render it as a space, so by default the run is left whole rather
 /// than have a break the formatter wrote show up in the rendered text.
-fn gen_word_with_unspaced_script_breaks<'a>(word: &str, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_word_with_unspaced_script_breaks<'a>(word: &'a str, context: &Context<'a>) -> PrintItems<'a> {
   if !context.configuration.wrap_unspaced_scripts {
     return gen_text_with_tabs(context.arena, word);
   }
@@ -2445,10 +2454,10 @@ fn gen_word_with_unspaced_script_breaks<'a>(word: &str, context: &Context<'a>) -
 
 /// Writes out text, sending any tab it has as a signal, since the printer
 /// can't be handed one as part of a string.
-fn gen_text_with_tabs<'a>(arena: &'a Arena, text: &str) -> PrintItems<'a> {
+fn gen_text_with_tabs<'a>(arena: &'a Arena, text: &'a str) -> PrintItems<'a> {
   let mut items = PrintItems::new(arena);
   if !text.contains('\t') {
-    items.push_str(text);
+    items.push_str_runtime_width_computed(text);
     return items;
   }
 
@@ -2457,7 +2466,7 @@ fn gen_text_with_tabs<'a>(arena: &'a Arena, text: &str) -> PrintItems<'a> {
       items.push_signal(Signal::Tab);
     }
     if !part.is_empty() {
-      items.push_str(part);
+      items.push_str_runtime_width_computed(part);
     }
   }
   items
@@ -2492,7 +2501,7 @@ fn link_destination_needs_pointy_brackets(destination: &str) -> bool {
   parentheses_depth != 0
 }
 
-fn gen_reference_link<'a>(link: &ReferenceLink, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_reference_link<'a>(link: &ReferenceLink<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("["));
@@ -2501,7 +2510,11 @@ fn gen_reference_link<'a>(link: &ReferenceLink, context: &mut Context<'a>) -> Pr
     items.extend(gen_link_text(&link.children, link.is_collapsed, context));
     items.push_sc(sc!("]"));
     items.extend(gen_reference_label(
-      if link.is_collapsed { "" } else { &link.reference },
+      if link.is_collapsed {
+        ""
+      } else {
+        context.node_str(&link.reference)
+      },
       context,
     ));
     ir_helpers::new_line_group(items)
@@ -2510,7 +2523,7 @@ fn gen_reference_link<'a>(link: &ReferenceLink, context: &mut Context<'a>) -> Pr
 
 /// Writes out the text between a link's brackets, keeping it exactly as it was
 /// written where that text is the name the link is matched by.
-fn gen_link_text<'a>(children: &[Node], is_the_name: bool, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_link_text<'a>(children: &[Node<'a>], is_the_name: bool, context: &mut Context<'a>) -> PrintItems<'a> {
   if is_the_name {
     context.with_preserved_decorations(|context| gen_nodes(children, context))
   } else {
@@ -2518,7 +2531,7 @@ fn gen_link_text<'a>(children: &[Node], is_the_name: bool, context: &mut Context
   }
 }
 
-fn gen_shortcut_link<'a>(link: &ShortcutLink, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_shortcut_link<'a>(link: &ShortcutLink<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
     items.push_sc(sc!("["));
@@ -2528,7 +2541,7 @@ fn gen_shortcut_link<'a>(link: &ShortcutLink, context: &mut Context<'a>) -> Prin
   })
 }
 
-fn gen_auto_link<'a>(link: &AutoLink, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_auto_link<'a>(link: &AutoLink<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   // auto-links can't contain spaces, but do this anyway just in case
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
@@ -2539,22 +2552,22 @@ fn gen_auto_link<'a>(link: &AutoLink, context: &mut Context<'a>) -> PrintItems<'
   })
 }
 
-fn gen_link_reference<'a>(link_ref: &LinkReference, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_link_reference<'a>(link_ref: &LinkReference<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
-  items.extend(gen_reference_label(&link_ref.name, context));
+  items.extend(gen_reference_label(context.node_str(&link_ref.name), context));
   items.push_sc(sc!(": "));
 
-  let url = format_raw_link_destination(link_ref.link.trim_matches(WHITESPACE));
+  let url = format_raw_link_destination(context.node_str(&link_ref.link).trim_matches(WHITESPACE));
   if url.is_empty() {
     // unlike an inline link, a link reference definition can't have an
     // empty destination without these
     items.push_sc(sc!("<>"));
   } else {
-    items.extend(gen_link_destination_text(context.arena, url));
+    items.extend(gen_link_destination_text(url, context));
   }
 
   if let Some(title) = &link_ref.title {
-    items.extend(gen_title(title, context));
+    items.extend(gen_title(context.node_str(title), context));
   }
   ir_helpers::new_line_group(items)
 }
@@ -2607,37 +2620,37 @@ fn format_raw_link_destination(destination: &str) -> Cow<'_, str> {
   Cow::Owned(text)
 }
 
-fn gen_inline_image<'a>(image: &InlineImage, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_inline_image<'a>(image: &InlineImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(&image.text, context));
+    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
     items.push_sc(sc!("("));
     // like a link reference definition, this is the raw text from the file
     items.extend(gen_link_destination_text(
-      context.arena,
-      format_raw_link_destination(image.url.trim_matches(WHITESPACE)),
+      format_raw_link_destination(context.node_str(&image.url).trim_matches(WHITESPACE)),
+      context,
     ));
     if let Some(title) = &image.title {
-      items.extend(gen_title(title, context));
+      items.extend(gen_title(context.node_str(title), context));
     }
     items.push_sc(sc!(")"));
     ir_helpers::new_line_group(items)
   })
 }
 
-fn gen_reference_image<'a>(image: &ReferenceImage, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_reference_image<'a>(image: &ReferenceImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(&image.text, context));
-    items.extend(gen_reference_label(&image.reference, context));
+    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
+    items.extend(gen_reference_label(context.node_str(&image.reference), context));
     ir_helpers::new_line_group(items)
   })
 }
 
-fn gen_shortcut_image<'a>(image: &ShortcutImage, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_shortcut_image<'a>(image: &ShortcutImage<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.with_no_text_wrap(|context| {
     let mut items = PrintItems::new(context.arena);
-    items.extend(gen_image_alt_text(&image.text, context));
+    items.extend(gen_image_alt_text(context.node_str(&image.text), context));
     ir_helpers::new_line_group(items)
   })
 }
@@ -2673,7 +2686,7 @@ impl MarkerBuffer {
   }
 }
 
-fn gen_list<'a>(list: &List, is_alternate: bool, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_list<'a>(list: &List<'a>, is_alternate: bool, context: &mut Context<'a>) -> PrintItems<'a> {
   context.mark_in_list(|context| {
     let mut items = PrintItems::new(context.arena);
 
@@ -2757,7 +2770,7 @@ fn line_ends_at_marker(item: &Node, context: &Context) -> bool {
     }
 }
 
-fn gen_item<'a>(item: &Item, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_item<'a>(item: &Item<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
   if let Some(marker) = &item.marker {
@@ -2811,7 +2824,7 @@ fn gen_item<'a>(item: &Item, context: &mut Context<'a>) -> PrintItems<'a> {
   items
 }
 
-fn gen_definition_list<'a>(definition_list: &DefinitionList, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_definition_list<'a>(definition_list: &DefinitionList<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   context.mark_in_list(|context| {
     let mut items = PrintItems::new(context.arena);
 
@@ -2837,7 +2850,7 @@ fn gen_definition_list<'a>(definition_list: &DefinitionList, context: &mut Conte
 /// Every term of a definition list must be kept on its own line, otherwise it
 /// stops being a definition list, so keep the line breaks found in the source
 /// and never wrap the text.
-fn gen_term<'a>(title: &DefinitionListTitle, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_term<'a>(title: &DefinitionListTitle<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   let terms = title
     .children
@@ -2853,7 +2866,7 @@ fn gen_term<'a>(title: &DefinitionListTitle, context: &mut Context<'a>) -> Print
   items
 }
 
-fn gen_definition<'a>(definition: &DefinitionListDefinition, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_definition<'a>(definition: &DefinitionListDefinition<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   let indent_increment = match context.configuration.list_indent_kind {
     crate::configuration::ListIndentKind::CommonMark => 2,
@@ -2873,7 +2886,7 @@ fn gen_definition<'a>(definition: &DefinitionListDefinition, context: &mut Conte
 }
 
 fn gen_task_list_marker_children<'a>(
-  children: &[Node],
+  children: &[Node<'a>],
   marker: Option<&TaskListMarker>,
   context: &mut Context<'a>,
 ) -> PrintItems<'a> {
@@ -2995,18 +3008,19 @@ fn gen_hard_break<'a>(hard_break: &HardBreak, position: NodePosition, context: &
   items
 }
 
-fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_table<'a>(table: &Table<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   if context.configuration.table_skip_format {
     return gen_table_rows_as_written(table, context);
   }
 
   let padding = context.configuration.table_cell_padding;
+  let arena = context.arena;
   let header = table
     .header
     .cells
     .iter()
     .map(|cell| get_generated_cell(cell, context))
-    .collect::<Vec<_>>();
+    .collect_in::<BumpVec<_>>(arena.bump());
   let rows = table
     .rows
     .iter()
@@ -3015,9 +3029,9 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
         .cells
         .iter()
         .map(|cell| get_generated_cell(cell, context))
-        .collect::<Vec<_>>()
+        .collect_in::<BumpVec<_>>(arena.bump())
     })
-    .collect::<Vec<_>>();
+    .collect_in::<BumpVec<_>>(arena.bump());
   // only a cell that's aligned is written out to the width of its column, so
   // any other padding leaves the cells of a column no width to be written to
   let column_widths = match padding {
@@ -3080,7 +3094,7 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
       if column_alignment_props.has_left_colon {
         items.push_sc(sc!(":"));
       }
-      items.push_string("-".repeat(dashes_count));
+      items.push_str_runtime_width_computed(alloc_repeated(arena, '-', dashes_count));
       if column_alignment_props.has_right_colon {
         items.push_sc(sc!(":"));
       }
@@ -3100,7 +3114,7 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
 
   fn get_row_items<'a>(
     arena: &'a Arena,
-    row_cells: Vec<GeneratedCell<'a>>,
+    row_cells: BumpVec<'a, GeneratedCell<'a>>,
     column_widths: Option<&[usize]>,
     column_alignments: &[ColumnAlignment],
     padding: TableCellPadding,
@@ -3121,11 +3135,15 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
           ColumnAlignment::None | ColumnAlignment::Left => {}
           ColumnAlignment::Center => {
             if difference > 1 {
-              items.push_string(" ".repeat((difference as f32 / 2_f32).floor() as usize))
+              items.push_str_runtime_width_computed(alloc_repeated(
+                arena,
+                ' ',
+                (difference as f32 / 2_f32).floor() as usize,
+              ))
             }
           }
           ColumnAlignment::Right => {
-            items.push_string(" ".repeat(difference));
+            items.push_str_runtime_width_computed(alloc_repeated(arena, ' ', difference));
           }
         }
       }
@@ -3135,9 +3153,13 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
       if difference > 0 {
         match column_alignment {
           ColumnAlignment::None | ColumnAlignment::Left => {
-            items.push_string(" ".repeat(difference));
+            items.push_str_runtime_width_computed(alloc_repeated(arena, ' ', difference));
           }
-          ColumnAlignment::Center => items.push_string(" ".repeat((difference as f32 / 2_f32).ceil() as usize)),
+          ColumnAlignment::Center => items.push_str_runtime_width_computed(alloc_repeated(
+            arena,
+            ' ',
+            (difference as f32 / 2_f32).ceil() as usize,
+          )),
           ColumnAlignment::Right => {}
         }
       }
@@ -3207,7 +3229,7 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
 
   fn get_column_widths(
     header: &[GeneratedCell],
-    rows: &[Vec<GeneratedCell>],
+    rows: &[BumpVec<GeneratedCell>],
     column_alignments: &[ColumnAlignment],
     min_column_width: usize,
   ) -> Vec<usize> {
@@ -3252,7 +3274,7 @@ fn gen_table<'a>(table: &Table, context: &mut Context<'a>) -> PrintItems<'a> {
     }
   }
 
-  fn get_generated_cell<'a>(cell: &TableCell, context: &mut Context<'a>) -> GeneratedCell<'a> {
+  fn get_generated_cell<'a>(cell: &TableCell<'a>, context: &mut Context<'a>) -> GeneratedCell<'a> {
     let (items, cloned_items) = clone_items(gen_table_cell(cell, context));
     let text = get_items_text(cloned_items);
     GeneratedCell {
@@ -3285,7 +3307,7 @@ struct GeneratedCell<'a> {
 /// one itself -- the indentation and the block quote markers -- is dropped
 /// from the text of the file, as is the whitespace at the end of a line, which
 /// says nothing within a table.
-fn gen_table_rows_as_written<'a>(table: &Table, context: &Context<'a>) -> PrintItems<'a> {
+fn gen_table_rows_as_written<'a>(table: &Table<'a>, context: &Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
   // a line ending may be in either of its forms, so split on both characters
   // and skip the empty text a carriage return and line feed pair leaves behind
@@ -3305,11 +3327,11 @@ fn gen_table_rows_as_written<'a>(table: &Table, context: &Context<'a>) -> PrintI
   items
 }
 
-fn gen_table_cell<'a>(table_cell: &TableCell, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_table_cell<'a>(table_cell: &TableCell<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   gen_nodes(&table_cell.children, context)
 }
 
-fn gen_metadata_block<'a>(node: &MetadataBlock, context: &mut Context<'a>) -> PrintItems<'a> {
+fn gen_metadata_block<'a>(node: &MetadataBlock<'a>, context: &mut Context<'a>) -> PrintItems<'a> {
   let mut items = PrintItems::new(context.arena);
 
   let delimiter = match node.kind {
@@ -3321,26 +3343,19 @@ fn gen_metadata_block<'a>(node: &MetadataBlock, context: &mut Context<'a>) -> Pr
   items.push_signal(Signal::NewLine);
   match node.kind {
     MetadataBlockKind::YamlStyle => {
-      let text = Some(node.span)
+      let formatted = Some(node.span)
         .filter(|span| context.is_in_code_block_range(*span))
-        .and_then(|_| context.format_text("yaml", node.text).ok().flatten())
-        .map(Cow::from)
-        .unwrap_or_else(|| Cow::from(node.text));
-      items.extend(ir_helpers::gen_from_string(
-        context.arena,
-        context
-          .arena
-          .bump()
-          .alloc_str(&trim_line_ends(text.trim_end_matches(WHITESPACE))),
-      ));
+        .and_then(|_| context.format_text("yaml", node.text).ok().flatten());
+      let text = match formatted {
+        Some(text) => context.alloc_str(&trim_line_ends(text.trim_end_matches(WHITESPACE))),
+        None => context.alloc_cow_str(trim_line_ends(node.text.trim_end_matches(WHITESPACE))),
+      };
+      items.extend(ir_helpers::gen_from_string(context.arena, text));
     }
     MetadataBlockKind::PlusesStyle => {
       items.extend(ir_helpers::gen_from_raw_string(
         context.arena,
-        context
-          .arena
-          .bump()
-          .alloc_str(&trim_line_ends(node.text.trim_end_matches(WHITESPACE))),
+        context.alloc_cow_str(trim_line_ends(node.text.trim_end_matches(WHITESPACE))),
       ));
     }
   }
@@ -3691,6 +3706,15 @@ fn trailing_bare_url_domain(text: &str) -> Option<&str> {
     .map(|(index, _)| (index, index));
   let (_, domain) = scheme.into_iter().chain(www).min()?;
   Some(&word[domain..])
+}
+
+/// Allocates the character repeated `count` times in the arena.
+fn alloc_repeated(arena: &Arena, character: char, count: usize) -> &str {
+  let mut text = bumpalo::collections::String::with_capacity_in(count * character.len_utf8(), arena.bump());
+  for _ in 0..count {
+    text.push(character);
+  }
+  text.into_bump_str()
 }
 
 /// Whether the hard break is a backslash written right against the text
