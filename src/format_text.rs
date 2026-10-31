@@ -49,7 +49,18 @@ pub fn format_text(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
-  let result = format_text_inner(file_text, config, None, format_code_block_text)?;
+  format_text_with_arena_pool(file_text, config, None, format_code_block_text)
+}
+
+/// Formats a file, creating the arena the print items are allocated in from
+/// `arena_pool` when there is one so that its memory is reused between formats.
+pub(crate) fn format_text_with_arena_pool(
+  file_text: &str,
+  config: &Configuration,
+  arena_pool: Option<&ArenaPool>,
+  format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
+) -> Result<Option<String>, FormatError> {
+  let result = format_text_inner(file_text, config, None, arena_pool, format_code_block_text)?;
 
   match result {
     Some(result) if result == file_text => Ok(None),
@@ -64,6 +75,7 @@ pub(crate) fn format_text_inner(
   file_text: &str,
   config: &Configuration,
   code_block_range: Option<Range<usize>>,
+  arena_pool: Option<&ArenaPool>,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> Result<Option<String>, FormatError> {
   let full_text = file_text;
@@ -80,20 +92,23 @@ pub(crate) fn format_text_inner(
   // a code block whose plugin errors can't fail the file from where it's
   // generated, so the error is carried out of the generation and raised here
   let code_block_error = Rc::new(RefCell::new(None));
-  let text = dprint_core::formatting::format(
-    || {
-      let mut context = Context::new(
-        markdown_text,
-        config,
-        labels,
-        format_code_block_text,
-        code_block_error.clone(),
-      );
-      context.code_block_range = code_block_range;
-      generate(&source_file.into(), &mut context)
-    },
-    config_to_print_options(file_text, config),
-  );
+  let text = {
+    let arena = match arena_pool {
+      Some(arena_pool) => arena_pool.create_arena(),
+      None => Arena::new(),
+    };
+    let mut context = Context::new(
+      &arena,
+      markdown_text,
+      config,
+      labels,
+      format_code_block_text,
+      code_block_error.clone(),
+    );
+    context.code_block_range = code_block_range;
+    let print_items = generate(&source_file.into(), &mut context);
+    dprint_core::formatting::print(print_items, config_to_print_options(file_text, config))
+  };
 
   let code_block_error = code_block_error.borrow_mut().take();
   match code_block_error {
@@ -116,19 +131,17 @@ pub fn trace_file(
     ParseFileResult::SourceFile(file) => file,
   };
   let labels = take_labels(&mut source_file);
-  dprint_core::formatting::trace_printing(
-    || {
-      let mut context = Context::new(
-        markdown_text,
-        config,
-        labels,
-        format_code_block_text,
-        Default::default(),
-      );
-      generate(&source_file.into(), &mut context)
-    },
-    config_to_print_options(file_text, config),
-  )
+  let arena = Arena::new();
+  let mut context = Context::new(
+    &arena,
+    markdown_text,
+    config,
+    labels,
+    format_code_block_text,
+    Default::default(),
+  );
+  let print_items = generate(&source_file.into(), &mut context);
+  dprint_core::formatting::trace_printing(print_items, config_to_print_options(file_text, config))
 }
 
 /// Removes the byte order marks a file begins with, along with any whitespace

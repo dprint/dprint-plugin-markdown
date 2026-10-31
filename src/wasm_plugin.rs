@@ -121,8 +121,19 @@ impl SyncPluginHandler<Configuration> for MarkdownPluginHandler {
       }
     };
     return match request.range {
-      Some(range) => super::format_text_range(&file_text, range, request.config, format_code_block_text),
-      None => super::format_text(&file_text, request.config, format_code_block_text),
+      Some(range) => crate::format_range::format_text_range_with_arena_pool(
+        &file_text,
+        range,
+        request.config,
+        Some(request.arena_pool),
+        format_code_block_text,
+      ),
+      None => crate::format_text::format_text_with_arena_pool(
+        &file_text,
+        request.config,
+        Some(request.arena_pool),
+        format_code_block_text,
+      ),
     }
     .map(|maybe_text| maybe_text.map(|t| t.into_bytes()))
     .map_err(CoreFormatError::new);
