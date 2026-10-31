@@ -6,7 +6,9 @@
 //! stripped off. A [`ContentLine`] is such a line: it borrows the remainder of
 //! a source line and remembers where it came from so that spans stay accurate.
 
-use std::borrow::Cow;
+use dprint_core::formatting::bumpalo::collections::String as BumpString;
+use dprint_core::formatting::bumpalo::collections::Vec as BumpVec;
+use dprint_core::formatting::bumpalo::Bump;
 
 use super::ast::Span;
 
@@ -168,8 +170,8 @@ impl<'a> ContentLine<'a> {
 }
 
 /// Splits the source text into its lines, not including their terminators.
-pub fn source_lines(source: &str) -> Vec<ContentLine<'_>> {
-  let mut lines = Vec::new();
+pub fn source_lines<'a>(source: &'a str, bump: &'a Bump) -> &'a [ContentLine<'a>] {
+  let mut lines = BumpVec::new_in(bump);
   let mut start = 0;
   let bytes = source.as_bytes();
   let mut index = 0;
@@ -209,24 +211,25 @@ pub fn source_lines(source: &str) -> Vec<ContentLine<'_>> {
     });
   }
 
-  lines
+  lines.into_bump_slice()
 }
 
 /// Joins the lines into a single string, separated by newlines.
 ///
 /// Borrows from the source when the lines are contiguous within it, which is
-/// the case whenever no container prefixes had to be stripped out of them.
-pub fn join_lines<'a>(lines: &[ContentLine<'a>], source: &'a str, trailing_newline: bool) -> Cow<'a, str> {
+/// the case whenever no container prefixes had to be stripped out of them, and
+/// otherwise builds the text in the arena.
+pub fn join_lines<'a>(lines: &[ContentLine<'a>], source: &'a str, trailing_newline: bool, bump: &'a Bump) -> &'a str {
   let Some(first) = lines.first() else {
-    return Cow::Borrowed("");
+    return "";
   };
   let last = lines.last().unwrap();
 
   if let Some(text) = try_borrow_lines(lines, source, trailing_newline) {
-    return Cow::Borrowed(text);
+    return text;
   }
 
-  let mut text = String::with_capacity(last.end() - first.start + lines.len());
+  let mut text = BumpString::with_capacity_in(last.end() - first.start + lines.len(), bump);
   for (index, line) in lines.iter().enumerate() {
     if index > 0 {
       text.push('\n');
@@ -239,7 +242,7 @@ pub fn join_lines<'a>(lines: &[ContentLine<'a>], source: &'a str, trailing_newli
   if trailing_newline {
     text.push('\n');
   }
-  Cow::Owned(text)
+  text.into_bump_str()
 }
 
 /// Borrows the lines directly from the source when they're contiguous within
@@ -279,8 +282,9 @@ mod test {
 
   #[test]
   fn splits_lines_without_terminators() {
+    let bump = Bump::new();
     let source = "a\r\nb\n\nc";
-    let lines = source_lines(source);
+    let lines = source_lines(source, &bump);
     assert_eq!(
       lines.iter().map(|l| l.text).collect::<Vec<_>>(),
       vec!["a", "b", "", "c"]
@@ -290,27 +294,30 @@ mod test {
 
   #[test]
   fn measures_indent_with_tab_stops() {
+    let bump = Bump::new();
     let source = "\tfoo";
-    let line = source_lines(source)[0];
+    let line = source_lines(source, &bump)[0];
     assert_eq!(line.indent_columns(), 4);
 
     let source = " \tfoo";
-    let line = source_lines(source)[0];
+    let line = source_lines(source, &bump)[0];
     assert_eq!(line.indent_columns(), 4);
   }
 
   #[test]
   fn strips_nothing_when_no_columns_are_asked_for() {
+    let bump = Bump::new();
     let source = "	foo";
-    let line = source_lines(source)[0].strip_columns(0);
+    let line = source_lines(source, &bump)[0].strip_columns(0);
     assert_eq!(line.virtual_spaces, 0);
     assert_eq!(line.text, "	foo");
   }
 
   #[test]
   fn strips_a_straddling_tab_into_virtual_spaces() {
+    let bump = Bump::new();
     let source = "\tfoo";
-    let line = source_lines(source)[0].strip_columns(2);
+    let line = source_lines(source, &bump)[0].strip_columns(2);
     assert_eq!(line.virtual_spaces, 2);
     assert_eq!(line.text, "foo");
     assert_eq!(line.start, 1);
@@ -318,15 +325,19 @@ mod test {
 
   #[test]
   fn borrows_contiguous_lines() {
+    let bump = Bump::new();
     let source = "one\ntwo\n";
-    let lines = source_lines(source);
-    assert!(matches!(join_lines(&lines, source, true), Cow::Borrowed("one\ntwo\n")));
+    let lines = source_lines(source, &bump);
+    let text = join_lines(lines, source, true, &bump);
+    assert_eq!(text, "one\ntwo\n");
+    assert_eq!(text.as_ptr(), source.as_ptr());
   }
 
   #[test]
   fn allocates_for_non_contiguous_lines() {
+    let bump = Bump::new();
     let source = "> one\n> two\n";
-    let lines: Vec<_> = source_lines(source).iter().map(|l| l.strip_columns(0)).collect();
+    let lines: Vec<_> = source_lines(source, &bump).iter().map(|l| l.strip_columns(0)).collect();
     let lines: Vec<_> = lines
       .iter()
       .map(|l| {
@@ -336,9 +347,6 @@ mod test {
         line
       })
       .collect();
-    assert_eq!(
-      join_lines(&lines, source, false),
-      Cow::Owned::<str>("one\ntwo".to_string())
-    );
+    assert_eq!(join_lines(&lines, source, false, &bump), "one\ntwo");
   }
 }

@@ -52,8 +52,9 @@ pub fn format_text(
   format_text_with_arena_pool(file_text, config, None, format_code_block_text)
 }
 
-/// Formats a file, creating the arena the print items are allocated in from
-/// `arena_pool` when there is one so that its memory is reused between formats.
+/// Formats a file, creating the arena the parsed file and the print items are
+/// allocated in from `arena_pool` when there is one so that its memory is reused
+/// between formats.
 pub(crate) fn format_text_with_arena_pool(
   file_text: &str,
   config: &Configuration,
@@ -83,11 +84,6 @@ pub(crate) fn format_text_inner(
   // the lines taken off the front of the file, which the lines the rest of it
   // is reported on are still counted from
   let stripped_lines = count_new_lines(&full_text[..full_text.len() - file_text.len()]);
-  let (mut source_file, markdown_text) = match parse_source_file(file_text, config)? {
-    ParseFileResult::IgnoreFile => return Ok(None),
-    ParseFileResult::SourceFile(file) => file,
-  };
-  let labels = take_labels(&mut source_file);
 
   // a code block whose plugin errors can't fail the file from where it's
   // generated, so the error is carried out of the generation and raised here
@@ -97,11 +93,15 @@ pub(crate) fn format_text_inner(
       Some(arena_pool) => arena_pool.create_arena(),
       None => Arena::new(),
     };
+    let (source_file, markdown_text) = match parse_source_file(file_text, config, arena.bump())? {
+      ParseFileResult::IgnoreFile => return Ok(None),
+      ParseFileResult::SourceFile(file) => file,
+    };
     let mut context = Context::new(
       &arena,
       markdown_text,
       config,
-      labels,
+      (source_file.link_labels, source_file.footnote_labels),
       format_code_block_text,
       code_block_error.clone(),
     );
@@ -113,7 +113,7 @@ pub(crate) fn format_text_inner(
   let code_block_error = code_block_error.borrow_mut().take();
   match code_block_error {
     Some(code_block_error) => {
-      let line = stripped_lines + count_new_lines(&markdown_text[..code_block_error.pos]) + 1;
+      let line = stripped_lines + count_new_lines(&file_text[..code_block_error.pos]) + 1;
       Err(code_block_error.error.in_code_block_on_line(line))
     }
     None => Ok(Some(text)),
@@ -126,17 +126,16 @@ pub fn trace_file(
   config: &Configuration,
   format_code_block_text: impl for<'a> FnMut(&str, &'a str, u32) -> Result<Option<String>, FormatError>,
 ) -> dprint_core::formatting::TracingResult {
-  let (mut source_file, markdown_text) = match parse_source_file(file_text, config).unwrap() {
+  let arena = Arena::new();
+  let (source_file, markdown_text) = match parse_source_file(file_text, config, arena.bump()).unwrap() {
     ParseFileResult::IgnoreFile => panic!("Cannot trace file because it has an ignore file comment."),
     ParseFileResult::SourceFile(file) => file,
   };
-  let labels = take_labels(&mut source_file);
-  let arena = Arena::new();
   let mut context = Context::new(
     &arena,
     markdown_text,
     config,
-    labels,
+    (source_file.link_labels, source_file.footnote_labels),
     format_code_block_text,
     Default::default(),
   );
@@ -167,25 +166,18 @@ enum ParseFileResult<'a> {
   SourceFile((crate::generation::common::SourceFile<'a>, &'a str)),
 }
 
-fn parse_source_file<'a>(file_text: &'a str, config: &Configuration) -> Result<ParseFileResult<'a>, FormatError> {
+fn parse_source_file<'a>(
+  file_text: &'a str,
+  config: &Configuration,
+  bump: &'a bumpalo::Bump,
+) -> Result<ParseFileResult<'a>, FormatError> {
   // check for the presence of a dprint-ignore-file comment before parsing
   if is_ignore_comment(strip_metadata_header(file_text), &config.ignore_file_directive) {
     return Ok(ParseFileResult::IgnoreFile);
   }
 
-  let file = crate::parser::parse(file_text).map_err(|err| FormatError::Parse(err.to_string()))?;
+  let file = crate::parser::parse(file_text, bump).map_err(|err| FormatError::Parse(err.to_string()))?;
   Ok(ParseFileResult::SourceFile((file, file_text)))
-}
-
-/// Takes the labels the file's references were resolved against, which what
-/// the formatter writes is read back against.
-fn take_labels(
-  source_file: &mut crate::parser::SourceFile<'_>,
-) -> (std::collections::HashSet<String>, std::collections::HashSet<String>) {
-  (
-    std::mem::take(&mut source_file.link_labels),
-    std::mem::take(&mut source_file.footnote_labels),
-  )
 }
 
 /// An error a code block's plugin ran into, along with where in the file the

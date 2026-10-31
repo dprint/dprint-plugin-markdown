@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::rc::Rc;
 
 use dprint_core::formatting::Arena;
@@ -13,6 +12,7 @@ use super::utils::*;
 use crate::configuration::Configuration;
 use crate::format_text;
 use crate::format_text::FormatError;
+use crate::parser::Labels;
 use crate::parser::Span;
 
 type FormatResult = Result<Option<String>, FormatError>;
@@ -194,9 +194,9 @@ pub struct Context<'a> {
   pub configuration: &'a Configuration,
   /// The normalized labels of the file's link reference definitions, which
   /// what the formatter writes is read back against.
-  link_labels: HashSet<String>,
+  link_labels: Labels<'a>,
   /// The labels of the file's footnote definitions.
-  footnote_labels: HashSet<String>,
+  footnote_labels: Labels<'a>,
   /// The current indentation level of what's being printed out.
   pub indent_level: u32,
   /// The current indentation level within the file being formatted.
@@ -268,7 +268,7 @@ impl<'a> Context<'a> {
     arena: &'a Arena,
     file_text: &'a str,
     configuration: &'a Configuration,
-    labels: (HashSet<String>, HashSet<String>),
+    labels: (Labels<'a>, Labels<'a>),
     format_code_block_text: impl for<'b> FnMut(&str, &'b str, u32) -> FormatResult + 'a,
     code_block_error: Rc<RefCell<Option<CodeBlockError>>>,
   ) -> Context<'a> {
@@ -320,16 +320,6 @@ impl<'a> Context<'a> {
     match text {
       Cow::Borrowed(text) => text,
       Cow::Owned(text) => self.alloc_str(&text),
-    }
-  }
-
-  /// Gets the text a node holds so that it lives as long as the print items,
-  /// which only copies it when the node owns it rather than borrowing it from
-  /// the file.
-  pub fn node_str(&self, text: &Cow<'a, str>) -> &'a str {
-    match text {
-      Cow::Borrowed(text) => text,
-      Cow::Owned(text) => self.alloc_str(text),
     }
   }
 
@@ -765,13 +755,13 @@ impl<'a> Context<'a> {
   }
 
   /// The normalized labels of the file's link reference definitions.
-  pub fn link_labels(&self) -> &HashSet<String> {
-    &self.link_labels
+  pub fn link_labels(&self) -> Labels<'a> {
+    self.link_labels
   }
 
   /// The labels of the file's footnote definitions.
-  pub fn footnote_labels(&self) -> &HashSet<String> {
-    &self.footnote_labels
+  pub fn footnote_labels(&self) -> Labels<'a> {
+    self.footnote_labels
   }
 
   pub fn get_new_lines_in_range(&self, start: usize, end: usize) -> u32 {

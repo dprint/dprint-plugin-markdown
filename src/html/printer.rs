@@ -12,6 +12,7 @@
 //! the spec says an unknown element is and the careful assumption: the
 //! whitespace around it has to be kept.
 
+use dprint_core::formatting::bumpalo::Bump;
 use unicode_width::UnicodeWidthStr;
 
 use super::ast::*;
@@ -34,13 +35,14 @@ pub struct HtmlFormatOptions {
 ///
 /// Returns an error where the html isn't something the formatter can take
 /// apart and put back together, which leaves it to be written out as it was.
-pub fn format_html<'a>(text: &'a str, options: &HtmlFormatOptions) -> Result<String, ParseError<'a>> {
-  let document = parser::parse(text)?;
+/// The html is parsed into the arena.
+pub fn format_html<'a>(text: &'a str, options: &HtmlFormatOptions, bump: &'a Bump) -> Result<String, ParseError<'a>> {
+  let document = parser::parse(text, bump)?;
   let mut printer = Printer {
     options,
     out: String::with_capacity(text.len()),
   };
-  printer.print_items(&document.children, 0);
+  printer.print_items(document.children, 0);
   let result = printer.out;
 
   // a blank line closes the html block it's written in, so one that wasn't
@@ -133,12 +135,12 @@ impl Printer<'_> {
     // inline element's content is rendered, so a line break written there is
     // one the content never fits on a line with anyway.
     let is_block = tags::is_block(element.name);
-    let keeps_lines = is_block && !self.options.prefer_single_line && content_on_own_lines(&element.children);
+    let keeps_lines = is_block && !self.options.prefer_single_line && content_on_own_lines(element.children);
     let fits = !keeps_lines
-      && content_flat_width(&element.children, is_block, self.options).is_some_and(|width| {
+      && content_flat_width(element.children, is_block, self.options).is_some_and(|width| {
         self.current_column() + width + close_tag_width(element) <= self.options.line_width as usize
       });
-    if keeps_lines && trimmed_run(&element.children).is_none() {
+    if keeps_lines && trimmed_run(element.children).is_none() {
       // nothing but whitespace was written between the tags, so the close tag
       // goes on the line below the open one rather than on one of its own
       // below a line that would hold only indentation
@@ -150,9 +152,9 @@ impl Printer<'_> {
       // every part of the content fits along with the whole of it, so each of
       // them is written on this line in turn
       if is_block {
-        self.print_items(&element.children, indent + 1);
+        self.print_items(element.children, indent + 1);
       } else {
-        self.print_inline_nodes(&element.children, indent + 1, false, false);
+        self.print_inline_nodes(element.children, indent + 1, false, false);
       }
       self.print_close_tag(element);
       return;
@@ -163,16 +165,16 @@ impl Printer<'_> {
     // content isn't rendered, so a block can always be opened up this way; an
     // inline element can only be broken where whitespace was already written,
     // because a line break added beside its content is a space that renders.
-    let break_start = is_block || starts_with_whitespace(&element.children);
-    let break_end = is_block || ends_with_whitespace(&element.children);
+    let break_start = is_block || starts_with_whitespace(element.children);
+    let break_end = is_block || ends_with_whitespace(element.children);
 
     if break_start {
       self.newline(indent + 1);
     }
     if is_block {
-      self.print_items(&element.children, indent + 1);
+      self.print_items(element.children, indent + 1);
     } else {
-      self.print_inline_nodes(&element.children, indent + 1, break_start, break_end);
+      self.print_inline_nodes(element.children, indent + 1, break_start, break_end);
     }
     if break_end {
       self.newline(indent);
@@ -261,7 +263,7 @@ impl Printer<'_> {
 
     self.out.push('<');
     self.out.push_str(element.name);
-    for attribute in &element.attributes {
+    for attribute in element.attributes {
       self.newline(indent + 1);
       self.write_attribute(attribute);
     }
@@ -276,7 +278,7 @@ impl Printer<'_> {
   fn write_open_tag(&mut self, element: &Element) {
     self.out.push('<');
     self.out.push_str(element.name);
-    for attribute in &element.attributes {
+    for attribute in element.attributes {
       self.out.push(' ');
       self.write_attribute(attribute);
     }
@@ -488,13 +490,13 @@ fn element_flat_width(element: &Element, options: &HtmlFormatOptions) -> Option<
   if element.kind == ElementKind::RawText || tags::is_preformatted(element.name) {
     return Some(open + verbatim_width(element.content)? + close_tag_width(element));
   }
-  let content = content_flat_width(&element.children, tags::is_block(element.name), options)?;
+  let content = content_flat_width(element.children, tags::is_block(element.name), options)?;
   Some(open + content + close_tag_width(element))
 }
 
 fn open_tag_width(element: &Element, options: &HtmlFormatOptions) -> usize {
   let mut width = 1 + element.name.width();
-  for attribute in &element.attributes {
+  for attribute in element.attributes {
     width += 1 + attribute.name.width();
     if let Some(value) = &attribute.value {
       // the two quotes and the equals sign
@@ -600,6 +602,7 @@ mod test {
 
   #[track_caller]
   fn format_with_width(text: &str, line_width: u32) -> String {
+    let bump = Bump::new();
     format_html(
       text,
       &HtmlFormatOptions {
@@ -609,6 +612,7 @@ mod test {
         self_closing_space: true,
         prefer_single_line: true,
       },
+      &bump,
     )
     .unwrap_or_else(|err| panic!("expected {:?} to format, but: {}", text, err))
   }
@@ -616,6 +620,7 @@ mod test {
   /// Asserts the html is left to be written out as it was.
   #[track_caller]
   fn assert_kept(text: &str) {
+    let bump = Bump::new();
     let result = format_html(
       text,
       &HtmlFormatOptions {
@@ -625,6 +630,7 @@ mod test {
         self_closing_space: true,
         prefer_single_line: true,
       },
+      &bump,
     );
     assert!(result.is_err(), "expected {:?} to be kept, but got {:?}", text, result);
   }
@@ -820,6 +826,7 @@ mod test {
   #[test]
   fn writes_the_space_before_a_self_closing_slash_the_way_the_option_says() {
     let without_space = |text: &str| {
+      let bump = Bump::new();
       format_html(
         text,
         &HtmlFormatOptions {
@@ -829,6 +836,7 @@ mod test {
           self_closing_space: false,
           prefer_single_line: true,
         },
+        &bump,
       )
       .unwrap()
     };

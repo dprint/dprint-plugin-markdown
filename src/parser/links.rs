@@ -5,8 +5,8 @@
 //! is what the inline phase parses and what the block phase builds in order to
 //! look for the link reference definitions at the start of a paragraph.
 
-use std::borrow::Cow;
-use std::collections::HashSet;
+use dprint_core::formatting::bumpalo::collections::String as BumpString;
+use dprint_core::formatting::bumpalo::Bump;
 
 use super::ast::*;
 use super::inline::InlineText;
@@ -21,12 +21,9 @@ pub struct Reference<'a> {
 
 pub enum ReferenceKind<'a> {
   /// The destination is written out (ex. `[text](/url "title")`).
-  Inline {
-    url: Cow<'a, str>,
-    title: Option<Cow<'a, str>>,
-  },
+  Inline { url: &'a str, title: Option<&'a str> },
   /// The destination comes from a named definition (ex. `[text][name]`).
-  Full { label: Cow<'a, str> },
+  Full { label: &'a str },
   /// The text is the name (ex. `[name][]`).
   Collapsed,
   /// The text is the name and there are no second brackets (ex. `[name]`).
@@ -39,7 +36,8 @@ pub fn match_reference<'a>(
   text: &InlineText<'a>,
   close_start: usize,
   content_start: usize,
-  labels: &HashSet<String>,
+  labels: Labels<'_>,
+  bump: &'a Bump,
 ) -> Option<Reference<'a>> {
   let after_close = close_start + 1;
   // a document with no definitions has no reference to resolve against, so
@@ -62,12 +60,12 @@ pub fn match_reference<'a>(
       if label.trim_matches(WHITESPACE).is_empty() {
         // ex. `[name][]`
         let name = text.slice(content_start, close_start);
-        return labels.contains(normalize_label(&name).as_ref()).then_some(Reference {
+        return labels.contains(normalize_label(name, bump)).then_some(Reference {
           kind: ReferenceKind::Collapsed,
           end,
         });
       }
-      return labels.contains(normalize_label(&label).as_ref()).then_some(Reference {
+      return labels.contains(normalize_label(label, bump)).then_some(Reference {
         kind: ReferenceKind::Full { label },
         end,
       });
@@ -76,7 +74,7 @@ pub fn match_reference<'a>(
 
   // ex. `[name]`
   let name = text.slice(content_start, close_start);
-  labels.contains(normalize_label(&name).as_ref()).then_some(Reference {
+  labels.contains(normalize_label(name, bump)).then_some(Reference {
     kind: ReferenceKind::Shortcut,
     end: after_close,
   })
@@ -86,14 +84,15 @@ pub fn match_reference<'a>(
 pub fn match_footnote_reference<'a>(
   text: &InlineText<'a>,
   start: usize,
-  labels: &HashSet<String>,
+  labels: Labels<'_>,
+  bump: &'a Bump,
 ) -> Option<(usize, &'a str)> {
   if text.byte(start + 1) != Some(b'^') {
     return None;
   }
   let (end, _) = match_label(text, start)?;
   let name = text.source_slice(start + 2, end - 1)?;
-  if name.is_empty() || !labels.contains(normalize_label(name).as_ref()) {
+  if name.is_empty() || !labels.contains(normalize_label(name, bump)) {
     return None;
   }
   Some((end, name))
@@ -111,7 +110,7 @@ fn skip_escape(text: &InlineText<'_>, index: usize) -> usize {
 
 /// Matches a `[label]`, returning the position after the closing bracket and
 /// the text within it.
-pub fn match_label<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Cow<'a, str>)> {
+pub fn match_label<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, &'a str)> {
   if text.byte(start) != Some(b'[') {
     return None;
   }
@@ -129,9 +128,9 @@ pub fn match_label<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Co
 
 /// Matches the `(/url "title")` of an inline link, whose destination may be
 /// empty (ex. `[text]()`).
-fn match_inline_tail<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Cow<'a, str>, Option<Cow<'a, str>>)> {
+fn match_inline_tail<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, &'a str, Option<&'a str>)> {
   let url_start = skip_whitespace(text, start + 1);
-  let (after_url, url) = match_destination(text, url_start).unwrap_or((url_start, Cow::Borrowed("")));
+  let (after_url, url) = match_destination(text, url_start).unwrap_or((url_start, ""));
   let mut index = skip_whitespace(text, after_url);
 
   // a title has to be separated from the destination by whitespace
@@ -148,7 +147,7 @@ fn match_inline_tail<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, 
 
 /// Matches a link destination, which is either wrapped in pointy brackets or a
 /// run of characters with balanced parentheses.
-pub fn match_destination<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Cow<'a, str>)> {
+pub fn match_destination<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, &'a str)> {
   if text.byte(start) == Some(b'<') {
     let mut index = start + 1;
     while let Some(byte) = text.byte(index) {
@@ -189,7 +188,7 @@ pub fn match_destination<'a>(text: &InlineText<'a>, start: usize) -> Option<(usi
 
 /// Matches a link title, which may be in double quotes, single quotes or
 /// parentheses.
-pub fn match_title<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, Cow<'a, str>)> {
+pub fn match_title<'a>(text: &InlineText<'a>, start: usize) -> Option<(usize, &'a str)> {
   let close = match text.byte(start)? {
     b'"' => b'"',
     b'\'' => b'\'',
@@ -259,12 +258,13 @@ pub fn match_link_reference_definition<'a>(text: &InlineText<'a>, start: usize) 
 /// insensitively and with runs of whitespace collapsed.
 ///
 /// Most labels are written the way they are matched, and those are borrowed.
-pub fn normalize_label(label: &str) -> Cow<'_, str> {
+/// The others are built in the arena.
+pub fn normalize_label<'a>(label: &'a str, bump: &'a Bump) -> &'a str {
   let trimmed = label.trim_matches(WHITESPACE);
   if is_normalized(trimmed) {
-    return Cow::Borrowed(trimmed);
+    return trimmed;
   }
-  Cow::Owned(build_normalized_label(label))
+  build_normalized_label(label, bump)
 }
 
 /// Whether the label already reads the way a normalized one does, which needs
@@ -279,8 +279,8 @@ fn is_normalized(label: &str) -> bool {
       .any(|b| b.is_ascii_uppercase() || matches!(b, b'\t' | b'\n' | b'\r'))
 }
 
-fn build_normalized_label(label: &str) -> String {
-  let mut result = String::with_capacity(label.len());
+fn build_normalized_label<'a>(label: &str, bump: &'a Bump) -> &'a str {
+  let mut result = BumpString::with_capacity_in(label.len(), bump);
   let mut had_whitespace = false;
   for c in label.trim_matches(WHITESPACE).chars() {
     if WHITESPACE.contains(&c) {
@@ -293,7 +293,7 @@ fn build_normalized_label(label: &str) -> String {
     }
     result.extend(c.to_lowercase());
   }
-  result
+  result.into_bump_str()
 }
 
 /// Matches a `<https://example.com>` or `<name@example.com>` autolink.

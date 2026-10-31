@@ -19,6 +19,8 @@ mod parser;
 use std::path::Path;
 use std::path::PathBuf;
 
+use dprint_core::formatting::bumpalo::Bump;
+
 use file_test_runner::collect_and_run_tests;
 use file_test_runner::collection::strategies::TestPerFileCollectionStrategy;
 use file_test_runner::collection::CollectOptions;
@@ -107,7 +109,8 @@ fn sweep_corpus(directory: &Path) {
     .iter()
     .filter_map(|path| {
       let source = std::fs::read_to_string(path).ok()?;
-      let file = parser::parse(&source).ok()?;
+      let bump = Bump::new();
+      let file = parser::parse(&source, &bump).ok()?;
       let message = parser::spec_test::validate_text_coverage(&file, &source).err()?;
       Some(format!("{}\n  {}", path.display(), message))
     })

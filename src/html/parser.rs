@@ -9,23 +9,27 @@
 //! refusing those is what keeps the formatter from closing a tag the author
 //! deliberately left open.
 
+use dprint_core::formatting::bumpalo::collections::Vec as BumpVec;
+use dprint_core::formatting::bumpalo::Bump;
+
 use super::ast::*;
 use super::tags;
 
-/// Parses an html fragment.
-pub fn parse(text: &str) -> Result<Document<'_>, ParseError<'_>> {
-  Parser { text }.parse_document()
+/// Parses an html fragment into the arena.
+pub fn parse<'a>(text: &'a str, bump: &'a Bump) -> Result<Document<'a>, ParseError<'a>> {
+  Parser { text, bump }.parse_document()
 }
 
 struct Parser<'a> {
   text: &'a str,
+  bump: &'a Bump,
 }
 
 /// An element that has been opened and is waiting for its closing tag.
 struct Frame<'a> {
   name: &'a str,
-  attributes: Vec<Attribute<'a>>,
-  children: Vec<Node<'a>>,
+  attributes: &'a [Attribute<'a>],
+  children: BumpVec<'a, Node<'a>>,
   /// The position the element's open tag starts at.
   start: usize,
   /// The position the element's content starts at, which is just past its open
@@ -45,7 +49,7 @@ struct Markup<'a> {
 enum MarkupKind<'a> {
   OpenTag {
     name: &'a str,
-    attributes: Vec<Attribute<'a>>,
+    attributes: &'a [Attribute<'a>],
     self_closing: bool,
   },
   CloseTag {
@@ -69,8 +73,8 @@ enum VerbatimKind {
 impl<'a> Parser<'a> {
   fn parse_document(&self) -> Result<Document<'a>, ParseError<'a>> {
     let bytes = self.text.as_bytes();
-    let mut stack: Vec<Frame<'a>> = Vec::new();
-    let mut root: Vec<Node<'a>> = Vec::new();
+    let mut stack: BumpVec<'a, Frame<'a>> = BumpVec::new_in(self.bump);
+    let mut root: BumpVec<'a, Node<'a>> = BumpVec::new_in(self.bump);
     let mut text_start = 0;
     let mut pos = 0;
 
@@ -117,7 +121,7 @@ impl<'a> Parser<'a> {
             Node::Element(Element {
               name: frame.name,
               attributes: frame.attributes,
-              children: frame.children,
+              children: frame.children.into_bump_slice(),
               content: &self.text[frame.content_start..markup_start],
               source: &self.text[frame.start..pos],
               kind: ElementKind::Normal,
@@ -138,7 +142,7 @@ impl<'a> Parser<'a> {
               Node::Element(Element {
                 name,
                 attributes,
-                children: Vec::new(),
+                children: &[],
                 content: &self.text[pos..pos],
                 source: &self.text[markup_start..pos],
                 kind: ElementKind::Void,
@@ -155,9 +159,9 @@ impl<'a> Parser<'a> {
                 name,
                 attributes,
                 children: if content.is_empty() {
-                  Vec::new()
+                  &[]
                 } else {
-                  vec![Node::Text(content)]
+                  self.bump.alloc([Node::Text(content)])
                 },
                 content,
                 source: &self.text[markup_start..pos],
@@ -178,7 +182,7 @@ impl<'a> Parser<'a> {
               Node::Element(Element {
                 name,
                 attributes,
-                children: Vec::new(),
+                children: &[],
                 content: &self.text[pos..pos],
                 source: &self.text[markup_start..pos],
                 kind: ElementKind::SelfClosing,
@@ -189,7 +193,7 @@ impl<'a> Parser<'a> {
             stack.push(Frame {
               name,
               attributes,
-              children: Vec::new(),
+              children: BumpVec::new_in(self.bump),
               start: markup_start,
               content_start: pos,
               foreign,
@@ -205,7 +209,9 @@ impl<'a> Parser<'a> {
     }
     match stack.pop() {
       Some(frame) => Err(ParseError::UnclosedElement { name: frame.name }),
-      None => Ok(Document { children: root }),
+      None => Ok(Document {
+        children: root.into_bump_slice(),
+      }),
     }
   }
 
@@ -284,7 +290,7 @@ impl<'a> Parser<'a> {
       index += 1;
     }
     let name = &self.text[name_start..index];
-    let mut attributes = Vec::new();
+    let mut attributes = BumpVec::new_in(self.bump);
 
     loop {
       let after_whitespace = skip_whitespace(bytes, index);
@@ -293,7 +299,7 @@ impl<'a> Parser<'a> {
           return Ok(Some(Markup {
             kind: MarkupKind::OpenTag {
               name,
-              attributes,
+              attributes: attributes.into_bump_slice(),
               self_closing: false,
             },
             end: after_whitespace + 1,
@@ -303,7 +309,7 @@ impl<'a> Parser<'a> {
           return Ok(Some(Markup {
             kind: MarkupKind::OpenTag {
               name,
-              attributes,
+              attributes: attributes.into_bump_slice(),
               self_closing: true,
             },
             end: after_whitespace + 2,
@@ -433,7 +439,7 @@ impl<'a> Parser<'a> {
   }
 }
 
-fn push_node<'a>(stack: &mut [Frame<'a>], root: &mut Vec<Node<'a>>, node: Node<'a>) {
+fn push_node<'a>(stack: &mut [Frame<'a>], root: &mut BumpVec<'a, Node<'a>>, node: Node<'a>) {
   match stack.last_mut() {
     Some(frame) => frame.children.push(node),
     None => root.push(node),
@@ -477,7 +483,8 @@ mod test {
   /// Renders the parsed html compactly so a test can say what it expects on
   /// one line.
   fn describe(text: &str) -> String {
-    match parse(text) {
+    let bump = Bump::new();
+    match parse(text, &bump) {
       Ok(document) => document.children.iter().map(describe_node).collect(),
       Err(err) => format!("error({})", err),
     }
@@ -544,7 +551,8 @@ mod test {
 
   #[test]
   fn keeps_the_content_of_an_element_as_it_was_written() {
-    let document = parse("<div>  a  <b>c</b>  </div>").unwrap();
+    let bump = Bump::new();
+    let document = parse("<div>  a  <b>c</b>  </div>", &bump).unwrap();
     let Node::Element(element) = &document.children[0] else {
       panic!("expected an element");
     };
