@@ -2,6 +2,131 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://plugins.dprint.dev/dprint/dprint-plugin-markdown/0.0.0/schema.json",
   "type": "object",
+  "x-playground": {
+    "input": [
+      "Trail Notes",
+      "===========",
+      "A small command line tool for planning *day hikes*, with __offline maps__ and weather forecasts.",
+      "It keeps your routes in plain text files so they're easy to share and keep under version control.",
+      "",
+      "Features",
+      "--------",
+      "* Plan a route from a list of waypoints",
+      "* Estimate the time it takes based on distance and elevation gain",
+      "   * Adjusts for the pace you set",
+      "* Export to GPX",
+      "",
+      "",
+      "## Getting started",
+      "1. Install the tool",
+      "2.  Create a route:",
+      "",
+      "    ```sh",
+      "    trail new --name \"Lake Loop\" --start 47.61,-122.33",
+      "    ```",
+      "",
+      "| Command | What it does |",
+      "|---|---|",
+      "| `trail new` | Creates a route |",
+      "| `trail estimate` | Prints the time a route takes |",
+      "",
+      "See the [guide](docs/guide.md) for more.",
+      "<details><summary>Changelog</summary>",
+      "Added GPX export.",
+      "</details>"
+    ]
+  },
+  "x-sections": [
+    {
+      "title": "General",
+      "description": "The width and newlines of the file and the blank lines between its blocks.",
+      "properties": [
+        "lineWidth",
+        "newLineKind",
+        "maxBlankLines"
+      ]
+    },
+    {
+      "title": "Text wrapping",
+      "description": "How the text of paragraphs is split across lines.",
+      "properties": [
+        "textWrap",
+        "wrapUnspacedScripts",
+        "wrapCodeSpans"
+      ]
+    },
+    {
+      "title": "Emphasis and line breaks",
+      "description": "The characters written for emphasis, strong emphasis, and hard line breaks.",
+      "properties": [
+        "emphasisKind",
+        "strongKind",
+        "hardBreakKind"
+      ]
+    },
+    {
+      "title": "Headings",
+      "description": "The style of headings and the blank lines above them.",
+      "properties": [
+        "heading.kind",
+        "heading.blankLinesAbove",
+        "headingKind"
+      ]
+    },
+    {
+      "title": "Lists",
+      "description": "The markers and indentation of list items.",
+      "properties": [
+        "list.unorderedMarker",
+        "list.indentKind",
+        "unorderedListKind",
+        "listIndentKind"
+      ]
+    },
+    {
+      "title": "Code blocks",
+      "description": "The code within code blocks and the plugins that format it.",
+      "properties": [
+        "codeBlock.skipFormat",
+        "codeBlock.raiseSyntaxErrors",
+        "codeBlock.preserveIndentation",
+        "codeBlock.preserveBlankLines",
+        "codeBlock.useTabs",
+        "codeBlock.indentWidth",
+        "tags"
+      ]
+    },
+    {
+      "title": "HTML",
+      "description": "The layout of the html written within the file.",
+      "properties": [
+        "html.skipFormat",
+        "html.useTabs",
+        "html.indentWidth",
+        "html.selfClosingSpace",
+        "html.preferSingleLine"
+      ]
+    },
+    {
+      "title": "Tables",
+      "description": "The alignment and padding of table cells.",
+      "properties": [
+        "table.skipFormat",
+        "table.cellPadding",
+        "table.minColumnWidth"
+      ]
+    },
+    {
+      "title": "Ignore comments",
+      "description": "The comments that make the formatter leave Markdown as is.",
+      "properties": [
+        "ignoreDirective",
+        "ignoreFileDirective",
+        "ignoreStartDirective",
+        "ignoreEndDirective"
+      ]
+    }
+  ],
   "definitions": {
     "newLineKind": {
       "description": "The kind of newline to use.",
@@ -69,10 +194,10 @@
       "default": "underscores",
       "oneOf": [{
         "const": "asterisks",
-        "description": "Uses asterisks (*) for emphasis."
+        "description": "Uses asterisks (`*`) for emphasis."
       }, {
         "const": "underscores",
-        "description": "Uses underscores (_) for emphasis."
+        "description": "Uses underscores (`_`) for emphasis."
       }]
     },
     "strongKind": {
@@ -81,10 +206,10 @@
       "default": "asterisks",
       "oneOf": [{
         "const": "asterisks",
-        "description": "Uses asterisks (**) for strong emphasis."
+        "description": "Uses asterisks (`**`) for strong emphasis."
       }, {
         "const": "underscores",
-        "description": "Uses underscores (__) for strong emphasis."
+        "description": "Uses underscores (`__`) for strong emphasis."
       }]
     },
     "heading.kind": {
@@ -93,10 +218,10 @@
       "default": "atx",
       "oneOf": [{
         "const": "atx",
-        "description": "Uses # or ## before the heading text (ATX headings)."
+        "description": "Uses `#` or `##` before the heading text (ATX headings)."
       }, {
         "const": "setext",
-        "description": "Uses an underline of = or - beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
+        "description": "Uses an underline of `=` or `-` beneath the heading text (setext headings). Only applies to level 1 and 2 headings."
       }]
     },
     "hardBreakKind": {
@@ -117,10 +242,10 @@
       "default": "dashes",
       "oneOf": [{
         "const": "dashes",
-        "description": "Uses dashes (-) as primary character for lists."
+        "description": "Uses dashes (`-`) as primary character for lists."
       }, {
         "const": "asterisks",
-        "description": "Uses asterisks (*) as primary character for lists."
+        "description": "Uses asterisks (`*`) as primary character for lists."
       }]
     },
     "list.indentKind": {
@@ -129,7 +254,7 @@
       "default": "commonMark",
       "oneOf": [{
         "const": "commonMark",
-        "description": "Indents continuation lines to align with the content after the list marker (e.g. 3 spaces for '1. ', 4 for '10. ')."
+        "description": "Indents continuation lines to align with the content after the list marker (ex. 3 spaces for `1. ` and 4 for `10. `)."
       }, {
         "const": "pythonMarkdown",
         "description": "Always indents by 4 spaces, regardless of marker width."
@@ -196,7 +321,9 @@
     },
     "codeBlock.indentWidth": {
       "description": "The indentation width the plugin that formats the code within a code block should use, overriding that plugin's own `indentWidth` configuration. When not specified, that plugin's configuration is left alone.",
-      "type": "number"
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
     },
     "html.skipFormat": {
       "description": "Whether to leave the html written within the file as it was rather than laying out its tags and their content. Html that the formatter can't take apart and put back together -- a block that a blank line has split from its closing tag, for one -- is left as it was written either way.",
@@ -224,8 +351,10 @@
     },
     "html.indentWidth": {
       "description": "The number of spaces to indent the html written within the file with.",
-      "type": "number",
-      "default": 2
+      "type": "integer",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 255
     },
     "html.selfClosingSpace": {
       "description": "Whether to write a space before the `/>` that closes a self-closing tag, so that a tag is written as `<br />` rather than as `<br/>`.",
@@ -280,7 +409,7 @@
     },
     "table.minColumnWidth": {
       "description": "The least number of characters to write a table's column out to, which counts the colons of its delimiter. A column is never narrower than its delimiter needs, which is a dash and any colons. Only has an effect when `table.cellPadding` is `align`, since no other padding writes a column out to a width.",
-      "type": "number",
+      "type": "integer",
       "default": 1,
       "minimum": 1,
       "maximum": 255
@@ -291,10 +420,10 @@
       "default": false,
       "oneOf": [{
         "const": true,
-        "description": ""
+        "description": "Uses the configuration Deno uses."
       }, {
         "const": false,
-        "description": ""
+        "description": "Uses the configuration of this plugin."
       }]
     }
   },
@@ -302,48 +431,119 @@
     "lineWidth": {
       "description": "The width of a line the printer will try to stay under. Note that the printer may exceed this width in certain cases.",
       "default": 80,
-      "type": "number"
+      "type": "integer",
+      "minimum": 0
     },
     "newLineKind": {
       "$ref": "#/definitions/newLineKind"
     },
     "textWrap": {
-      "$ref": "#/definitions/textWrap"
+      "$ref": "#/definitions/textWrap",
+      "x-example": {
+        "config": {
+          "lineWidth": 40
+        },
+        "input": [
+          "The parser reads the file.",
+          "Then the printer writes it back out within the line width. Short lines are joined."
+        ]
+      }
     },
     "wrapUnspacedScripts": {
-      "$ref": "#/definitions/wrapUnspacedScripts"
+      "$ref": "#/definitions/wrapUnspacedScripts",
+      "x-example": {
+        "config": {
+          "lineWidth": 20,
+          "textWrap": "always"
+        },
+        "input": [
+          "東京都の天気は晴れのち曇りで、午後から雨が降るでしょう。"
+        ]
+      }
     },
     "wrapCodeSpans": {
-      "$ref": "#/definitions/wrapCodeSpans"
+      "$ref": "#/definitions/wrapCodeSpans",
+      "x-example": {
+        "config": {
+          "lineWidth": 40,
+          "textWrap": "always"
+        },
+        "input": [
+          "Install it by running `cargo install --locked my-tool` in a terminal."
+        ]
+      }
     },
     "emphasisKind": {
-      "$ref": "#/definitions/emphasisKind"
+      "$ref": "#/definitions/emphasisKind",
+      "x-example": {
+        "input": [
+          "This is *important* and _urgent_."
+        ]
+      }
     },
     "strongKind": {
-      "$ref": "#/definitions/strongKind"
+      "$ref": "#/definitions/strongKind",
+      "x-example": {
+        "input": [
+          "This is **important** and __urgent__."
+        ]
+      }
     },
     "hardBreakKind": {
-      "$ref": "#/definitions/hardBreakKind"
+      "$ref": "#/definitions/hardBreakKind",
+      "x-example": {
+        "input": [
+          "First line\\",
+          "Second line  ",
+          "Third line"
+        ]
+      }
     },
     "maxBlankLines": {
       "description": "The maximum number of consecutive blank lines to keep between blocks.",
       "default": 1,
       "minimum": 1,
-      "type": "number"
+      "type": "integer"
     },
     "heading.kind": {
-      "$ref": "#/definitions/heading.kind"
+      "$ref": "#/definitions/heading.kind",
+      "x-example": {
+        "input": [
+          "# Title",
+          "",
+          "Overview",
+          "--------",
+          "",
+          "### Details"
+        ]
+      }
     },
     "heading.blankLinesAbove": {
       "description": "The number of blank lines to write above a heading. That many are written even where `maxBlankLines` is lower, though a heading drawn up against the block above it within a list is left there, which keeps the list tight. When not specified, the blank lines that were written above a heading are kept, up to `maxBlankLines`.",
       "minimum": 1,
-      "type": "number"
+      "type": "integer"
     },
     "list.unorderedMarker": {
-      "$ref": "#/definitions/list.unorderedMarker"
+      "$ref": "#/definitions/list.unorderedMarker",
+      "x-example": {
+        "input": [
+          "* Apples",
+          "* Oranges",
+          "  * Navel",
+          "  * Blood"
+        ]
+      }
     },
     "list.indentKind": {
-      "$ref": "#/definitions/list.indentKind"
+      "$ref": "#/definitions/list.indentKind",
+      "x-example": {
+        "input": [
+          "1. Install",
+          "   - Download the file",
+          "   - Run it",
+          "2. Configure"
+        ]
+      }
     },
     "codeBlock.skipFormat": {
       "$ref": "#/definitions/codeBlock.skipFormat"
@@ -352,10 +552,27 @@
       "$ref": "#/definitions/codeBlock.raiseSyntaxErrors"
     },
     "codeBlock.preserveIndentation": {
-      "$ref": "#/definitions/codeBlock.preserveIndentation"
+      "$ref": "#/definitions/codeBlock.preserveIndentation",
+      "x-example": {
+        "input": [
+          "```sh",
+          "    cd project",
+          "    cargo build",
+          "```"
+        ]
+      }
     },
     "codeBlock.preserveBlankLines": {
-      "$ref": "#/definitions/codeBlock.preserveBlankLines"
+      "$ref": "#/definitions/codeBlock.preserveBlankLines",
+      "x-example": {
+        "input": [
+          "```sh",
+          "",
+          "cargo build",
+          "",
+          "```"
+        ]
+      }
     },
     "codeBlock.useTabs": {
       "$ref": "#/definitions/codeBlock.useTabs"
@@ -364,25 +581,70 @@
       "$ref": "#/definitions/codeBlock.indentWidth"
     },
     "html.skipFormat": {
-      "$ref": "#/definitions/html.skipFormat"
+      "$ref": "#/definitions/html.skipFormat",
+      "x-example": {
+        "input": [
+          "<div align=\"center\">",
+          "<img src=\"logo.png\" alt=\"Logo\">",
+          "  <p>A <b>fast</b> tool</p>",
+          "</div>"
+        ]
+      }
     },
     "html.useTabs": {
-      "$ref": "#/definitions/html.useTabs"
+      "$ref": "#/definitions/html.useTabs",
+      "x-example": {
+        "input": [
+          "<div align=\"center\">",
+          "<img src=\"logo.png\" alt=\"Logo\">",
+          "<p>A fast tool</p>",
+          "</div>"
+        ]
+      }
     },
     "html.indentWidth": {
       "$ref": "#/definitions/html.indentWidth"
     },
     "html.selfClosingSpace": {
-      "$ref": "#/definitions/html.selfClosingSpace"
+      "$ref": "#/definitions/html.selfClosingSpace",
+      "x-example": {
+        "input": [
+          "<p>Line one<br/>Line two<br />Line three</p>"
+        ]
+      }
     },
     "html.preferSingleLine": {
-      "$ref": "#/definitions/html.preferSingleLine"
+      "$ref": "#/definitions/html.preferSingleLine",
+      "x-example": {
+        "input": [
+          "<p",
+          "  align=\"center\">",
+          "  A fast tool",
+          "</p>"
+        ]
+      }
     },
     "table.skipFormat": {
-      "$ref": "#/definitions/table.skipFormat"
+      "$ref": "#/definitions/table.skipFormat",
+      "x-example": {
+        "input": [
+          "| Name | Size |",
+          "|---|--:|",
+          "| logo.png | 12 KB |",
+          "| readme.md | 3 KB |"
+        ]
+      }
     },
     "table.cellPadding": {
-      "$ref": "#/definitions/table.cellPadding"
+      "$ref": "#/definitions/table.cellPadding",
+      "x-example": {
+        "input": [
+          "| Name | Size |",
+          "|---|--:|",
+          "| logo.png | 12 KB |",
+          "|readme.md|3 KB|"
+        ]
+      }
     },
     "table.minColumnWidth": {
       "$ref": "#/definitions/table.minColumnWidth"
@@ -429,7 +691,7 @@
       "allOf": [{ "$ref": "#/definitions/list.indentKind" }]
     },
     "tags": {
-      "description": "Custom tag to file extension mappings for formatting code blocks. For example: { \"markdown\": \"md\" }",
+      "description": "Custom tag to file extension mappings for formatting code blocks (ex. `{ \"markdown\": \"md\" }`).",
       "type": "object",
       "additionalProperties": {
         "type": "string",
