@@ -30,6 +30,8 @@ jobs:
           deno-version: v2.x
       - name: Build release
         run: cargo build --target wasm32-unknown-unknown --features wasm --release
+      - name: Generate config schema
+        run: 'deno run -A --minimum-dependency-age=0 jsr:@dprint/automation@0.14.3/tasks/publish-schema target/wasm32-unknown-unknown/release/dprint_plugin_markdown.wasm deployment/schema.json --extension md'
       - name: Test
         run: cargo test
       - name: Get tag version
